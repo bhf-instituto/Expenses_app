@@ -14,7 +14,7 @@ const checkToken = async (req, res, next) => {
             const payload = verifyAccessToken(accessToken);
                         
             req.user = {
-                id_user: payload.id_user,
+                id: payload.id,
                 email: payload.email
             };
             return next();

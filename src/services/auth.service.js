@@ -24,13 +24,13 @@ export const register = async (email, password) => {
 
 
     const accessToken = jwt.sign(
-        { id_user: userId, email: normEmail },
+        { id: userId, email: normEmail },
         process.env.JWT_SECRET,
         { expiresIn: '15min' }
     );
 
     const refreshToken = jwt.sign(
-        { id_user: userId, email: normEmail },
+        { id: userId, email: normEmail },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '7d' }
     )
@@ -38,7 +38,7 @@ export const register = async (email, password) => {
     await saveRefreshToken(userId, refreshToken);
 
     return {
-        user: { id_user: userId, email: normEmail },
+        user: { id: userId, email: normEmail },
         accessToken,
         refreshToken
     };
@@ -53,6 +53,8 @@ export const login = async (email, password) => {
     }
 
     const user = users[0];
+
+    // console.log(user)
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!validPassword) {
@@ -60,21 +62,22 @@ export const login = async (email, password) => {
     }
 
     const accessToken = jwt.sign(
-        { id_user: user.id_user, email: normEmail },
+        { id: user.id, email: normEmail },
         process.env.JWT_SECRET,
         { expiresIn: '15m' }
     );
 
     const refreshToken = jwt.sign(
-        { id_user: user.id_user, email: normEmail },
+        { id: user.id, email: normEmail },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '7d' }
     );
 
     await saveRefreshToken(user.id, refreshToken);
 
+    
     return {
-        user: { id_user: user.id_user, email: normEmail },
+        user: { id: user.id, email: normEmail },
         accessToken,
         refreshToken
     };
