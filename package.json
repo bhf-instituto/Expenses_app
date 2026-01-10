@@ -1,0 +1,23 @@
+{
+  "name": "expenses_api",
+  "version": "1.0.0",
+  "description": "An app made to keep track on your expenses.",
+  "main": "server.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhf-instituto/Expenses_app.git"
+  },
+  "keywords": [
+    "expenses",
+    "api"
+  ],
+  "author": "mariano bauhoffer",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bhf-instituto/Expenses_app/issues"
+  },
+  "homepage": "https://github.com/bhf-instituto/Expenses_app#readme"
+}
