@@ -9,7 +9,7 @@ export const saveRefreshToken = async (userId, token) => {
 };
 
 export const deleteRefreshToken = async (refreshToken) => {
-    await dbConnection.query(
+    await conn.query(
         'DELETE FROM refresh_tokens WHERE token = ?',
         [refreshToken]
     );

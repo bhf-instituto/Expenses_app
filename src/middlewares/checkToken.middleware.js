@@ -12,6 +12,7 @@ const checkToken = async (req, res, next) => {
     if (accessToken) {
         try {
             const payload = verifyAccessToken(accessToken);
+                        
             req.user = {
                 id_user: payload.id_user,
                 email: payload.email
@@ -25,6 +26,8 @@ const checkToken = async (req, res, next) => {
     if (!refreshToken) return next();
 
     try {
+        // si no hay accessToken, pero si refreshToken, intento crear un
+        // accessToken, verificado con el refreshToken.
         const result = await refreshAccessToken(refreshToken);
         if (!result) return next();
 
