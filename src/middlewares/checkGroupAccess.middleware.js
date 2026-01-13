@@ -1,14 +1,31 @@
-import { findGroupUser } from '../repositories/set.repository.js';
+import { getRole } from '../repositories/set.repository.js';
 
 const checkGroupAccess = async (req, res, next) => {
-    const userId = req.user.id;
-    const groupId = req.params.id_group;
+    try {
+        const userId = req.user.id;
+        const setId = req.params.id_set;
 
-    const isAllawedAtGroup = await findGroupUser(groupId, userId);
+        const groupRole = await getRole(setId, userId);
 
-    if (!isAllawedAtGroup) return res.status(400).json({ ok: false })
+        if (!groupRole) return res.status(401).json({
+            ok: false,
+            data: {
+                message: 'you dont belong to this set'
+            }
+        });
 
-    next()
+        next()
+
+    } catch (error) {
+        return res.status(201).json({
+            ok: false,
+            data: {
+                error: error.message
+            }
+        });
+    }
+
+    // next()
 }
 
 export { checkGroupAccess };

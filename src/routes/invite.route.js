@@ -6,7 +6,7 @@ import { checkGroupAccess } from '../middlewares/checkGroupAccess.middleware.js'
 
 const router = Router();
 
-router.post('/:id_group/create', requireUser, checkGroupAccess, createInvite);
-router.post('/accept', acceptInvite);
+router.post('/create/:id_set', requireUser, checkGroupAccess, createInvite);
+router.post('/accept', requireUser, acceptInvite);
 
 export default router;

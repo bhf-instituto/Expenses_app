@@ -15,7 +15,7 @@ app.use(checkToken)
 
 
 app.get('/', (req, res) => {
-    return res.status(200).json({ok:true})
+    return res.status(200).json({ok:true});
 });
 
 app.use('/auth', authRouter);

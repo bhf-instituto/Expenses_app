@@ -1,22 +1,32 @@
-import { checkCreatedSet, findSetsCreated, getUserRoleInSet } from '../repositories/set.repository.js'
+import * as setService from '../services/set.service.js'
 
 const createSet = async (req, res) => {
-    const setName = req.body.set_name;
-    const userId = req.user.id;
+    try {
+        const setName = req.body.set_name;
+        const userId = req.user.id;
 
-    if(!setName) res.status(400).json({ ok: false, message: "missing set_name" });
+        if (!setName) return res.status(400).json({
+            ok: false,
+            message: "missing set_name"
+        });
 
-    const userRoleAtGroup = await getUserRoleInSet(userId, setName);
+        const result = await setService.create(userId, setName)
 
-    // console.log(userRoleAtGroup);
+        return res.status(201).json({
+            ok: true,
+            data: {
+                message: 'set created correctly',
+                set: result.set
+            }
+        });
 
-    // const setExists = await checkCreatedSet(userId, setName);
 
-    // if (setExists) return res.status(400).json({ ok: false, message: "group exists, created by you" });
-
-
-
-    return res.status(200).json({ ok: true, userRole: userRoleAtGroup })
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
 }
 
 export { createSet }

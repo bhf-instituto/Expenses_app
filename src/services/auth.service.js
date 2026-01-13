@@ -1,36 +1,35 @@
 import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
-import { findUserByEmail, createUser } from '../repositories/auth.repository.js';
+import { findUserByEmail, createUser, userExistsByEmail } from '../repositories/auth.repository.js';
 import { deleteRefreshToken, saveRefreshToken } from '../repositories/refreshToken.repository.js';
 import { validateEmail } from '../utils/validations.utils.js';
 
 const saltRounds = Number(process.env.SALT_ROUNDS);
 
 export const register = async (email, password) => {
-    const normEmail = email.toLowerCase().trim();
-    const isValidEmail = validateEmail(normEmail);
+    const isValidEmail = validateEmail(email);
 
     if (!isValidEmail) {
         throw { status: 409, message: 'invalid email format or domain' };
     }
 
-    const existingUser = await findUserByEmail(normEmail);
+    const userExists = await userExistsByEmail(email);
 
-    if (existingUser.length > 0) {
+    if (userExists.length > 0) {
         throw { status: 409, message: 'user already exists' };
     }
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const userId = await createUser(normEmail, hashedPassword);
+    const userId = await createUser(email, hashedPassword);
 
 
     const accessToken = jwt.sign(
-        { id: userId, email: normEmail },
+        { id: userId, email: email },
         process.env.JWT_SECRET,
         { expiresIn: '15min' }
     );
 
     const refreshToken = jwt.sign(
-        { id: userId, email: normEmail },
+        { id: userId, email: email },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '7d' }
     )
@@ -38,7 +37,7 @@ export const register = async (email, password) => {
     await saveRefreshToken(userId, refreshToken);
 
     return {
-        user: { id: userId, email: normEmail },
+        user: { id: userId, email: email },
         accessToken,
         refreshToken
     };
