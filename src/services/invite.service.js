@@ -1,4 +1,5 @@
 import { findUserByEmail, userExistsByEmail } from "../repositories/auth.repository.js";
+import { getRole } from "../repositories/set.repository.js";
 import { normString, validateEmail } from "../utils/validations.utils.js"
 import jwt from "jsonwebtoken";
 
@@ -23,20 +24,18 @@ const create = async (userId, setId, invitedUserEmail) => {
         { expiresIn: '7d' }
     )
 
-    return {
-        token : inviteToken
-    }
+    return inviteToken;
 }
 
 const accept = (inviteToken) => {
-
     const payload = jwt.verify(inviteToken, process.env.JWT_INVITE_SECRET);
 
-    if(!payload) console.log("→→");
-      
+    if (payload.type !== 'invite') throw { status: 409, message: 'invalid token type' };
+
+    const isSetParticipant = await getRole();
 
     // console.log(payload);
-    
+
 }
 
 export { create, accept }

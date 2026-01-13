@@ -26,7 +26,7 @@ const createInvite = async (req, res) => {
 
         const result = await inviteService.create(userId, setId, invitedUserEmail);
 
-        return res.status(200).json({ ok: true, invite_token: result.token })
+        return res.status(200).json({ ok: true, invite_token: result})
 
     } catch (error) {
         return res.status(error.status || 500).json({
