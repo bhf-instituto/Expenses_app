@@ -14,6 +14,7 @@ const create = async (userId, setId, invitedUserEmail) => {
 
     const inviteToken = jwt.sign(
         {
+            type: 'invite',
             user_id: userId,
             set_id: setId,
             invited_user_email: invitedUserEmail
