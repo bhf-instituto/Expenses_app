@@ -15,7 +15,8 @@ const normString = (string) => string.toLowerCase().trim();
 
 
 function validateEmail(email_) {
-    email = normString(email_);
+
+    const email = normString(email_);
 
     if (email.length > 127) return false;
 

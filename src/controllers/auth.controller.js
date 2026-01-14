@@ -1,20 +1,49 @@
 import * as authService from '../services/auth.service.js';
 
+// export const setAuthCookies = (res, accessToken, refreshToken) => {
+//     if (typeof accessToken === 'string') {
+//         res.cookie('access_token', accessToken, {
+//             httpOnly: true,
+//             secure: process.env.NODE_ENV === 'production',
+//             sameSite: 'lax',
+//             path: '/',
+//             maxAge: 1000 * 60 * 15
+//         });
+//     }
+
+//     if (typeof refreshToken === 'string') {
+//         res.cookie('refresh_token', refreshToken, {
+//             httpOnly: true,
+//             secure: process.env.NODE_ENV === 'production',
+//             sameSite: 'lax',
+//             path: '/',
+//             maxAge: 1000 * 60 * 60 * 24 * 7
+//         });
+//     }
+// };
+
 const setAuthCookies = (res, accessToken, refreshToken) => {
-    res
-        .cookie('access_token', accessToken, {
+    if (accessToken) {
+        res.cookie('access_token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            path: '/',
+            sameSite: 'lax',
             maxAge: 1000 * 60 * 15
-        })
-        .cookie('refresh_token', refreshToken, {
+        });
+    }
+
+    if (refreshToken) {
+        res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            path: '/',
+            sameSite: 'lax',
             maxAge: 1000 * 60 * 60 * 24 * 7
         });
+    }
 };
+
 
 export const registerUser = async (req, res) => {
     try {
@@ -67,6 +96,8 @@ export const loginUser = async (req, res) => {
         });
 
     } catch (error) {
+        console.log(error);
+        
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
@@ -76,9 +107,10 @@ export const loginUser = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
     try {
-        const refreshToken = req.cookies?.refresh_token;
+        // const refreshToken = req.cookies?.refresh_token;
+        const userId = req.user.id;
 
-        await authService.logout(refreshToken);
+        await authService.logout(userId);
 
         return res
             .clearCookie('access_token')

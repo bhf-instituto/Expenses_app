@@ -6,15 +6,29 @@ export const findUserByEmail = async (email) => {
         'SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1',
         [email]
     );
-    return rows;
+    return {
+        exist: rows.length > 0,
+        id: rows[0].id,
+        email: rows[0].email,
+        password_hash: rows[0].password_hash};
 };
 
 export const userExistsByEmail = async (email) => {
     const [rows] = await conn.query(
-        'SELECT 1 FROM users WHERE email = ? LIMIT 1',
+        'SELECT id FROM users WHERE email = ? LIMIT 1',
         [email]
     );
-    return rows.length > 0;
+
+
+    console.log({
+        exist: rows.length > 0,
+        id: rows[0]?.id
+    })
+
+    return {
+        exist: rows.length > 0,
+        id: rows[0]?.id
+    };
 };
 
 export const createUser = async (email, passwordHash) => {
@@ -24,4 +38,5 @@ export const createUser = async (email, passwordHash) => {
     );
     return result.insertId;
 };
+
 

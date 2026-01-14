@@ -7,6 +7,7 @@ const checkGroupAccess = async (req, res, next) => {
 
         const groupRole = await getRole(setId, userId);
 
+
         if (!groupRole) return res.status(401).json({
             ok: false,
             data: {
@@ -14,10 +15,17 @@ const checkGroupAccess = async (req, res, next) => {
             }
         });
 
+        req.user.set = {
+            id : setId,
+            role: groupRole.role
+        }
+
         next()
 
     } catch (error) {
-        return res.status(201).json({
+        console.log(error);
+        
+        return res.status(501).json({
             ok: false,
             data: {
                 error: error.message

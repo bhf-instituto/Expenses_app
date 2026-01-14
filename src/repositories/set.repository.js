@@ -11,6 +11,8 @@ import conn from "../config/db_connection.config.js"
 //     return result;
 // }
 
+
+
 export const isUserInSet_name = async (userId, setName) => {
 
     const [result] = await conn.query(`
@@ -128,3 +130,11 @@ export const createSet = async (setName, userId) => {
         connection.release();
     }
 };
+
+export const addSetParticipant = async (setId, userId) => {
+    const [result] = await conn.query(`
+        INSERT INTO set_users (set_id, user_id, role)
+        VALUES (?, ?, 0)
+        `,
+    [setId, userId])
+}

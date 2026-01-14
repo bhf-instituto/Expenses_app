@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createSet } from '../controllers/set.controller.js'
-import checkToken from '../middlewares/checkToken.middleware.js';
+import checkToken from '../middlewares/attachSession.middleware.js';
 import { requireUser } from '../middlewares/requireUser.middleware.js';
 
 const router = Router();

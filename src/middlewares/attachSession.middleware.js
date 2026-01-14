@@ -3,16 +3,23 @@ import {
     refreshAccessToken
 } from '../services/token.service.js';
 
-const checkToken = async (req, res, next) => {
+const attachSession = async (req, res, next) => {
     req.user = null;
 
     const accessToken = req.cookies?.access_token;
-    const refreshToken = req.cookies?.refresh_token;
+
+    // esto evita que pase un string == "undefined"
+    const refreshToken =
+        typeof req.cookies?.refresh_token === 'string' &&
+            req.cookies.refresh_token !== 'undefined'
+            ? req.cookies.refresh_token
+            : null;
 
     if (accessToken) {
+
         try {
             const payload = verifyAccessToken(accessToken);
-                        
+
             req.user = {
                 id: payload.id,
                 email: payload.email
@@ -23,7 +30,10 @@ const checkToken = async (req, res, next) => {
         }
     }
 
+
+    // no hay tokens, no hay sesión.
     if (!refreshToken) return next();
+
 
     try {
         // si no hay accessToken, pero si refreshToken, intento crear un
@@ -35,6 +45,7 @@ const checkToken = async (req, res, next) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
+            path: '/',
             maxAge: 1000 * 60 * 15
         });
 
@@ -46,4 +57,4 @@ const checkToken = async (req, res, next) => {
     }
 };
 
-export default checkToken;
+export default attachSession;

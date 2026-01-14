@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import { findUserByEmail, createUser, userExistsByEmail } from '../repositories/auth.repository.js';
-import { deleteRefreshToken, saveRefreshToken } from '../repositories/refreshToken.repository.js';
+import { deleteRefreshTokenByUserId, saveOrUpdateRefreshToken } from '../repositories/refreshToken.repository.js';
 import { validateEmail } from '../utils/validations.utils.js';
 
 const saltRounds = Number(process.env.SALT_ROUNDS);
@@ -13,9 +13,9 @@ export const register = async (email, password) => {
         throw { status: 409, message: 'invalid email format or domain' };
     }
 
-    const userExists = await userExistsByEmail(email);
+    const user = await userExistsByEmail(email);
 
-    if (userExists.length > 0) {
+    if (user.exist) {
         throw { status: 409, message: 'user already exists' };
     }
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -34,7 +34,8 @@ export const register = async (email, password) => {
         { expiresIn: '7d' }
     )
 
-    await saveRefreshToken(userId, refreshToken);
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, saltRounds)
+    await saveOrUpdateRefreshToken(userId, hashedRefreshToken);
 
     return {
         user: { id: userId, email: email },
@@ -46,14 +47,12 @@ export const register = async (email, password) => {
 export const login = async (email, password) => {
     const normEmail = email.trim().toLowerCase();
 
-    const users = await findUserByEmail(normEmail);
-    if (users.length === 0) {
+    const user = await findUserByEmail(normEmail);
+
+    if (!user.exist) {
         throw { status: 401, message: 'user does not exist' };
     }
 
-    const user = users[0];
-
-    // console.log(user)
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!validPassword) {
@@ -72,9 +71,10 @@ export const login = async (email, password) => {
         { expiresIn: '7d' }
     );
 
-    await saveRefreshToken(user.id, refreshToken);
-
+    const hashedRefreshToken = await bcrypt.hash(refreshToken ,saltRounds);
     
+    await saveOrUpdateRefreshToken(user.id, hashedRefreshToken);
+
     return {
         user: { id: user.id, email: normEmail },
         accessToken,
@@ -82,9 +82,11 @@ export const login = async (email, password) => {
     };
 };
 
-export const logout = async (refreshToken) => {
+export const logout = async (userId) => {
 
-    if (!refreshToken) return;
+    if (!userId) return null;
     
-    await deleteRefreshToken(refreshToken);
+    await deleteRefreshTokenByUserId(userId);
+
+    return true;
 }

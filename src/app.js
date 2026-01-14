@@ -4,18 +4,21 @@ import inviteRouter from './routes/invite.route.js';
 import setRouter from './routes/set.route.js';
 import healthRouter from './routes/health.route.js';
 import cookieParser from 'cookie-parser';
-import checkToken from './middlewares/checkToken.middleware.js';
+import attachSession from './middlewares/attachSession.middleware.js';
+import { hashSomething } from './utils/test_scripts.js';
 
 const app = express();
 
 
 app.use(express.json());
 app.use(cookieParser())
-app.use(checkToken)
+app.use(attachSession)
 
 
 app.get('/', (req, res) => {
-    return res.status(200).json({ok:true});
+    // console.log(hashSomething());
+
+    return res.status(200).json({ ok: true });
 });
 
 app.use('/auth', authRouter);
