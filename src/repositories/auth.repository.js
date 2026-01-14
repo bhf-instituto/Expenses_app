@@ -18,13 +18,6 @@ export const userExistsByEmail = async (email) => {
         'SELECT id FROM users WHERE email = ? LIMIT 1',
         [email]
     );
-
-
-    console.log({
-        exist: rows.length > 0,
-        id: rows[0]?.id
-    })
-
     return {
         exist: rows.length > 0,
         id: rows[0]?.id
