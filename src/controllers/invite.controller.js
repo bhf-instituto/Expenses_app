@@ -41,7 +41,7 @@ const createInvite = async (req, res) => {
         return res.status(200).json({ ok: true, invite_token: result})
 
     } catch (error) {
-        console.log(error);
+        // console.log(error);
         
         return res.status(error.status || 500).json({
             ok: false,
@@ -73,6 +73,7 @@ const acceptInvite = async (req, res) => {
             message: "added to group correctly as participant"})
 
     } catch (error) {
+        console.log(error);
         
         return res.status(error.status || 500).json({
             ok: false,

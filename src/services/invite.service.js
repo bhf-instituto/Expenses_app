@@ -38,10 +38,10 @@ const accept = async (userId, inviteToken) => {
     if (payload.type !== 'invite') throw { status: 409, message: 'invalid token type' };
 
     if(payload.invited_id !== userId) throw { status: 409, message: 'invitation is not for you' };
-
+    
     const alreadyParticipant = await getRole(payload.set_id, userId);
     
-    if(alreadyParticipant) throw { status: 409, message: 'already participant' };
+    if(alreadyParticipant == 0 || alreadyParticipant == 1 ) throw { status: 409, message: 'already participant' };
 
     await addSetParticipant(payload.set_id, userId);
     

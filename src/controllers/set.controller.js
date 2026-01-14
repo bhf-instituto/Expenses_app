@@ -29,4 +29,28 @@ const createSet = async (req, res) => {
     }
 }
 
-export { createSet }
+const getAllSets = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userSets = await setService.getAll(userId);
+
+        if (!userSets) return res.status(400).json({
+            ok: false,
+            message: "user doesnt belong to any set yet"
+        });
+
+        return res.status(201).json({
+            ok: true,
+            sets: userSets
+
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+
+export { createSet, getAllSets }

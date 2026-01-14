@@ -94,7 +94,9 @@ export const getRole = async (setId, userId) => {
          `,
         [setId, userId]
     )
-    return result[0];
+
+    if(result.length > 0) return result[0].role;
+    return null;
 };
 
 export const createSet = async (setName, userId) => {
@@ -136,5 +138,22 @@ export const addSetParticipant = async (setId, userId) => {
         INSERT INTO set_users (set_id, user_id, role)
         VALUES (?, ?, 0)
         `,
-    [setId, userId])
+        [setId, userId])
+}
+
+export const getAllSetsById = async (userId) => {
+    const [sets] = await conn.query(`
+        SELECT s.id, s.name, su.role
+        FROM sets s
+        JOIN set_users su ON su.set_id = s.id
+        WHERE su.user_id = ?
+        ORDER BY s.created_at DESC;
+        `,
+        [userId]
+    )
+
+    return {
+        has: sets.length > 0,
+        sets : sets
+    };
 }

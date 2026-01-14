@@ -13,7 +13,6 @@ const ALLOWED_DOMAINS = new Set([
 const normString = (string) => string.toLowerCase().trim();
 
 
-
 function validateEmail(email_) {
 
     const email = normString(email_);
@@ -33,5 +32,11 @@ function validateEmail(email_) {
     return true;
 }
 
+function validateInt(value) {
+    const number = Number(value);
+    if (Number.isInteger(number) && number >= 0) return number;
 
-export { validateEmail, normString }
+    return null;
+}
+
+export { validateEmail, normString, validateInt }
