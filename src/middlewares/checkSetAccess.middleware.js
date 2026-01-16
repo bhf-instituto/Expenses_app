@@ -7,9 +7,8 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
             const userId = req.user.id;
             let setId;
 
-
             if (setContext) {
-                setId = req.user.set.id;
+                setId = req.set.id;
             } else {
                 setId = req.params.id_set;
             }
@@ -34,11 +33,11 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
                 });
             }
             
-            req.user.set = {
+            req.set = {
                 id: setId,
                 role
             };
-            ;
+            
             next();
 
         } catch (error) {

@@ -1,5 +1,5 @@
-import { normString } from "../utils/validations.utils.js";
-import { findCategoryById, findCategoryByUnique, createCategory, getAllFromSet, editCategory } from '../repositories/category.repository.js'
+import { normString, validateExpenseType } from "../utils/validations.utils.js";
+import { findCategoryById, findCategoryByUnique, createCategory, getAllFromSet, editCategory, deleteCategoryById } from '../repositories/category.repository.js'
 import { AppError } from '../errors/appError.js';
 import EXPENSE_TYPE from "../constants/expenseTypes.constant.js";
 
@@ -55,17 +55,21 @@ export const edit = async (categoryId, categoryName, setId, changeType) => {
 
 }
 
+export const del = async (categoryId, setId) => {
+
+    const result = await deleteCategoryById(categoryId, setId);
+
+    if(!result) throw new AppError('Error deleting category')
+
+    return result;
+}
 export const getAll = async (setId, expenseType) => {
 
-    // const expenseType_ = Number(expenseType);
+    // aca normalizo, si no es válido devuelve undefined y no rompe la 
+    // query getAllFromSet, ya que ambas opciones son válidas.
+    const validExpenseType = validateExpenseType(expenseType);
 
-    // console.log(expenseType_);
-
-    // verifico si pertenece a los valores de EXPENSE_TYPE
-    if (!Object.values(EXPENSE_TYPE).includes(expenseType))
-        expenseType = undefined;
-
-    const categories = await getAllFromSet(setId, expenseType);
+    const categories = await getAllFromSet(setId, validExpenseType);
 
     return categories;
 }

@@ -2,7 +2,7 @@ import express, { json } from 'express';
 import authRouter from './routes/auth.route.js';
 import inviteRouter from './routes/invite.route.js';
 import setsRouter from './routes/set.route.js';
-import categoriesRouter from './routes/category.route.js';
+import categoriesRouter from './routes/categories.route.js';
 import healthRouter from './routes/health.route.js';
 import cookieParser from 'cookie-parser';
 import attachSession from './middlewares/attachSession.middleware.js';
@@ -12,8 +12,8 @@ const app = express();
 
 
 app.use(express.json());
-app.use(cookieParser())
-app.use(attachSession)
+app.use(cookieParser());
+app.use(attachSession);
 
 
 app.get('/', (req, res) => {

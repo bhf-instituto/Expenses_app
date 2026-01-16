@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireUser } from '../middlewares/requireUser.middleware.js';
 import { attachCategoryContext } from '../middlewares/attachCategoryContext.middleware.js';
 import { checkSetAccess } from '../middlewares/checkSetAccess.middleware.js';
-import { createCategory, getAllCategoriesFromSet, editCategory, deleteCategory } from '../controllers/category.controller.js';
+import { editCategory, deleteCategory } from '../controllers/category.controller.js';
 
 const router = Router();
 

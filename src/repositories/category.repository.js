@@ -51,8 +51,8 @@ export const getAllFromSet_ = async (setId) => {
 }
 
 export const getAllFromSet = async (setId, expenseType = null) => {
-    
-    
+
+
     let sql = `
         SELECT id, name, expense_type
         FROM categories
@@ -61,15 +61,18 @@ export const getAllFromSet = async (setId, expenseType = null) => {
 
     const params = [setId];
 
-    if (expenseType !== null ) {
+    if (expenseType !== null) {
         sql += ' AND expense_type = ?';
         params.push(expenseType);
     }
 
+
     const [result] = await conn.query(sql, params);
+
+    console.log("→→", result);
+
     return result;
 };
-
 
 export const editCategory_ = async (categoryId, categoryName) => {
 
@@ -109,3 +112,15 @@ export const editCategory = async (
 
     return result.affectedRows;
 };
+
+export const deleteCategoryById = async (categoryId, setId) => {
+    const [rows] = await conn.query(`
+        DELETE FROM categories
+        WHERE id = ?
+            AND set_id = ?;
+        `,
+    [categoryId, setId]
+    )
+
+    return rows.affectedRows > 0;
+}

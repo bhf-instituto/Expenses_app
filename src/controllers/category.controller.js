@@ -32,11 +32,27 @@ const createCategory = async (req, res) => {
     }
 }
 
-const deleteCategory = async (res, req) => {
+const deleteCategory = async (req, res) => {
     try {
-        const categoryId = req.params.id_category;
+        console.log("→→ ", req.set);
+        const categoryId = req.category_id;
+        const setId = req.set.id;
+
+        const result = await categoryService.del(categoryId, setId);
+
+        if (!result)
+            return res.status(404).json({ ok: true, message: "error deleting category" })
+
+        return res.status(200).json({
+            ok: true,
+            category_id: result,
+            message: "category deleted correctly"
+        })
+
 
     } catch (error) {
+        console.log(error);
+
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
@@ -48,18 +64,16 @@ const getAllCategoriesFromSet = async (req, res) => {
     try {
 
         const setId = req.params.id_set;
-        let expenseType = req.query.expense_type;        
+        let expenseType = req.query.expense_type;
+
+        // console.log(expenseType);
+
 
         if (!setId) {
             return res.status(400).json({ ok: false, message: 'all fields needed' })
         }
-
-        // if(expenseType !== undefined) {
-        //     expenseType = Number(expenseType);
-        // }
-
-        // console.log("→ → ", expenseType);
-        
+        // if (!expenseType)
+        //     return res.status(400).json({ ok: false, message: 'expense_type req.query required' })
 
         const result = await categoryService.getAll(setId, expenseType);
 

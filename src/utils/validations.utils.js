@@ -1,3 +1,5 @@
+import EXPENSE_TYPE from "../constants/expenseTypes.constant.js";
+
 const BASE_EMAIL_REGEX =
     /^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -49,8 +51,13 @@ function validateInt(value) {
     return null;
 }
 
+function validateExpenseType(value_) {
+    let value = Number(value_)
+    
+    if (!Object.values(EXPENSE_TYPE).includes(value)){
+        return undefined;
+    }
+    return value;
+}
 
-// function validateCategoryType(value) {
-//     return value === 0 || value === 1 || value === "0" || value === "1";
-// }
-export { validateEmail, normString, validateInt }
+export { validateEmail, normString, validateInt, validateExpenseType }
