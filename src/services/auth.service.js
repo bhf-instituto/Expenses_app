@@ -3,33 +3,31 @@ import jwt from "jsonwebtoken";
 import { findUserByEmail, createUser, userExistsByEmail } from '../repositories/auth.repository.js';
 import { deleteRefreshTokenByUserId, saveOrUpdateRefreshToken } from '../repositories/refreshToken.repository.js';
 import { validateEmail } from '../utils/validations.utils.js';
+import { AppError } from '../errors/appError.js';
 
 const saltRounds = Number(process.env.SALT_ROUNDS);
 
 export const register = async (email, password) => {
-    const isValidEmail = validateEmail(email);
+    const validEmail = validateEmail(email);
 
-    if (!isValidEmail) {
-        throw { status: 409, message: 'invalid email format or domain' };
-    }
+    if (!validEmail) throw new AppError('invalid email format', 400);
 
-    const user = await userExistsByEmail(email);
+    const user = await userExistsByEmail(validEmail);
 
-    if (user.exist) {
-        throw { status: 409, message: 'user already exists' };
-    }
+    if (user) throw new AppError('user already exists', 400);
+
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const userId = await createUser(email, hashedPassword);
+    const userId = await createUser(validEmail, hashedPassword);
 
 
     const accessToken = jwt.sign(
-        { id: userId, email: email },
+        { id: userId, email: validEmail},
         process.env.JWT_SECRET,
         { expiresIn: '15min' }
     );
 
     const refreshToken = jwt.sign(
-        { id: userId, email: email },
+        { id: userId, email: validEmail},
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '7d' }
     )
@@ -38,35 +36,34 @@ export const register = async (email, password) => {
     await saveOrUpdateRefreshToken(userId, hashedRefreshToken);
 
     return {
-        user: { id: userId, email: email },
+        user: { id: userId, email: validEmail},
         accessToken,
         refreshToken
     };
 }
 
 export const login = async (email, password) => {
-    const normEmail = email.trim().toLowerCase();
 
-    const user = await findUserByEmail(normEmail);
+    const validEmail = validateEmail(email);
 
-    if (!user.exist) {
-        throw { status: 401, message: 'user does not exist' };
-    }
+    if(!validEmail) throw new AppError('invalid email format', 404);
+
+    const user = await findUserByEmail(validEmail);
+
+    if(!user) throw new AppError('user doesnt exists', 401);
 
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
-    if (!validPassword) {
-        throw { status: 401, message: 'wrong password' };
-    }
+    if (!validPassword) throw new AppError('invalid password', 400);
 
     const accessToken = jwt.sign(
-        { id: user.id, email: normEmail },
+        { id: user.id, email: validEmail },
         process.env.JWT_SECRET,
         { expiresIn: '15m' }
     );
 
     const refreshToken = jwt.sign(
-        { id: user.id, email: normEmail },
+        { id: user.id, email: validEmail },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '7d' }
     );
@@ -76,7 +73,7 @@ export const login = async (email, password) => {
     await saveOrUpdateRefreshToken(user.id, hashedRefreshToken);
 
     return {
-        user: { id: user.id, email: normEmail },
+        user: { id: user.id, email: validEmail },
         accessToken,
         refreshToken
     };

@@ -1,4 +1,41 @@
 import conn from "../config/db_connection.config.js"
+import SET_ROLE from "../constants/setRoles.js";
+
+export const deleteSet = async (setId) => {
+    const [result] = await conn.query(`
+        DELETE FROM sets
+        WHERE id = ?
+        `,
+        [setId]
+    )
+
+    return result.affectedRows > 0;
+}
+
+
+export const editSetName = async (setId, setName) => {
+    const [result] = await conn.query(`
+        UPDATE sets 
+        SET name = ?
+        WHERE id = ?
+        `,
+        [setName, setId]
+    )
+
+    return result.affectedRows > 0;
+}
+
+export const getSetByCategoryId = async (categoryId) => {
+    const [row] = await conn.query(`
+        SELECT set_id
+        FROM categories
+        WHERE id = ?
+        `,
+        [categoryId]
+    )
+
+    return row;
+}
 
 // export const findGroupUser = async (groupId, userId) => {
 
@@ -95,7 +132,7 @@ export const getRole = async (setId, userId) => {
         [setId, userId]
     )
 
-    if(result.length > 0) return result[0].role;
+    if (result.length > 0) return result[0].role;
     return null;
 };
 
@@ -116,9 +153,9 @@ export const createSet = async (setName, userId) => {
 
         await connection.query(`
        INSERT INTO set_users (set_id, user_id, role)
-       VALUES ( ?, ?, 1)
+       VALUES ( ?, ?, ?)
         `,
-            [setId, userId]
+            [setId, userId, SET_ROLE.ADMIN]
         )
 
         await connection.commit();
@@ -136,9 +173,11 @@ export const createSet = async (setName, userId) => {
 export const addSetParticipant = async (setId, userId) => {
     const [result] = await conn.query(`
         INSERT INTO set_users (set_id, user_id, role)
-        VALUES (?, ?, 0)
+        VALUES (?, ?, ?)
         `,
-        [setId, userId])
+        [setId, userId, SET_ROLE.PARTICIPANT]);
+
+    return result.insertId;
 }
 
 export const getAllSetsById = async (userId) => {
@@ -152,8 +191,21 @@ export const getAllSetsById = async (userId) => {
         [userId]
     )
 
-    return {
-        has: sets.length > 0,
-        sets : sets
-    };
+    return sets;
+    // return {
+    //     has: sets.length > 0,
+    //     sets: sets
+    // };
+}
+
+export const getSetById = async (setId) => {
+    const [set] = await conn.query(`
+        SELECT name, created_at 
+        FROM sets
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [setId]
+    )
+    return set[0];
 }

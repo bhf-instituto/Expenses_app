@@ -1,11 +1,12 @@
 import express, { json } from 'express';
 import authRouter from './routes/auth.route.js';
 import inviteRouter from './routes/invite.route.js';
-import setRouter from './routes/set.route.js';
-import categoryRouter from './routes/category.route.js';
+import setsRouter from './routes/set.route.js';
+import categoriesRouter from './routes/category.route.js';
 import healthRouter from './routes/health.route.js';
 import cookieParser from 'cookie-parser';
 import attachSession from './middlewares/attachSession.middleware.js';
+import { errorHandler } from './middlewares/errorHandler.middleware.js';
 
 const app = express();
 
@@ -21,11 +22,11 @@ app.get('/', (req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/invite', inviteRouter);
-app.use('/set', setRouter);
-app.use('/category', categoryRouter);
+app.use('/sets', setsRouter);
+app.use('/categories', categoriesRouter);
 
 app.use('/health', healthRouter);
 
-
+app.use(errorHandler);
 
 export default app;

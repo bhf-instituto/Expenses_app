@@ -10,7 +10,17 @@ const ALLOWED_DOMAINS = new Set([
     "icloud.com"
 ]);
 
-const normString = (string) => string.toLowerCase().trim();
+const normString = (str) => {
+    const normalized = str
+        .trim()
+        .replace(/\s+/g, ' ');
+
+    if ((normalized.match(/ /g) || []).length > 4) {
+        return false;
+    }
+    if (normalized.length < 6) return false;
+    return normalized.toLowerCase();
+};
 
 
 function validateEmail(email_) {
@@ -29,7 +39,7 @@ function validateEmail(email_) {
 
     if (!ALLOWED_DOMAINS.has(domain)) return false;
 
-    return true;
+    return email_;
 }
 
 function validateInt(value) {
@@ -39,4 +49,8 @@ function validateInt(value) {
     return null;
 }
 
+
+// function validateCategoryType(value) {
+//     return value === 0 || value === 1 || value === "0" || value === "1";
+// }
 export { validateEmail, normString, validateInt }

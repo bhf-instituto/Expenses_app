@@ -1,13 +1,24 @@
 import { Router } from 'express';
-import { checkGroupAccess } from '../middlewares/checkGroupAccess.middleware.js';
-import { createCategory, getAllCategoriesFromSet } from '../controllers/category.controller.js';
 import { requireUser } from '../middlewares/requireUser.middleware.js';
+import { attachCategoryContext } from '../middlewares/attachCategoryContext.middleware.js';
+import { checkSetAccess } from '../middlewares/checkSetAccess.middleware.js';
+import { createCategory, getAllCategoriesFromSet, editCategory, deleteCategory } from '../controllers/category.controller.js';
 
 const router = Router();
 
-router.use(requireUser)
+router.use(requireUser);
 
-router.post('/create/:id_set', checkGroupAccess,  createCategory);
-router.get('/all/:id_set', checkGroupAccess, getAllCategoriesFromSet)
+// categories edit, delete
+router.put('/:id_category',
+    attachCategoryContext,
+    checkSetAccess(true, true),
+    editCategory
+);
+
+router.delete('/:id_category',
+    attachCategoryContext,
+    checkSetAccess(true, true),
+    deleteCategory
+);
 
 export default router;

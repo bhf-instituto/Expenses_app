@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { deleteRefreshTokenByUserId, findRefreshTokenByUserId } from '../repositories/refreshToken.repository.js';
+import { AppError } from '../errors/appError.js';
 
 export const verifyAccessToken = (token) => {
     return jwt.verify(token, process.env.JWT_SECRET);
@@ -14,27 +15,29 @@ export const refreshAccessToken = async (refreshToken) => {
             refreshToken,
             process.env.JWT_REFRESH_SECRET
         );
-        // console.log(payload);
     } catch (err) {
-        // si expiró, lo limpiamos. Con decode leemos el header y payload 
-        // pero sin verificar firmas. Porque si el checkeo dice que expiró
-        // significa que el token era válido antes de expirar y el user_id
-        // es correcto.
+
         if (err.name === 'TokenExpiredError') {
             console.log("token.service.refreshAccessToken\n", err);
 
+            // Decodamos sin verificar firma solo para obtener el user id
             const decoded = jwt.decode(refreshToken);
+
             if (decoded?.id) {
                 await deleteRefreshTokenByUserId(decoded.id);
             }
+
+            throw new AppError('Refresh token expired', 401);
         }
-        return null;
+
+        // Cualquier otro error de JWT (firma inválida, token malformado, etc.)
+        throw new AppError('Invalid refresh token', 401);
     }
 
 
     const hashedTokenInDb = await findRefreshTokenByUserId(payload.id);
 
-    if (!hashedTokenInDb) return null;
+    if (!hashedTokenInDb) throw new AppError('not refresh token in db', 404);
 
     const isValid = await bcrypt.compare(
         refreshToken,
@@ -44,7 +47,7 @@ export const refreshAccessToken = async (refreshToken) => {
     if (!isValid) {
         // reuse / token comprometido
         await deleteRefreshTokenByUserId(payload.id);
-        return null;
+        throw new AppError('reused o suspicious token', 404);
     }
 
     const newAccessToken = jwt.sign(

@@ -1,28 +1,25 @@
 import { userExistsByEmail } from "../repositories/auth.repository.js";
-import { getRole,addSetParticipant } from "../repositories/set.repository.js";
+import { getRole, addSetParticipant } from "../repositories/set.repository.js";
 import { validateEmail } from "../utils/validations.utils.js"
+import { AppError } from '../errors/appError.js'; 
 import jwt from "jsonwebtoken";
 
-const create = async (setId, invitedUserEmail) => {
+const create = async (setId, invitedUserEmail, setRole) => {
 
-    const validEmail = validateEmail(invitedUserEmail);
-    // console.log("→→" + validEmail);
     
+    const validEmail = validateEmail(invitedUserEmail);
 
-    if(!validEmail) throw { status: 402, message: 'invalid email' };
-
-    console.log(invitedUserEmail)
+    if (!validEmail) throw new AppError('invalid email', 400);
 
     const user = await userExistsByEmail(invitedUserEmail);
 
-    // console.log(user)
-    if (!user.exist) throw { status: 409, message: 'user doesnt exist' };
+    if (!user) throw new AppError('user does not exist', 400);
 
     const inviteToken = jwt.sign(
         {
             type: 'invite',
             set_id: setId,
-            invited_id : user.id
+            invited_id: user.id
         },
         process.env.JWT_INVITE_SECRET,
         { expiresIn: '7d' }
@@ -35,17 +32,17 @@ const accept = async (userId, inviteToken) => {
 
     const payload = jwt.verify(inviteToken, process.env.JWT_INVITE_SECRET);
 
-    if (payload.type !== 'invite') throw { status: 409, message: 'invalid token type' };
+    if (payload.type !== 'invite') throw new AppError('invalid token type', 400);
 
-    if(payload.invited_id !== userId) throw { status: 409, message: 'invitation is not for you' };
-    
+    if (payload.invited_id !== userId) throw new AppError('invitation is not for you', 400);
+
     const alreadyParticipant = await getRole(payload.set_id, userId);
-    
-    if(alreadyParticipant == 0 || alreadyParticipant == 1 ) throw { status: 409, message: 'already participant' };
+
+    if (alreadyParticipant == 0 || alreadyParticipant == 1) throw new AppError('already participant', 400);
 
     await addSetParticipant(payload.set_id, userId);
-    
-    return true;
+
+    return payload.set_id;
 }
 
 export { create, accept }

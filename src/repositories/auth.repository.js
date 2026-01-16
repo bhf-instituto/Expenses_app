@@ -7,13 +7,7 @@ export const findUserByEmail = async (email) => {
         [email]
     );
 
-    // console.log("→ ↑ → ↓ → → : " + rows.length > 0);
-    
-    return {
-        exist: rows.length > 0,
-        id: rows[0].id,
-        email: rows[0].email,
-        password_hash: rows[0].password_hash};
+    return rows[0];
 };
 
 export const userExistsByEmail = async (email) => {
@@ -21,10 +15,7 @@ export const userExistsByEmail = async (email) => {
         'SELECT id FROM users WHERE email = ? LIMIT 1',
         [email]
     );
-    return {
-        exist: rows.length > 0,
-        id: rows[0]?.id
-    };
+    return rows[0];
 };
 
 export const createUser = async (email, passwordHash) => {
