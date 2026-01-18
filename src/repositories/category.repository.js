@@ -1,16 +1,16 @@
 import conn from '../config/db_connection.config.js';
 
-export const findCategoryById = async (categoryId, setId) => {
+export const findCategoryById = async (categoryId) => {
     const [result] = await conn.query(`
         SELECT id, expense_type
         FROM categories
         WHERE id = ?
-        AND set_id = ?
+        LIMIT 1
         `,
-        [categoryId, setId]
+        [categoryId]
     )
 
-    return result[0];
+    return result;
 }
 
 export const findCategoryByUnique = async (setId, categoryType, categoryName) => {

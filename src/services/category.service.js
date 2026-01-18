@@ -27,11 +27,13 @@ export const create = async (setId, expenseType_, categoryName) => {
     return result;
 }
 
-export const edit = async (categoryId, categoryName, setId, changeType) => {
+export const edit = async (categoryId, categoryName, changeType) => {
 
-    const category = await findCategoryById(categoryId, setId);
+    const validName = normString(categoryName, 3);
+    const category = await findCategoryById(categoryId);
 
-    if (!category) throw new AppError('category doesnt exist')
+    if(!validName) throw new AppError('invalid category name', 400)
+    if (!category) throw new AppError('category doesnt exist', 400)
 
     let newExpenseType = null;
 

@@ -1,3 +1,4 @@
+import e from 'express';
 import * as inviteService from '../services/invite.service.js';
 
 const createInvite = async (req, res) => {
@@ -23,11 +24,12 @@ const createInvite = async (req, res) => {
 
         const result = await inviteService.create(setId, invitedUserEmail);
 
-        req.user.set.role = null;
+        req.user.set = { role: null }
 
         return res.status(200).json({ ok: true, invite_token: result })
 
     } catch (error) {
+        console.log(error);
 
         return res.status(error.status || 500).json({
             ok: false,

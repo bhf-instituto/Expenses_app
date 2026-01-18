@@ -34,7 +34,6 @@ const createCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
     try {
-        console.log("→→ ", req.set);
         const categoryId = req.category_id;
         const setId = req.set.id;
 
@@ -101,7 +100,6 @@ const getAllCategoriesFromSet = async (req, res) => {
 const editCategory = async (req, res) => {
     try {
         const categoryId = req.category_id;
-        const setId = req.user.set.id;
         const categoryName = req.body.category_name;
         const changeType = Boolean(req.body.change_type);
 
@@ -111,7 +109,7 @@ const editCategory = async (req, res) => {
         })
 
 
-        const result = await categoryService.edit(categoryId, categoryName, setId, changeType);
+        const result = await categoryService.edit(categoryId, categoryName, changeType);
 
         return res.status(200).json({
             ok: true,

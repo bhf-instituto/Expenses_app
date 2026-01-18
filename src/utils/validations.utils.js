@@ -12,17 +12,31 @@ const ALLOWED_DOMAINS = new Set([
     "icloud.com"
 ]);
 
-const normString = (str) => {
+const normString = (str, length = 5) => {
+    if(str == null) return false;
+    
     const normalized = str
         .trim()
         .replace(/\s+/g, ' ');
 
-    if ((normalized.match(/ /g) || []).length > 4) {
+    if ((normalized.match(/ /g) || []).length > 3) {
         return false;
     }
-    if (normalized.length < 6) return false;
+    if (normalized.length < length) return false;
     return normalized.toLowerCase();
 };
+
+function validatePhone(phone) {
+    if (typeof phone !== 'string' && typeof phone !== 'number') return false;
+
+    const str = String(phone);
+
+    const regex = /^(2224\d{6}|11\d{8})$/;
+
+    if (!regex.test(str)) return false;
+
+    return phone;
+}
 
 
 function validateEmail(email_) {
@@ -53,11 +67,11 @@ function validateInt(value) {
 
 function validateExpenseType(value_) {
     let value = Number(value_)
-    
-    if (!Object.values(EXPENSE_TYPE).includes(value)){
+
+    if (!Object.values(EXPENSE_TYPE).includes(value)) {
         return undefined;
     }
     return value;
 }
 
-export { validateEmail, normString, validateInt, validateExpenseType }
+export { validateEmail, validatePhone, normString, validateInt, validateExpenseType }

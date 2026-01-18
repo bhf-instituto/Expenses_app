@@ -5,7 +5,6 @@ import { AppError } from '../errors/appError.js';
 import jwt from "jsonwebtoken";
 
 const create = async (setId, invitedUserEmail, setRole) => {
-
     
     const validEmail = validateEmail(invitedUserEmail);
 

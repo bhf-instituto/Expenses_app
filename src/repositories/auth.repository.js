@@ -1,12 +1,10 @@
 import conn from '../config/db_connection.config.js';
 
-
 export const findUserByEmail = async (email) => {
     const [rows] = await conn.query(
         'SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1',
         [email]
     );
-
     return rows[0];
 };
 

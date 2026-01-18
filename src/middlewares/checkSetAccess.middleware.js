@@ -4,6 +4,9 @@ import { getRole } from '../repositories/set.repository.js';
 const checkSetAccess = (onlyAdmin = false, setContext = false) => {
     return async (req, res, next) => {
         try {
+
+            console.log("→→→→→→");
+            
             const userId = req.user.id;
             let setId;
 
@@ -13,7 +16,14 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
                 setId = req.params.id_set;
             }
 
-            const role = await getRole(setId, userId);           
+            let role;
+            if (req.set?.role !== undefined) {
+                role = req.set.role;
+            }
+            else {
+                role = await getRole(setId, userId);
+            }
+
 
             if (role !== SET_ROLE.ADMIN && role !== SET_ROLE.PARTICIPANT) {
                 return res.status(403).json({
@@ -32,12 +42,14 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
                     }
                 });
             }
-            
+
+            // console.log("asdasd");
+
             req.set = {
                 id: setId,
-                role
+                role: role
             };
-            
+
             next();
 
         } catch (error) {

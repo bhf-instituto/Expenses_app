@@ -1,12 +1,22 @@
 import { Router } from 'express';
-// import { requireUser } from '../middlewares/requireUser.middleware.js'
-// import { registerUser, loginUser, logoutUser } from '../controllers/auth.controller.js'
+import { requireUser } from '../middlewares/requireUser.middleware.js';
+import { checkSetAccess } from '../middlewares/checkSetAccess.middleware.js';
+import { attachProviderContext } from '../middlewares/attachProviderContext.middleware.js';
+import { deleteProvider, editProvider } from '../controllers/providers.controller.js'
 
 const router = Router();
+router.use(requireUser)
 
-// router.post('/')
-// router.post('/register', registerUser);
-// router.post('/login', loginUser)
-// router.post('/logout', requireUser, logoutUser)
+router.delete('/:id_provider',
+    attachProviderContext,
+    checkSetAccess(true, true),
+    deleteProvider
+);
+router.put(
+    '/:id_provider',
+    attachProviderContext,
+    checkSetAccess(true, true), 
+    editProvider
+);
 
 export default router;
