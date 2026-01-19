@@ -85,11 +85,11 @@ export const edit = async (providerId, setId, data) => {
     return updated;
 };
 
-export const del = async (providerId) => {
+export const del = async (providerId, setId) => {
 
     const result = await deleteProviderById(providerId, setId);
 
-    if (!result) throw new AppError('provider does not exist or access denied');
+    if (!result) throw new AppError('provider does not exist or access denied', 403);
 
     return result;
 
@@ -101,7 +101,6 @@ export const getAll = async (setId) => {
     if (result.length === 0) return false;
 
     return result;
-
 }
 
 export const create = async (setId, name, contactName, phone) => {

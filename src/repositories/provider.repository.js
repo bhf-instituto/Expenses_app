@@ -33,7 +33,6 @@ export const deleteProviderById = async (providerId, setId) => {
         `,
         [providerId, setId]
     )
-    
     return rows.affectedRows > 0;
 }
 

@@ -2,8 +2,12 @@ import * as providerService from '../services/provider.service.js';
 
 const editProvider = async (req, res) => {
     try {
+        console.log('→→ aca loco →→');
+
         const providerId = req.provider_id;
         const setId = req.set.id;
+        console.log("→ ", req.set);
+
 
         const {
             name,
@@ -43,8 +47,12 @@ const deleteProvider = async (req, res) => {
         const providerId = req.provider_id;
         const setId = req.set.id;
 
-        await providerService.del(providerId);
+        const result = await providerService.del(providerId, setId);
 
+        if (!result) res.status(500).json({
+            ok: false,
+            message: "error deleting provider"
+        })
 
         return res.status(200).json({
             ok: true,
@@ -54,8 +62,6 @@ const deleteProvider = async (req, res) => {
 
 
     } catch (error) {
-        console.log(error);
-
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }

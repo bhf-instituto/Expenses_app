@@ -5,8 +5,6 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
     return async (req, res, next) => {
         try {
 
-            console.log("→→→→→→");
-            
             const userId = req.user.id;
             let setId;
 
@@ -42,8 +40,6 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
                     }
                 });
             }
-
-            // console.log("asdasd");
 
             req.set = {
                 id: setId,
