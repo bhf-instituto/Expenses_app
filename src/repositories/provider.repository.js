@@ -36,6 +36,23 @@ export const deleteProviderById = async (providerId, setId) => {
     return rows.affectedRows > 0;
 }
 
+export const findProviderByIdAndSet = async (id ,setId)=> {
+    const [rows] = await conn.query(`
+        SELECT *
+        FROM providers
+        WHERE id = ?
+         AND set_id = ?
+         LIMIT 1
+        `,
+    [id, setId]
+    )
+
+    console.log(rows);
+    
+
+    return rows[0];
+}
+
 export const getSetByProviderId = async (providerId) => {
     const [rows] = await conn.query(`
         SELECT set_id 

@@ -13,6 +13,19 @@ export const findCategoryById = async (categoryId) => {
     return result;
 }
 
+export const findCategoryByIdAndSet = async (id, setId) => {
+    const [rows] = await conn.query(`
+        SELECT expense_type
+        FROM categories
+        WHERE id = ?
+         AND set_id = ?
+        LIMIT 1
+        `,
+        [id, setId]
+    )
+    
+    return rows[0];
+}
 export const findCategoryByUnique = async (setId, categoryType, categoryName) => {
     const [result] = await conn.query(`
         SELECT id, name
@@ -119,7 +132,7 @@ export const deleteCategoryById = async (categoryId, setId) => {
         WHERE id = ?
             AND set_id = ?;
         `,
-    [categoryId, setId]
+        [categoryId, setId]
     )
 
     return rows.affectedRows > 0;

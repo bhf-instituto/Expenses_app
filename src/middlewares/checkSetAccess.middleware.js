@@ -56,38 +56,5 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
 
 }
 
-// const checkGroupAccess = async (req, res, next) => {
-//     try {
-
-//         const userId = req.user.id;
-//         const setId = req.params.id_set;
-
-//         const role = await getRole(setId, userId);
-
-//         if (role === null || role === undefined) {
-//             return res.status(403).json({
-//                 ok: false,
-//                 data: {
-//                     message: 'you dont belong to this set'
-//                 }
-//             });
-//         }
-
-//         req.user.set = {
-//             id: setId,
-//             role: role
-//         }
-//         next()
-
-//     } catch (error) {
-
-//         return res.status(501).json({
-//             ok: false,
-//             data: {
-//                 error: error.message
-//             }
-//         });
-//     }
-// }
 
 export { checkSetAccess };

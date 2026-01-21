@@ -123,8 +123,6 @@ const createProvider = async (req, res) => {
             data: { message: error.message || 'internal service error' }
         });
     }
-
-
 }
 
 export { createProvider, getProviders, deleteProvider, editProvider } 
