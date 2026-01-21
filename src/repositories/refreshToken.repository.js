@@ -1,13 +1,5 @@
 import conn from '../config/db_connection.config.js';
 
-// export const saveRefreshToken = async (userId, token) => {
-//     await conn.query(
-//         `INSERT INTO refresh_tokens (user_id, hashed_token, expires_at)
-//          VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))`,
-//         [userId, token]
-//     );
-// };
-
 export const deleteRefreshToken = async (refreshToken) => {
     await conn.query(
         'DELETE FROM refresh_tokens WHERE hashed_token = ?',
@@ -23,7 +15,7 @@ export const deleteRefreshTokenByUserId = async (userId) => {
 }
 
 export const findRefreshToken = async (token) => {
-    const [rows] = await dbConnection.query(
+    const [rows] = await conn.query(
         'SELECT user_id FROM refresh_tokens WHERE hashed_token = ?',
         [token]
     );

@@ -3,6 +3,7 @@ import { getRole, addSetParticipant } from "../repositories/set.repository.js";
 import { validateEmail } from "../utils/validations.utils.js"
 import { AppError } from '../errors/appError.js'; 
 import jwt from "jsonwebtoken";
+import SET_ROLE from "../constants/setRoles.js";
 
 const create = async (setId, invitedUserEmail, setRole) => {
     
@@ -37,7 +38,7 @@ const accept = async (userId, inviteToken) => {
 
     const alreadyParticipant = await getRole(payload.set_id, userId);
 
-    if (alreadyParticipant == 0 || alreadyParticipant == 1) throw new AppError('already participant', 400);
+    if (alreadyParticipant == SET_ROLE.PARTICIPANT || alreadyParticipant == SET_ROLE.ADMIN) throw new AppError('already participant', 400);
 
     await addSetParticipant(payload.set_id, userId);
 

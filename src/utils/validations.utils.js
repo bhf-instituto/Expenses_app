@@ -55,7 +55,7 @@ function validateEmail(email_) {
 
     if (!ALLOWED_DOMAINS.has(domain)) return false;
 
-    return email_;
+    return email;
 }
 
 function validateInt(value) {

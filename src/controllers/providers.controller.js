@@ -57,7 +57,7 @@ const deleteProvider = async (req, res) => {
         return res.status(200).json({
             ok: true,
             category_id: result,
-            message: "category deleted correctly"
+            message: "provider deleted correctly"
         })
 
 
