@@ -43,6 +43,7 @@ export const getExpenseById = async (id) => {
     )
     return row[0];
 };
+
 export const getExpensesByFilters = async (filters) => {
 
     let query = `
