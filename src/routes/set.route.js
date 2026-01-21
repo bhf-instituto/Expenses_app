@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { createSet, getAllSets, editSetName, deleteSet, getSet } from '../controllers/set.controller.js';
 import { createCategory, getAllCategoriesFromSet } from '../controllers/category.controller.js';
 import { createProvider, getProviders } from '../controllers/providers.controller.js';
-import { createExpense, getExpenses } from '../controllers/expenses.controller.js';
+import { createExpense, getExpenses, getExpenseTotals } from '../controllers/expenses.controller.js';
 import { requireUser } from '../middlewares/requireUser.middleware.js';
 import { checkSetAccess } from '../middlewares/checkSetAccess.middleware.js';
 
@@ -28,5 +28,6 @@ router.get('/:id_set/providers', checkSetAccess(), getProviders)
 // expenses create, list
 router.post('/:id_set/expenses', checkSetAccess(), createExpense);
 router.get('/:id_set/expenses', checkSetAccess(), getExpenses);
- 
+router.get('/:id_set/expenses/totals', checkSetAccess(), getExpenseTotals);
+
 export default router;

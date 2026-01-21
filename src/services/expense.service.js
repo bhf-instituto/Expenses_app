@@ -1,6 +1,7 @@
 import { findCategoryByIdAndSet } from '../repositories/category.repository.js';
 import { findProviderByIdAndSet } from '../repositories/provider.repository.js';
-import { createExpense, getExpensesByFilters, updateExpenseById, deleteExpenseById} from '../repositories/expense.repository.js';
+import { getTotalsByCategory, getTotalsByProvider, getTotalsByType } from '../repositories/totalExpenses.repository.js';
+import { createExpense, getExpensesByFilters, updateExpenseById, deleteExpenseById } from '../repositories/expense.repository.js';
 import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
 import { AppError } from '../errors/appError.js';
 
@@ -68,13 +69,12 @@ export const getAll = async ({
     expense_type,
     user_id,
     from_date,
-    to_date
+    to_date,
+    page,
+    limit
 }) => {
 
-
-    const filters = {
-        setId
-    };
+    const filters = { setId };
 
     if (category_id !== undefined) {
         const catId = Number(category_id);
@@ -108,17 +108,51 @@ export const getAll = async ({
         filters.to_date = to_date;
     }
 
+    // 🆕 PAGINACIÓN
+    const pageNumber = page !== undefined ? Number(page) : 1;
+    const limitNumber = limit !== undefined ? Number(limit) : 20;
+
+    if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        throw new AppError('invalid page', 400);
+    }
+
+    if (!Number.isInteger(limitNumber) || limitNumber <= 0 || limitNumber > 100) {
+        throw new AppError('invalid limit', 400);
+    }
+
+    filters.limit = limitNumber;
+    filters.offset = (pageNumber - 1) * limitNumber;
+
     return await getExpensesByFilters(filters);
+};
 
+export const getTotals = async ({ setId, from_date, to_date }) => {
 
-}
+    if (!from_date || !to_date) {
+        throw new AppError('from_date and to_date are required', 400);
+    }
+
+    if (from_date && isNaN(Date.parse(from_date))) {
+        throw new AppError('invalid from_date format', 400);
+    }
+
+    if (to_date && isNaN(Date.parse(to_date))) {
+        throw new AppError('invalid to_date format', 400);
+    }
+
+    return {
+        by_category: await getTotalsByCategory(setId, from_date, to_date),
+        by_provider: await getTotalsByProvider(setId, from_date, to_date),
+        by_type: await getTotalsByType(setId, from_date, to_date)
+    };
+};
 
 export const update = async (expenseId, data) => {
 
     const fields = {};
-    const values = [];
+    // const values = [];
 
-    
+
     if (data.amount !== undefined) {
         const amount = Number(data.amount);
         if (!Number.isInteger(amount) || amount <= 0) {
@@ -151,11 +185,11 @@ export const update = async (expenseId, data) => {
 
 export const del = async (expenseId) => {
 
-  const result = await deleteExpenseById(expenseId);
+    const result = await deleteExpenseById(expenseId);
 
-  if (!result) {
-    throw new AppError('error deleting expense', 500);
-  }
+    if (!result) {
+        throw new AppError('error deleting expense', 500);
+    }
 
-  return true;
+    return true;
 };

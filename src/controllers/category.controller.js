@@ -2,7 +2,6 @@ import * as categoryService from '../services/category.service.js';
 // import { validateInt } from '../utils/validations.utils.js';
 
 const createCategory = async (req, res) => {
-
     try {
         // espero categoryName y expenseType desde el body de la req. 
         const setId = req.params.id_set;

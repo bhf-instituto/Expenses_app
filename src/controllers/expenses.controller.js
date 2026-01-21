@@ -52,7 +52,9 @@ const getExpenses = async (req, res) => {
             expense_type,
             user_id,
             from_date,
-            to_date
+            to_date,
+            page,
+            limit
         } = req.query;
 
         const result = await expenseService.getAll({
@@ -60,6 +62,40 @@ const getExpenses = async (req, res) => {
             category_id,
             expense_type,
             user_id,
+            from_date,
+            to_date,
+            page,
+            limit
+        });
+
+        return res.status(200).json({
+            ok: true,
+            data: result
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+const getExpenseTotals = async (req, res) => {
+    try {
+        const setId = req.set.id;
+
+        const {
+            from_date,
+            to_date
+        } = req.query;
+
+        console.log(req.query);
+        
+
+        const result = await expenseService.getTotals({
+            setId,
             from_date,
             to_date
         });
@@ -70,7 +106,6 @@ const getExpenses = async (req, res) => {
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(error.status || 500).json({
@@ -138,4 +173,4 @@ const deleteExpense = async (req, res) => {
         });
     }
 };
-export { createExpense, getExpenses, updateExpense, deleteExpense }
+export { createExpense, getExpenses, updateExpense, deleteExpense, getExpenseTotals }
