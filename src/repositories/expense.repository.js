@@ -69,17 +69,17 @@ export const getExpensesByFilters = async (filters) => {
 
     if (filters.category_id) {
         query += ' AND e.category_id = ?';
-        params.push(filters.category_id);
+        params.push(Number(filters.category_id));
     }
 
     if (filters.expense_type !== undefined) {
         query += ' AND e.expense_type = ?';
-        params.push(filters.expense_type);
+        params.push(Number(filters.expense_type));
     }
 
     if (filters.user_id) {
         query += ' AND e.user_id = ?';
-        params.push(filters.user_id);
+        params.push(Number(filters.user_id));
     }
 
     if (filters.from_date) {
