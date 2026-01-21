@@ -1,6 +1,6 @@
 import * as expenseService from '../services/expense.service.js';
 
-const createExpenses = async (req, res) => {
+const createExpense = async (req, res) => {
     try {
         const setId = req.set.id;
         const userId = req.user.id;
@@ -42,8 +42,7 @@ const createExpenses = async (req, res) => {
             data: { message: error.message || 'internal service error' }
         });
     }
-}
-
+};
 const getExpenses = async (req, res) => {
     try {
         const setId = req.set.id;
@@ -73,15 +72,70 @@ const getExpenses = async (req, res) => {
     } catch (error) {
 
         console.log(error);
-        
+
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
         });
     }
-}
+};
+const updateExpense = async (req, res) => {
+    try {
+        const expenseId = req.expense.id;
 
-const editExpenses = async (req, res) => {
+        const {
+            amount,
+            description,
+            expense_date
+        } = req.body;
 
-}
-export { createExpenses, getExpenses, editExpenses }
+        if (
+            amount === undefined &&
+            description === undefined &&
+            expense_date === undefined
+        ) {
+            return res.status(400).json({
+                ok: false,
+                data: { message: 'no fields to update' }
+            });
+        }
+
+
+        await expenseService.update(
+            expenseId,
+            { amount, description, expense_date }
+        );
+
+        return res.status(200).json({
+            ok: true,
+            message: 'expense updated correctly'
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+const deleteExpense = async (req, res) => {
+    try {
+        const expenseId = req.expense.id;
+
+        await expenseService.del(expenseId);
+
+        return res.status(200).json({
+            ok: true,
+            message: 'expense deleted correctly'
+        });
+
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+export { createExpense, getExpenses, updateExpense, deleteExpense }

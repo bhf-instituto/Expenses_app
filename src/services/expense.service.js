@@ -1,6 +1,6 @@
 import { findCategoryByIdAndSet } from '../repositories/category.repository.js';
 import { findProviderByIdAndSet } from '../repositories/provider.repository.js';
-import { createExpense, getExpensesByFilters } from '../repositories/expense.repository.js';
+import { createExpense, getExpensesByFilters, updateExpenseById, deleteExpenseById} from '../repositories/expense.repository.js';
 import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
 import { AppError } from '../errors/appError.js';
 
@@ -110,4 +110,52 @@ export const getAll = async ({
 
     return await getExpensesByFilters(filters);
 
+
 }
+
+export const update = async (expenseId, data) => {
+
+    const fields = {};
+    const values = [];
+
+    
+    if (data.amount !== undefined) {
+        const amount = Number(data.amount);
+        if (!Number.isInteger(amount) || amount <= 0) {
+            throw new AppError('invalid amount', 400);
+        }
+        fields.amount = amount;
+    }
+
+    if (data.description !== undefined) {
+        fields.description = data.description || null;
+    }
+
+    if (data.expense_date !== undefined) {
+        fields.expense_date = data.expense_date;
+    }
+
+    if (Object.keys(fields).length === 0) {
+        throw new AppError('no valid fields to update', 400);
+    }
+
+    const result = await updateExpenseById(expenseId, fields);
+
+    if (!result) {
+        throw new AppError('error updating expense', 500);
+    }
+
+    return true;
+};
+
+
+export const del = async (expenseId) => {
+
+  const result = await deleteExpenseById(expenseId);
+
+  if (!result) {
+    throw new AppError('error deleting expense', 500);
+  }
+
+  return true;
+};

@@ -12,6 +12,7 @@ export const attachExpenseContext = async (req, res, next) => {
             });
         }
 
+
         const expense = await getExpenseById(expenseId);
 
         if (!expense) {
@@ -29,7 +30,8 @@ export const attachExpenseContext = async (req, res, next) => {
         // attach expense context
         req.expense = {
             id: expense.id,
-            user_id: expense.user_id
+            user_id: expense.user_id,
+            isOwner: expense.user_id === req.user.id
         };
 
         next();

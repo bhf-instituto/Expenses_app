@@ -28,10 +28,11 @@ export const createExpense = async (
 
     return result.insertId;
 
-}
+};
 export const getExpenseById = async (id) => {
     const [row] = await conn.query(`
         SELECT 
+            id,
             set_id,
             user_id
         FROM expenses
@@ -41,7 +42,7 @@ export const getExpenseById = async (id) => {
         [id]
     )
     return row[0];
-}
+};
 export const getExpensesByFilters = async (filters) => {
 
     let query = `
@@ -95,4 +96,28 @@ export const getExpensesByFilters = async (filters) => {
 
     const [rows] = await conn.query(query, params);
     return rows;
+};
+export const updateExpenseById = async (expenseId, fields) => {
+
+    const keys = Object.keys(fields);
+    const values = Object.values(fields);
+
+    const setClause = keys.map(key => `${key} = ?`).join(', ');
+
+    const [result] = await conn.query(`
+    UPDATE expenses
+    SET ${setClause}
+    WHERE id = ?
+  `, [...values, expenseId]);
+
+    return result.affectedRows > 0;
+};
+export const deleteExpenseById = async (expenseId) => {
+
+    const [result] = await conn.query(`
+    DELETE FROM expenses
+    WHERE id = ?
+  `, [expenseId]);
+
+    return result.affectedRows > 0;
 };
