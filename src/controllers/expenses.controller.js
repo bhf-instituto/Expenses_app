@@ -46,7 +46,7 @@ const createExpense = async (req, res) => {
 const getExpenses = async (req, res) => {
     try {
         const setId = req.set.id;
-
+       
         const {
             category_id,
             expense_type,
@@ -82,6 +82,42 @@ const getExpenses = async (req, res) => {
         });
     }
 };
+const getExpenseTotalsFiltered = async (req, res) => {
+    try {
+        
+        const setId = req.set.id;
+
+        const {
+            category_id,
+            expense_type,
+            user_id,
+            from_date,
+            to_date
+        } = req.query;
+
+        const result = await expenseService.getTotalsByFilter({
+            setId,
+            category_id,
+            expense_type,
+            user_id,
+            from_date,
+            to_date
+        });
+
+        return res.status(200).json({
+            ok: true,
+            data: result
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+}
 const getExpenseTotals = async (req, res) => {
     try {
         const setId = req.set.id;
@@ -90,9 +126,6 @@ const getExpenseTotals = async (req, res) => {
             from_date,
             to_date
         } = req.query;
-
-        console.log(req.query);
-        
 
         const result = await expenseService.getTotals({
             setId,
@@ -173,4 +206,4 @@ const deleteExpense = async (req, res) => {
         });
     }
 };
-export { createExpense, getExpenses, updateExpense, deleteExpense, getExpenseTotals }
+export { createExpense, getExpenses, updateExpense, deleteExpense, getExpenseTotals, getExpenseTotalsFiltered }

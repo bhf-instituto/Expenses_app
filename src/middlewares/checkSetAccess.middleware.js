@@ -5,15 +5,16 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
     return async (req, res, next) => {
         try {
 
+            
             const userId = req.user.id;
             let setId;
-
+            
             if (setContext) {
                 setId = req.set.id;
             } else {
                 setId = req.params.id_set;
             }
-
+            
             let role;
             if (req.set?.role !== undefined) {
                 role = req.set.role;
@@ -45,7 +46,6 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
                 id: setId,
                 role: role
             };
-
             next();
 
         } catch (error) {

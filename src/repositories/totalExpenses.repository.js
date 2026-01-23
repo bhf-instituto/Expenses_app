@@ -1,6 +1,47 @@
 import conn from '../config/db_connection.config.js'
 
 
+export const getExpensesTotalsByFilters = async (filters) => {
+
+    let query = `
+        SELECT
+            COALESCE(SUM(e.amount), 0) AS total_amount
+        FROM expenses e
+        WHERE e.set_id = ?
+    `;
+
+    const params = [filters.setId];
+
+    if (filters.category_id) {
+        query += ' AND e.category_id = ?';
+        params.push(filters.category_id);
+    }
+
+    if (filters.expense_type !== undefined) {
+        query += ' AND e.expense_type = ?';
+        params.push(filters.expense_type);
+    }
+
+    if (filters.user_id) {
+        query += ' AND e.user_id = ?';
+        params.push(filters.user_id);
+    }
+
+    if (filters.from_date) {
+        query += ' AND e.expense_date >= ?';
+        params.push(filters.from_date);
+    }
+
+    if (filters.to_date) {
+        query += ' AND e.expense_date <= ?';
+        params.push(filters.to_date);
+    }
+
+    const [[row]] = await conn.query(query, params);
+    return row;
+};
+
+
 export const getTotalsByCategory = async (setId, fromDate, toDate) => {
     const [rows] = await conn.query(`
         SELECT

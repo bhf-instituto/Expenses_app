@@ -2,11 +2,9 @@ import * as providerService from '../services/provider.service.js';
 
 const editProvider = async (req, res) => {
     try {
-        console.log('→→ aca loco →→');
 
         const providerId = req.provider_id;
         const setId = req.set.id;
-        console.log("→ ", req.set);
 
 
         const {
@@ -91,7 +89,7 @@ const getProviders = async (req, res) => {
 
 
     } catch (error) {
-        console.log(error);
+        // console.log(error);
 
         return res.status(error.status || 500).json({
             ok: false,
@@ -115,7 +113,10 @@ const createProvider = async (req, res) => {
 
         const result = await providerService.create(setId, name, contactName, phone)
 
-        return res.status(201).json({ ok: true });
+        return res.status(201).json({ 
+            ok: true,
+            provider_id : result 
+        });
 
     } catch (error) {
         return res.status(error.status || 500).json({

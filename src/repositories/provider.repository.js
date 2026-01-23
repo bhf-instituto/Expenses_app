@@ -47,8 +47,6 @@ export const findProviderByIdAndSet = async (id ,setId)=> {
     [id, setId]
     )
 
-    console.log(rows);
-    
 
     return rows[0];
 }

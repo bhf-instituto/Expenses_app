@@ -2,24 +2,6 @@ import { AppError } from "../errors/appError.js";
 import { normString, validatePhone } from "../utils/validations.utils.js";
 import { createProvider, getAllProvidersById, deleteProviderById, updateProvider } from '../repositories/provider.repository.js';
 
-// export const edit = async (providerId, setId, data) => {
-
-//     const updated = await updateProvider(
-//         providerId,
-//         setId,
-//         data
-//     );
-
-//     if (!updated) {
-//         throw new AppError(
-//             'provider does not exist or access denied',
-//             404
-//         );
-//     }
-
-//     return updated;
-// };
-
 export const edit = async (providerId, setId, data) => {
 
     const updateData = {};
@@ -104,9 +86,6 @@ export const getAll = async (setId) => {
 }
 
 export const create = async (setId, name, contactName, phone) => {
-
-
-    console.log('→ ', contactName);
 
     // REQUIRED
     const validName = normString(name, 3);

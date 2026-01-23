@@ -6,7 +6,7 @@ import EXPENSE_TYPE from "../constants/expenseTypes.constant.js";
 
 export const create = async (setId, expenseType_, categoryName) => {
 
-    const normName = normString(categoryName);
+    const normName = normString(categoryName, 3, true , 2);
 
     if (!normName) throw new AppError('invalid category name', 400);
 
@@ -29,7 +29,7 @@ export const create = async (setId, expenseType_, categoryName) => {
 
 export const edit = async (categoryId, categoryName, changeType) => {
 
-    const validName = normString(categoryName, 3);
+    const validName = normString(categoryName, 3, true, 2);
     const category = await findCategoryById(categoryId);
 
     if(!validName) throw new AppError('invalid category name', 400)

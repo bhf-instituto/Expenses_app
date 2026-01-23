@@ -82,14 +82,10 @@ export const getAllFromSet = async (setId, expenseType = null) => {
 
     const [result] = await conn.query(sql, params);
 
-    console.log("→→", result);
-
     return result;
 };
 
 export const editCategory_ = async (categoryId, categoryName) => {
-
-    console.log(categoryId, categoryName);
 
     const [result] = await conn.query(`
             UPDATE categories 

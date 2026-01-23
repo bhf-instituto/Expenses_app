@@ -1,9 +1,10 @@
 import { findCategoryByIdAndSet } from '../repositories/category.repository.js';
 import { findProviderByIdAndSet } from '../repositories/provider.repository.js';
-import { getTotalsByCategory, getTotalsByProvider, getTotalsByType } from '../repositories/totalExpenses.repository.js';
+import { getTotalsByCategory, getTotalsByProvider, getTotalsByType, getExpensesTotalsByFilters } from '../repositories/totalExpenses.repository.js';
 import { createExpense, getExpensesByFilters, updateExpenseById, deleteExpenseById } from '../repositories/expense.repository.js';
 import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
 import { AppError } from '../errors/appError.js';
+// import { getExpenseTotalsByFilter } from '../controllers/expenses.controller.js';
 
 export const create = async ({
     setId,
@@ -125,6 +126,55 @@ export const getAll = async ({
 
     return await getExpensesByFilters(filters);
 };
+
+export const getTotalsByFilter = async ({
+    setId,
+    category_id,
+    expense_type,
+    user_id,
+    from_date,
+    to_date
+}) => {
+
+    const filters = { setId };
+
+    if (category_id !== undefined) {
+        const catId = Number(category_id);
+        if (!Number.isInteger(catId)) {
+            throw new AppError('invalid category filter', 400);
+        }
+        filters.category_id = catId;
+    }
+
+    if (expense_type !== undefined) {
+        const type = Number(expense_type);
+        if (!Object.values(EXPENSE_TYPE).includes(type)) {
+            throw new AppError('invalid expense type filter', 400);
+        }
+        filters.expense_type = type;
+    }
+
+    if (user_id !== undefined) {
+        const uid = Number(user_id);
+        if (!Number.isInteger(uid)) {
+            throw new AppError('invalid user filter', 400);
+        }
+        filters.user_id = uid;
+    }
+
+    if (from_date !== undefined) {
+        filters.from_date = from_date;
+    }
+
+    if (to_date !== undefined) {
+        filters.to_date = to_date;
+    }
+
+
+    return await getExpensesTotalsByFilters(filters);
+};
+
+
 
 export const getTotals = async ({ setId, from_date, to_date }) => {
 
