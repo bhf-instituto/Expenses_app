@@ -12,18 +12,22 @@ const ALLOWED_DOMAINS = new Set([
     "icloud.com"
 ]);
 
-const normString = (str, length = 5) => {
-    if(str == null) return false;
-    
+const normString = (str, length = 5, lower = true, blankSpc = 3) => {
+    if (str == null) return false;
+
     const normalized = str
         .trim()
         .replace(/\s+/g, ' ');
 
-    if ((normalized.match(/ /g) || []).length > 3) {
+    if ((normalized.match(/ /g) || []).length > blankSpc) {
         return false;
     }
     if (normalized.length < length) return false;
+
+    if (!lower) return normalized;
+
     return normalized.toLowerCase();
+
 };
 
 function validatePhone(phone) {

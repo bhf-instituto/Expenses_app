@@ -1,27 +1,5 @@
 import * as authService from '../services/auth.service.js';
 
-// export const setAuthCookies = (res, accessToken, refreshToken) => {
-//     if (typeof accessToken === 'string') {
-//         res.cookie('access_token', accessToken, {
-//             httpOnly: true,
-//             secure: process.env.NODE_ENV === 'production',
-//             sameSite: 'lax',
-//             path: '/',
-//             maxAge: 1000 * 60 * 15
-//         });
-//     }
-
-//     if (typeof refreshToken === 'string') {
-//         res.cookie('refresh_token', refreshToken, {
-//             httpOnly: true,
-//             secure: process.env.NODE_ENV === 'production',
-//             sameSite: 'lax',
-//             path: '/',
-//             maxAge: 1000 * 60 * 60 * 24 * 7
-//         });
-//     }
-// };
-
 const setAuthCookies = (res, accessToken, refreshToken) => {
     if (accessToken) {
         res.cookie('access_token', accessToken, {
@@ -107,7 +85,6 @@ export const loginUser = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
     try {
-        // const refreshToken = req.cookies?.refresh_token;
         const userId = req.user.id;
 
         await authService.logout(userId);
