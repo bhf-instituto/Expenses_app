@@ -10,6 +10,7 @@ import healthRouter from './routes/health.route.js';
 import cookieParser from 'cookie-parser';
 import attachSession from './middlewares/attachSession.middleware.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
+import corsConfig from './config/cors.config.js';
 
 const app = express();
 

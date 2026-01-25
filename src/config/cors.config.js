@@ -3,3 +3,5 @@ const corsConfig = {
     credentials: true,
     optionSuccessStatus: 200
 }
+
+export default corsConfig;
