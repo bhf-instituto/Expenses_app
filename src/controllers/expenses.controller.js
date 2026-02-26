@@ -226,6 +226,13 @@ const deleteExpense = async (req, res) => {
     try {
         const expenseId = req.expense.id;
 
+        if (req.expense.alreadyDeleted === true) {
+            return res.status(200).json({
+                ok: true,
+                message: 'expense already deleted'
+            });
+        }
+
         await expenseService.del(expenseId, req.set.id);
 
         return res.status(200).json({

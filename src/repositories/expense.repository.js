@@ -107,6 +107,17 @@ export const getExpensesByFilters = async (filters) => {
     return rows;
 };
 
+export const getDeletedExpenseByExpenseId = async (expenseId) => {
+    const [rows] = await conn.query(`
+        SELECT expense_id, set_id, deleted_at
+        FROM deleted_expenses
+        WHERE expense_id = ?
+        LIMIT 1
+    `, [expenseId]);
+
+    return rows[0] || null;
+};
+
 export const getDeletedExpensesByFilters = async (filters) => {
 
     let query = `

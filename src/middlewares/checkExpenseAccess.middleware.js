@@ -7,9 +7,14 @@ export const checkExpenseAccess = ({
   return (req, res, next) => {
 
     const isOwner = req.expense?.isOwner;
+    const alreadyDeleted = req.expense?.alreadyDeleted === true;
     const role = req.set?.role;
 
     const isAdmin = Number(role) === SET_ROLE.ADMIN;
+
+    if (alreadyDeleted) {
+      return next();
+    }
 
     if (
       (allowOwner && isOwner) ||

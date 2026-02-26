@@ -20,8 +20,8 @@ router.put('/:id_expense',
 router.delete(
     '/:id_expense',
     attachExpenseContext,
-    checkSetAccess(true, true),
-    checkExpenseAccess({ allowOwner: true }),
+    checkSetAccess(false, true),
+    checkExpenseAccess({ allowOwner: true, allowAdmin: true }),
     deleteExpense
 );
 
