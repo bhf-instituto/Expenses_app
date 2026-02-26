@@ -3,9 +3,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const API_PROXY_TARGET = 'https://bbhhffexpensesapp.dpdns.org'
+const PROD_BASE_PATH = '/expenses_api/'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/' : PROD_BASE_PATH,
   server: {
     proxy: {
       '/api': {
@@ -46,4 +48,4 @@ export default defineConfig({
       type: 'module',
     },
   })],
-})
+}))
