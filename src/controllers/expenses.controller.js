@@ -20,8 +20,7 @@ const createExpense = async (req, res) => {
             });
         }
 
-
-        await expenseService.create({
+        const expenseId = await expenseService.create({
             setId,
             userId,
             category_id,
@@ -33,7 +32,10 @@ const createExpense = async (req, res) => {
 
         return res.status(201).json({
             ok: true,
-            message: 'expense created correctly'
+            data: {
+                id: expenseId,
+                message: 'expense created correctly'
+            }
         });
 
     } catch (error) {
@@ -53,6 +55,7 @@ const getExpenses = async (req, res) => {
             user_id,
             from_date,
             to_date,
+            updated_after,
             page,
             limit
         } = req.query;
@@ -64,6 +67,7 @@ const getExpenses = async (req, res) => {
             user_id,
             from_date,
             to_date,
+            updated_after,
             page,
             limit
         });
@@ -82,6 +86,36 @@ const getExpenses = async (req, res) => {
         });
     }
 };
+const getDeletedExpenses = async (req, res) => {
+    try {
+        const setId = req.set.id;
+
+        const {
+            deleted_after,
+            page,
+            limit
+        } = req.query;
+
+        const result = await expenseService.getDeleted({
+            setId,
+            deleted_after,
+            page,
+            limit
+        });
+
+        return res.status(200).json({
+            ok: true,
+            data: result
+        });
+
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+
 const getExpenseTotalsFiltered = async (req, res) => {
     try {
         
@@ -192,7 +226,14 @@ const deleteExpense = async (req, res) => {
     try {
         const expenseId = req.expense.id;
 
-        await expenseService.del(expenseId);
+        if (req.expense.alreadyDeleted === true) {
+            return res.status(200).json({
+                ok: true,
+                message: 'expense already deleted'
+            });
+        }
+
+        await expenseService.del(expenseId, req.set.id);
 
         return res.status(200).json({
             ok: true,
@@ -206,4 +247,4 @@ const deleteExpense = async (req, res) => {
         });
     }
 };
-export { createExpense, getExpenses, updateExpense, deleteExpense, getExpenseTotals, getExpenseTotalsFiltered }
+export { createExpense, getExpenses, getDeletedExpenses, updateExpense, deleteExpense, getExpenseTotals, getExpenseTotalsFiltered }

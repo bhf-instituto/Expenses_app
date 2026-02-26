@@ -1,5 +1,4 @@
-import { getExpenseById } from '../repositories/expense.repository.js';
-import SET_ROLE from '../constants/setRoles.js'
+import { getExpenseById, getDeletedExpenseByExpenseId } from '../repositories/expense.repository.js';
 
 export const attachExpenseContext = async (req, res, next) => {
     try {
@@ -16,6 +15,25 @@ export const attachExpenseContext = async (req, res, next) => {
         const expense = await getExpenseById(expenseId);
 
         if (!expense) {
+            if (req.method === 'DELETE') {
+                const deletedExpense = await getDeletedExpenseByExpenseId(expenseId);
+
+                if (deletedExpense) {
+                    req.set = {
+                        id: deletedExpense.set_id
+                    };
+
+                    req.expense = {
+                        id: expenseId,
+                        user_id: null,
+                        isOwner: false,
+                        alreadyDeleted: true
+                    };
+
+                    return next();
+                }
+            }
+
             return res.status(404).json({
                 ok: false,
                 data: { message: 'expense not found' }
@@ -31,7 +49,8 @@ export const attachExpenseContext = async (req, res, next) => {
         req.expense = {
             id: expense.id,
             user_id: expense.user_id,
-            isOwner: expense.user_id === req.user.id
+            isOwner: expense.user_id === req.user.id,
+            alreadyDeleted: false
         };
 
         next();

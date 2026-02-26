@@ -1,7 +1,7 @@
 import { findCategoryByIdAndSet } from '../repositories/category.repository.js';
 import { findProviderByIdAndSet } from '../repositories/provider.repository.js';
 import { getTotalsByCategory, getTotalsByProvider, getTotalsByType, getExpensesTotalsByFilters } from '../repositories/totalExpenses.repository.js';
-import { createExpense, getExpensesByFilters, updateExpenseById, deleteExpenseById } from '../repositories/expense.repository.js';
+import { createExpense, getExpensesByFilters, getDeletedExpensesByFilters, updateExpenseById, deleteExpenseById } from '../repositories/expense.repository.js';
 import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
 import { AppError } from '../errors/appError.js';
 // import { getExpenseTotalsByFilter } from '../controllers/expenses.controller.js';
@@ -52,7 +52,7 @@ export const create = async ({
         validProviderId = provider_id;
     }
 
-    const result = await createExpense(
+    const expenseId = await createExpense(
         setId,
         userId,
         category_id,
@@ -62,6 +62,8 @@ export const create = async ({
         validExpenseDate,
         validProviderId
     );
+
+    return expenseId;
 }
 
 export const getAll = async ({
@@ -71,6 +73,7 @@ export const getAll = async ({
     user_id,
     from_date,
     to_date,
+    updated_after,
     page,
     limit
 }) => {
@@ -109,6 +112,13 @@ export const getAll = async ({
         filters.to_date = to_date;
     }
 
+    if (updated_after !== undefined) {
+        if (isNaN(Date.parse(updated_after))) {
+            throw new AppError('invalid updated_after format', 400);
+        }
+        filters.updated_after = updated_after;
+    }
+
     // 🆕 PAGINACIÓN
     const pageNumber = page !== undefined ? Number(page) : 1;
     const limitNumber = limit !== undefined ? Number(limit) : 20;
@@ -125,6 +135,35 @@ export const getAll = async ({
     filters.offset = (pageNumber - 1) * limitNumber;
 
     return await getExpensesByFilters(filters);
+};
+
+
+export const getDeleted = async ({ setId, deleted_after, page, limit }) => {
+
+    const filters = { setId };
+
+    if (deleted_after !== undefined) {
+        if (isNaN(Date.parse(deleted_after))) {
+            throw new AppError('invalid deleted_after format', 400);
+        }
+        filters.deleted_after = deleted_after;
+    }
+
+    const pageNumber = page !== undefined ? Number(page) : 1;
+    const limitNumber = limit !== undefined ? Number(limit) : 20;
+
+    if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        throw new AppError('invalid page', 400);
+    }
+
+    if (!Number.isInteger(limitNumber) || limitNumber <= 0 || limitNumber > 100) {
+        throw new AppError('invalid limit', 400);
+    }
+
+    filters.limit = limitNumber;
+    filters.offset = (pageNumber - 1) * limitNumber;
+
+    return await getDeletedExpensesByFilters(filters);
 };
 
 export const getTotalsByFilter = async ({
@@ -233,9 +272,9 @@ export const update = async (expenseId, data) => {
 };
 
 
-export const del = async (expenseId) => {
+export const del = async (expenseId, setId) => {
 
-    const result = await deleteExpenseById(expenseId);
+    const result = await deleteExpenseById(expenseId, setId);
 
     if (!result) {
         throw new AppError('error deleting expense', 500);

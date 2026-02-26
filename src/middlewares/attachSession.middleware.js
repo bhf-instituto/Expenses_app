@@ -3,6 +3,16 @@ import {
     refreshAccessToken
 } from '../services/token.service.js';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+const accessCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+    maxAge: 1000 * 60 * 15
+};
+
 const attachSession = async (req, res, next) => {
     req.user = null;
 
@@ -41,13 +51,7 @@ const attachSession = async (req, res, next) => {
         const result = await refreshAccessToken(refreshToken);
         if (!result) return next();
 
-        res.cookie('access_token', result.accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 1000 * 60 * 15
-        });
+        res.cookie('access_token', result.accessToken, accessCookieOptions);
 
         req.user = result.user;
         return next();

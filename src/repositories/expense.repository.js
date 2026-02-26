@@ -57,7 +57,8 @@ export const getExpensesByFilters = async (filters) => {
             e.category_id,
             c.name AS category_name,
             e.provider_id,
-            p.name AS provider_name
+            p.name AS provider_name,
+            e.updated_at
         FROM expenses e
         JOIN categories c ON c.id = e.category_id
         JOIN users u ON u.id = e.user_id
@@ -92,7 +93,12 @@ export const getExpensesByFilters = async (filters) => {
         params.push(filters.to_date);
     }
 
-    query += ' ORDER BY e.expense_date DESC';
+    if (filters.updated_after) {
+        query += ' AND e.updated_at > ?';
+        params.push(filters.updated_after);
+    }
+
+    query += ' ORDER BY e.updated_at DESC, e.id DESC';
     query += ' LIMIT ? OFFSET ?';
 
     params.push(filters.limit, filters.offset);
@@ -100,6 +106,45 @@ export const getExpensesByFilters = async (filters) => {
     const [rows] = await conn.query(query, params);
     return rows;
 };
+
+export const getDeletedExpenseByExpenseId = async (expenseId) => {
+    const [rows] = await conn.query(`
+        SELECT expense_id, set_id, deleted_at
+        FROM deleted_expenses
+        WHERE expense_id = ?
+        LIMIT 1
+    `, [expenseId]);
+
+    return rows[0] || null;
+};
+
+export const getDeletedExpensesByFilters = async (filters) => {
+
+    let query = `
+        SELECT
+            expense_id,
+            set_id,
+            deleted_at
+        FROM deleted_expenses
+        WHERE set_id = ?
+    `;
+
+    const params = [filters.setId];
+
+    if (filters.deleted_after) {
+        query += ' AND deleted_at > ?';
+        params.push(filters.deleted_after);
+    }
+
+    query += ' ORDER BY deleted_at DESC, expense_id DESC';
+    query += ' LIMIT ? OFFSET ?';
+
+    params.push(filters.limit, filters.offset);
+
+    const [rows] = await conn.query(query, params);
+    return rows;
+};
+
 export const updateExpenseById = async (expenseId, fields) => {
 
     const keys = Object.keys(fields);
@@ -115,12 +160,37 @@ export const updateExpenseById = async (expenseId, fields) => {
 
     return result.affectedRows > 0;
 };
-export const deleteExpenseById = async (expenseId) => {
+export const deleteExpenseById = async (expenseId, setId) => {
 
-    const [result] = await conn.query(`
-    DELETE FROM expenses
-    WHERE id = ?
-  `, [expenseId]);
+    const connection = await conn.getConnection();
 
-    return result.affectedRows > 0;
+    try {
+        await connection.beginTransaction();
+
+        await connection.query(`
+            INSERT INTO deleted_expenses (expense_id, set_id)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE
+                set_id = VALUES(set_id),
+                deleted_at = CURRENT_TIMESTAMP
+        `, [expenseId, setId]);
+
+        const [result] = await connection.query(`
+            DELETE FROM expenses
+            WHERE id = ?
+        `, [expenseId]);
+
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            return false;
+        }
+
+        await connection.commit();
+        return true;
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
 };
