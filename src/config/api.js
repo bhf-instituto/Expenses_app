@@ -1,4 +1,5 @@
-const DEFAULT_API_BASE_URL = 'https://bbhhffexpensesapp.dpdns.org'
+const PROD_API_BASE_URL = 'https://bbhhffexpensesapp.dpdns.org'
+const DEFAULT_API_BASE_URL = import.meta.env.DEV ? '/api' : PROD_API_BASE_URL
 
 function trimTrailingSlash(value) {
   if (!value) return value
