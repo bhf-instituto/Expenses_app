@@ -119,7 +119,7 @@ export const getAll = async ({
         filters.updated_after = updated_after;
     }
 
-    // 🆕 PAGINACIÓN
+    // PAGINACIÓN
     const pageNumber = page !== undefined ? Number(page) : 1;
     const limitNumber = limit !== undefined ? Number(limit) : 20;
 
