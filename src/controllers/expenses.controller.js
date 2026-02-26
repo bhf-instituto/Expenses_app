@@ -20,8 +20,7 @@ const createExpense = async (req, res) => {
             });
         }
 
-
-        await expenseService.create({
+        const expenseId = await expenseService.create({
             setId,
             userId,
             category_id,
@@ -33,7 +32,10 @@ const createExpense = async (req, res) => {
 
         return res.status(201).json({
             ok: true,
-            message: 'expense created correctly'
+            data: {
+                id: expenseId,
+                message: 'expense created correctly'
+            }
         });
 
     } catch (error) {
@@ -53,6 +55,7 @@ const getExpenses = async (req, res) => {
             user_id,
             from_date,
             to_date,
+            updated_after,
             page,
             limit
         } = req.query;
@@ -64,6 +67,7 @@ const getExpenses = async (req, res) => {
             user_id,
             from_date,
             to_date,
+            updated_after,
             page,
             limit
         });
