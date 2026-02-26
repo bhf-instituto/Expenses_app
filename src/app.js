@@ -15,7 +15,6 @@ import corsConfig from './config/cors.config.js';
 const app = express();
 
 app.use(cors(corsConfig))
-app.options('*', cors(corsConfig));
 
 app.use(express.json());
 app.use(cookieParser());
