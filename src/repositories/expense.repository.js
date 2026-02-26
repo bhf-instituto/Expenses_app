@@ -57,7 +57,8 @@ export const getExpensesByFilters = async (filters) => {
             e.category_id,
             c.name AS category_name,
             e.provider_id,
-            p.name AS provider_name
+            p.name AS provider_name,
+            e.updated_at
         FROM expenses e
         JOIN categories c ON c.id = e.category_id
         JOIN users u ON u.id = e.user_id
@@ -92,7 +93,12 @@ export const getExpensesByFilters = async (filters) => {
         params.push(filters.to_date);
     }
 
-    query += ' ORDER BY e.expense_date DESC';
+    if (filters.updated_after) {
+        query += ' AND e.updated_at > ?';
+        params.push(filters.updated_after);
+    }
+
+    query += ' ORDER BY e.updated_at DESC, e.id DESC';
     query += ' LIMIT ? OFFSET ?';
 
     params.push(filters.limit, filters.offset);

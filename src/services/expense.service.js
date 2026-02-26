@@ -52,7 +52,7 @@ export const create = async ({
         validProviderId = provider_id;
     }
 
-    const result = await createExpense(
+    const expenseId = await createExpense(
         setId,
         userId,
         category_id,
@@ -62,6 +62,8 @@ export const create = async ({
         validExpenseDate,
         validProviderId
     );
+
+    return expenseId;
 }
 
 export const getAll = async ({
@@ -71,6 +73,7 @@ export const getAll = async ({
     user_id,
     from_date,
     to_date,
+    updated_after,
     page,
     limit
 }) => {
@@ -107,6 +110,13 @@ export const getAll = async ({
 
     if (to_date !== undefined) {
         filters.to_date = to_date;
+    }
+
+    if (updated_after !== undefined) {
+        if (isNaN(Date.parse(updated_after))) {
+            throw new AppError('invalid updated_after format', 400);
+        }
+        filters.updated_after = updated_after;
     }
 
     // 🆕 PAGINACIÓN
