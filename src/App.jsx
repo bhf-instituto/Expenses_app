@@ -2,9 +2,9 @@ import { Link, NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import ToastViewport from './components/ToastViewport.jsx'
-import DashboardPage from './pages/DashboardPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
+import WorkspacePage from './pages/WorkspacePage.jsx'
 import PWABadge from './PWABadge.jsx'
 import './App.css'
 
@@ -55,7 +55,7 @@ function Navigation() {
             )}
             {isAuthenticated && (
               <NavLink className="nav__link" to="/app">
-                App
+                Workspace
               </NavLink>
             )}
           </nav>
@@ -78,7 +78,7 @@ function App() {
             path="/app"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <WorkspacePage />
               </ProtectedRoute>
             }
           />

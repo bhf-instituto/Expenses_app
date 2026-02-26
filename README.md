@@ -1,11 +1,13 @@
 # Expenses Frontend
 
-Frontend React + Vite + PWA para flujo base de autenticacion:
+Frontend React + Vite + PWA para gestion de gastos con modo offline:
 
-- `register`
-- `login`
-- `logout`
-- `health/me` (sesion)
+- auth: `register`, `login`, `logout`, `health/me`
+- grupos (`sets`)
+- gastos por grupo
+- cola offline para crear/editar/eliminar gastos
+- sincronizacion delta (`updated_at` + `deleted_expenses`)
+- almacenamiento local con IndexedDB
 
 ## Ejecutar
 
@@ -50,6 +52,8 @@ VITE_AUTH_LOGIN_PATH=/auth/login
 VITE_AUTH_LOGOUT_PATH=/auth/logout
 VITE_AUTH_ME_PATH=/health/me
 VITE_HEALTH_PATH=/health/me
+VITE_SETS_PATH=/sets
+VITE_EXPENSES_PATH=/expenses
 ```
 
 El backend responde errores en `data.message`; el frontend ya lo interpreta.

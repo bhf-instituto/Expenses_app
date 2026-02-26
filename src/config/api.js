@@ -21,4 +21,6 @@ export const API_PATHS = {
   logout: normalizePath(import.meta.env.VITE_AUTH_LOGOUT_PATH ?? '/auth/logout'),
   me: normalizePath(import.meta.env.VITE_AUTH_ME_PATH ?? '/health/me'),
   health: normalizePath(import.meta.env.VITE_HEALTH_PATH ?? '/health/me'),
+  sets: normalizePath(import.meta.env.VITE_SETS_PATH ?? '/sets'),
+  expenses: normalizePath(import.meta.env.VITE_EXPENSES_PATH ?? '/expenses'),
 }
