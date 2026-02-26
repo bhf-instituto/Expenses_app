@@ -1,22 +1,25 @@
 import * as authService from '../services/auth.service.js';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+const baseCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    path: '/',
+    sameSite: isProduction ? 'none' : 'lax'
+};
+
 const setAuthCookies = (res, accessToken, refreshToken) => {
     if (accessToken) {
         res.cookie('access_token', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            path: '/',
-            sameSite: 'lax',
+            ...baseCookieOptions,
             maxAge: 1000 * 60 * 15
         });
     }
 
     if (refreshToken) {
         res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            path: '/',
-            sameSite: 'lax',
+            ...baseCookieOptions,
             maxAge: 1000 * 60 * 60 * 24 * 7
         });
     }
@@ -90,8 +93,8 @@ export const logoutUser = async (req, res) => {
         await authService.logout(userId);
 
         return res
-            .clearCookie('access_token')
-            .clearCookie('refresh_token')
+            .clearCookie('access_token', baseCookieOptions)
+            .clearCookie('refresh_token', baseCookieOptions)
             .json({
                 ok: true,
                 data: {
