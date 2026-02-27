@@ -400,17 +400,17 @@
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
   background-color: var(--color-surface);
-  padding: 1.3rem;
+  padding: 0.9rem;
   text-align: left;
   color: var(--color-text-main);
   display: grid;
   gap: 0.5rem;
-  font-size: 1.5rem;
+  font-size: 1.125rem;
 }
 
 .mobile-option-button span {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: 0.6rem;
 }
 
 .mobile-sticky-actions {
@@ -487,6 +487,83 @@
   display: grid;
   gap: 0.45rem;
   margin-top: auto;
+}
+
+.mobile-filter-box {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.mobile-filter-toggle {
+  width: 100%;
+}
+
+.mobile-filter-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-soft);
+  padding: 0.65rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.mobile-filter-panel select {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  padding: 0.55rem 0.65rem;
+}
+
+.mobile-filter-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-text-main);
+}
+
+.mobile-filter-dates {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.mobile-filter-dates .field {
+  gap: 0.25rem;
+}
+
+.mobile-filter-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.mobile-expense-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.mobile-expense-item {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  padding: 0.65rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.mobile-expense-item p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.mobile-expense-item__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .card {
@@ -790,6 +867,10 @@
   }
 
   .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-filter-dates {
     grid-template-columns: 1fr;
   }
 

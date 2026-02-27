@@ -13,6 +13,7 @@ import MobileCreateSetPage from './pages/mobile/MobileCreateSetPage.jsx'
 import MobileExpenseTypePage from './pages/mobile/MobileExpenseTypePage.jsx'
 import MobileHomeCreatePage from './pages/mobile/MobileHomeCreatePage.jsx'
 import MobileSyncPage from './pages/mobile/MobileSyncPage.jsx'
+import MobileViewExpensesPage from './pages/mobile/MobileViewExpensesPage.jsx'
 import PWABadge from './PWABadge.jsx'
 import './App.css'
 
@@ -75,6 +76,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MobileExpenseTypePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/grupos/:setId/ver"
+            element={
+              <ProtectedRoute>
+                <MobileViewExpensesPage />
               </ProtectedRoute>
             }
           />

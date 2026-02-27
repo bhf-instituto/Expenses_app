@@ -32,6 +32,7 @@ export async function listExpenses(setId, options = {}) {
   if (options.page) params.page = options.page
   if (options.limit) params.limit = options.limit
   if (options.categoryId) params.category_id = options.categoryId
+  if (options.providerId) params.provider_id = options.providerId
   if (options.expenseType) params.expense_type = options.expenseType
   if (options.userId) params.user_id = options.userId
   if (options.fromDate) params.from_date = options.fromDate

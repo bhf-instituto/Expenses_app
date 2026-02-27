@@ -4,6 +4,7 @@ import { getMe, loginUser, logoutUser, registerUser } from '../services/authApi.
 import { setsSnapshotStorage } from '../lib/setsSnapshotStorage.js'
 import { tokenStorage } from '../lib/tokenStorage.js'
 import { userSnapshotStorage } from '../lib/userSnapshotStorage.js'
+import { viewFiltersStorage } from '../lib/viewFiltersStorage.js'
 
 const AuthContext = createContext(null)
 
@@ -42,6 +43,7 @@ export function AuthProvider({ children }) {
     tokenStorage.clear()
     userSnapshotStorage.clear()
     setsSnapshotStorage.clear()
+    viewFiltersStorage.clear()
     setToken(null)
     setUser(null)
   }, [])

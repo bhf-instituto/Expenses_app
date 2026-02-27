@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import MobileHeader from '../../components/mobile/MobileHeader.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
-import { EXPENSE_TYPE, getExpenseTypeLabel } from '../../constants/expenseTypes.js'
+import { EXPENSE_TYPE } from '../../constants/expenseTypes.js'
 import { useOnlineStatus } from '../../hooks/useOnlineStatus.js'
 import { fromExpenseTypeSlug, getExpenseTypePageTitle } from '../../lib/expenseTypeRoute.js'
 import { getErrorMessage } from '../../lib/getErrorMessage.js'
@@ -120,7 +120,7 @@ function MobileCategoryListPage() {
                     type="button"
                   >
                     <strong>{category.name}</strong>
-                    <span>{getExpenseTypeLabel(category.expenseType)}</span>
+                    {/* <span>{getExpenseTypeLabel(category.expenseType)}</span> */}
                   </button>
                 </li>
               ))}

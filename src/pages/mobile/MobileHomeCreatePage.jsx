@@ -15,6 +15,7 @@ function MobileHomeCreatePage() {
   const [isLoadingSets, setIsLoadingSets] = useState(false)
   const [screenMessage, setScreenMessage] = useState('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [activeTab, setActiveTab] = useState('crear')
 
   useEffect(() => {
     let isCancelled = false
@@ -71,6 +72,11 @@ function MobileHomeCreatePage() {
 
   function handleOpenSet(setItem) {
     const nextActiveSetId = persistActiveSet(sets, String(setItem.id))
+    if (activeTab === 'ver') {
+      navigate(`/app/grupos/${nextActiveSetId}/ver`)
+      return
+    }
+
     navigate(`/app/grupos/${nextActiveSetId}/tipo-gasto`)
   }
 
@@ -92,11 +98,19 @@ function MobileHomeCreatePage() {
 
       <article className="mobile-card">
         <div className="mobile-tabs">
-          <button className="mobile-tabs__button is-active" type="button">
+          <button
+            className={`mobile-tabs__button ${activeTab === 'crear' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('crear')}
+            type="button"
+          >
             Crear
           </button>
-          <button className="mobile-tabs__button" disabled type="button">
-            Editar (PC)
+          <button
+            className={`mobile-tabs__button ${activeTab === 'ver' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('ver')}
+            type="button"
+          >
+            Ver
           </button>
         </div>
 
@@ -126,11 +140,13 @@ function MobileHomeCreatePage() {
           <p className="alert alert--info">{screenMessage}</p>
         )}
 
-        <div className="mobile-sticky-actions">
-          <button className="btn btn--primary mobile-wide-btn" onClick={() => navigate('/app/grupos/nuevo')} type="button">
-            Crear grupo
-          </button>
-        </div>
+        {activeTab === 'crear' && (
+          <div className="mobile-sticky-actions">
+            <button className="btn btn--primary mobile-wide-btn" onClick={() => navigate('/app/grupos/nuevo')} type="button">
+              Crear grupo
+            </button>
+          </div>
+        )}
       </article>
     </section>
   )

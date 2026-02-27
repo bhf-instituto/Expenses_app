@@ -182,9 +182,10 @@ function MobileCreateExpensePage() {
 
       <article className="mobile-card">
         <p className="mobile-caption">
-          Tipo: <strong>{getExpenseTypeLabel(resolvedExpenseType)}</strong>
-          {' · '}
           Categoria: <strong>{category?.name ?? '-'}</strong>
+        </p>
+        <p className="mobile-caption">
+          Tipo: <strong>{getExpenseTypeLabel(resolvedExpenseType)}</strong>
         </p>
 
         <form className="form" onSubmit={handleSubmit}>
