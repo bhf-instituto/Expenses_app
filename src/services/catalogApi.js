@@ -44,3 +44,25 @@ export async function listProviders(setId) {
     .map(normalizeProvider)
     .filter((provider) => Number.isInteger(provider.id))
 }
+
+export async function createCategory(setId, payload) {
+  const requestPayload = {
+    category_name: String(payload.categoryName ?? '').trim(),
+    expense_type: Number(payload.expenseType),
+  }
+
+  const { data } = await httpClient.post(`${API_PATHS.sets}/${setId}/categories`, requestPayload)
+  return ensureApiOk(data)
+}
+
+export async function createProvider(setId, payload) {
+  const requestPayload = {
+    name: String(payload.name ?? '').trim(),
+    contactName: payload.contactName ? String(payload.contactName).trim() : '',
+    contact_name: payload.contactName ? String(payload.contactName).trim() : '',
+    phone: payload.phone ? String(payload.phone).trim() : '',
+  }
+
+  const { data } = await httpClient.post(`${API_PATHS.sets}/${setId}/providers`, requestPayload)
+  return ensureApiOk(data)
+}
