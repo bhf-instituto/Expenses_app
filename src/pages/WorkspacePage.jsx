@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { useOnlineStatus } from '../hooks/useOnlineStatus.js'
 import { getErrorMessage } from '../lib/getErrorMessage.js'
+import { setsSnapshotStorage } from '../lib/setsSnapshotStorage.js'
 import {
   dismissConflict,
   downloadSetOffline,
@@ -38,8 +39,8 @@ function WorkspacePage() {
   const { user, logout } = useAuth()
   const { showError, showSuccess } = useToast()
 
-  const [sets, setSets] = useState([])
-  const [activeSetId, setActiveSetId] = useState('')
+  const [sets, setSets] = useState(() => setsSnapshotStorage.get()?.sets ?? [])
+  const [activeSetId, setActiveSetId] = useState(() => setsSnapshotStorage.get()?.activeSetId ?? '')
   const [setNameInput, setSetNameInput] = useState('')
   const [expenseForm, setExpenseForm] = useState(initialExpenseForm)
   const [editingExpenseId, setEditingExpenseId] = useState(null)
@@ -96,6 +97,16 @@ function WorkspacePage() {
         setActiveSetId(String(nextSets[0].id))
       }
     } catch (error) {
+      const isNetworkIssue = !error?.response
+      const cachedSnapshot = setsSnapshotStorage.get()
+
+      if (isNetworkIssue && cachedSnapshot?.sets?.length) {
+        setSets(cachedSnapshot.sets)
+        setActiveSetId(cachedSnapshot.activeSetId)
+        setScreenError('Sin conexion. Mostrando grupos guardados en este dispositivo.')
+        return
+      }
+
       const message = getErrorMessage(error, 'No se pudieron cargar los grupos.')
       setScreenError(message)
       showError(message)
@@ -112,6 +123,15 @@ function WorkspacePage() {
     setCatalog(payload.catalog)
     setSyncState(payload.syncState)
   }
+
+  useEffect(() => {
+    if (sets.length === 0) {
+      setsSnapshotStorage.clear()
+      return
+    }
+
+    setsSnapshotStorage.set({ sets, activeSetId })
+  }, [sets, activeSetId])
 
   useEffect(() => {
     loadSetList()

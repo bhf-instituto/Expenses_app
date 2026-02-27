@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getMe, loginUser, logoutUser, registerUser } from '../services/authApi.js'
+import { setsSnapshotStorage } from '../lib/setsSnapshotStorage.js'
 import { tokenStorage } from '../lib/tokenStorage.js'
 import { userSnapshotStorage } from '../lib/userSnapshotStorage.js'
 
@@ -40,6 +41,7 @@ export function AuthProvider({ children }) {
   const clearSession = useCallback(() => {
     tokenStorage.clear()
     userSnapshotStorage.clear()
+    setsSnapshotStorage.clear()
     setToken(null)
     setUser(null)
   }, [])
