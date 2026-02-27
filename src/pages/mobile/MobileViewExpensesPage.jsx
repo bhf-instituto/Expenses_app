@@ -9,7 +9,7 @@ import { getErrorMessage } from '../../lib/getErrorMessage.js'
 import { getSetNameFromSnapshot } from '../../lib/setsFlow.js'
 import { viewFiltersStorage } from '../../lib/viewFiltersStorage.js'
 import { loadOfflineSetData, syncCatalog } from '../../offline/syncService.js'
-import { listExpenses } from '../../services/expensesApi.js'
+import { getExpensesFilteredTotal, listExpenses } from '../../services/expensesApi.js'
 
 const PAGE_SIZE = 50
 
@@ -23,6 +23,7 @@ const initialFilters = {
   enableDateRange: false,
   fromDate: '',
   toDate: '',
+  enableTotal: false,
 }
 
 function getTodayDate() {
@@ -128,6 +129,36 @@ function buildQueryOptions(filters, page) {
   return options
 }
 
+function buildTotalQueryOptions(filters) {
+  const options = {}
+
+  if (filters.enableType && filters.expenseType) {
+    options.expenseType = Number(filters.expenseType)
+  }
+
+  if (filters.enableCategory && filters.categoryId) {
+    options.categoryId = Number(filters.categoryId)
+  }
+
+  if (filters.enableProvider && filters.providerId) {
+    options.providerId = Number(filters.providerId)
+  }
+
+  if (filters.enableDateRange && filters.fromDate && filters.toDate) {
+    options.fromDate = filters.fromDate
+    options.toDate = filters.toDate
+  }
+
+  return options
+}
+
+function sumExpenseAmounts(expenses) {
+  return expenses.reduce((accumulator, expense) => {
+    const amount = Number(expense.amount ?? 0)
+    return accumulator + (Number.isFinite(amount) ? amount : 0)
+  }, 0)
+}
+
 function MobileViewExpensesPage() {
   const navigate = useNavigate()
   const { setId } = useParams()
@@ -143,8 +174,10 @@ function MobileViewExpensesPage() {
   const [screenMessageType, setScreenMessageType] = useState('info')
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isLoadingTotal, setIsLoadingTotal] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const [totalAmount, setTotalAmount] = useState(null)
 
   const pageRef = useRef(1)
   const offlineFilteredPoolRef = useRef([])
@@ -223,6 +256,7 @@ function MobileViewExpensesPage() {
 
         if (isOnline) {
           await fetchOnlineExpenses({ reset: true, filters: restoredAppliedFilters, setId })
+          await resolveTotalAmount(restoredAppliedFilters, localData.expenses)
           if (isCancelled) return
           setScreenMessage('Mostrando gastos del servidor.')
           setScreenMessageType('info')
@@ -232,6 +266,7 @@ function MobileViewExpensesPage() {
             filters: restoredAppliedFilters,
             reset: true,
           })
+          await resolveTotalAmount(restoredAppliedFilters, localData.expenses)
           if (isCancelled) return
           setScreenMessage('Sin conexion. Mostrando gastos guardados localmente.')
           setScreenMessageType('info')
@@ -290,6 +325,35 @@ function MobileViewExpensesPage() {
     setHasMore(rows.length === PAGE_SIZE)
   }
 
+  async function resolveTotalAmount(filters, source) {
+    if (!filters.enableTotal) {
+      setTotalAmount(null)
+      setIsLoadingTotal(false)
+      return
+    }
+
+    setIsLoadingTotal(true)
+
+    try {
+      if (isOnline) {
+        const total = await getExpensesFilteredTotal(setId, buildTotalQueryOptions(filters))
+        setTotalAmount(total)
+      } else {
+        const localSource = source ?? localExpensesRef.current
+        const filteredLocal = applyFiltersToLocalExpenses(localSource, filters)
+        setTotalAmount(sumExpenseAmounts(filteredLocal))
+      }
+    } catch (error) {
+      setTotalAmount(null)
+      const message = getErrorMessage(error, 'No se pudo calcular el total filtrado.')
+      setScreenMessage(message)
+      setScreenMessageType('error')
+      showError(message)
+    } finally {
+      setIsLoadingTotal(false)
+    }
+  }
+
   function applyLocalExpenses({ source, filters, reset }) {
     const filtered = applyFiltersToLocalExpenses(source, filters)
 
@@ -336,6 +400,8 @@ function MobileViewExpensesPage() {
           reset: true,
         })
       }
+
+      await resolveTotalAmount(normalized)
     } catch (error) {
       const message = getErrorMessage(error, 'No se pudieron aplicar los filtros.')
       setScreenMessage(message)
@@ -353,6 +419,8 @@ function MobileViewExpensesPage() {
     setAppliedFilters(initialFilters)
     setIsFiltersOpen(false)
     setIsLoadingExpenses(true)
+    setIsLoadingTotal(false)
+    setTotalAmount(null)
     setScreenMessage('')
     setScreenMessageType('info')
 
@@ -535,6 +603,15 @@ function MobileViewExpensesPage() {
                 </div>
               )}
 
+              <label className="mobile-filter-check">
+                <input
+                  checked={draftFilters.enableTotal}
+                  onChange={(event) => toggleFilterField('enableTotal', event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Calcular total de montos</span>
+              </label>
+
               <div className="mobile-filter-actions">
                 <button className="btn btn--primary" onClick={handleApplyFilters} type="button">
                   Aplicar
@@ -550,6 +627,15 @@ function MobileViewExpensesPage() {
         {screenMessage && (
           <p className={`alert ${screenMessageType === 'error' ? 'alert--error' : 'alert--info'}`}>
             {screenMessage}
+          </p>
+        )}
+
+        {appliedFilters.enableTotal && (
+          <p className="mobile-caption">
+            Total filtrado:{' '}
+            <strong>
+              {isLoadingTotal ? 'Calculando...' : currencyFormatter.format(Number(totalAmount ?? 0))}
+            </strong>
           </p>
         )}
 

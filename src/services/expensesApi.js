@@ -83,3 +83,58 @@ export async function deleteExpense(expenseId) {
   const { data } = await httpClient.delete(`${API_PATHS.expenses}/${expenseId}`)
   return ensureApiOk(data)
 }
+
+function toSafeNumber(value) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export async function getExpensesFilteredTotal(setId, options = {}) {
+  const params = {}
+
+  if (options.categoryId) params.category_id = options.categoryId
+  if (options.providerId) params.provider_id = options.providerId
+  if (options.expenseType) params.expense_type = options.expenseType
+  if (options.userId) params.user_id = options.userId
+  if (options.fromDate) params.from_date = options.fromDate
+  if (options.toDate) params.to_date = options.toDate
+
+  const { data } = await httpClient.get(`${API_PATHS.sets}/${setId}/expenses/totalsFiltered`, { params })
+  const payload = ensureApiOk(data)
+
+  const totalValue = pickFirst(
+    payload,
+    [
+      'data.total',
+      'total',
+      'data.amount',
+      'amount',
+      'data.sum',
+      'sum',
+      'data.total_amount',
+      'total_amount',
+      'data.totalAmount',
+      'totalAmount',
+    ],
+    null,
+  )
+
+  if (totalValue !== null) {
+    return toSafeNumber(totalValue)
+  }
+
+  const rows = pickArray(payload, ['data', 'totals', 'result'])
+  if (rows.length > 0) {
+    const firstRow = rows[0] ?? {}
+    const rowTotal = (
+      firstRow.total
+      ?? firstRow.amount
+      ?? firstRow.sum
+      ?? firstRow.total_amount
+      ?? firstRow.totalAmount
+    )
+    return toSafeNumber(rowTotal)
+  }
+
+  return 0
+}
