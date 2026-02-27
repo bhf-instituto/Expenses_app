@@ -76,6 +76,10 @@ function WorkspacePage() {
 
   const selectedExpenseType = selectedCategory?.expenseType ?? null
   const providersEnabled = selectedExpenseType === EXPENSE_TYPE.VARIABLE
+  const pendingQueueCount = useMemo(
+    () => queueItems.filter((item) => item.status === 'pending').length,
+    [queueItems],
+  )
 
   useEffect(() => {
     if (!providersEnabled && expenseForm.providerId) {
@@ -146,6 +150,7 @@ function WorkspacePage() {
         showSuccess(`Actualizado. Gastos: ${syncResult.upserted}, eliminados: ${syncResult.deleted}.`)
       }
 
+      lastAutoDeltaSetIdRef.current = String(setId)
       return syncResult
     } finally {
       syncLockRef.current = false
@@ -173,6 +178,7 @@ function WorkspacePage() {
         )
       }
 
+      lastAutoDeltaSetIdRef.current = String(setId)
       return { queueResult, syncResult }
     } finally {
       syncLockRef.current = false
@@ -217,6 +223,7 @@ function WorkspacePage() {
 
   useEffect(() => {
     if (!activeSetId || !isOnline) return
+    if (pendingQueueCount > 0) return
     if (lastAutoDeltaSetIdRef.current === String(activeSetId)) return
     if (syncLockRef.current) return
 
@@ -224,11 +231,6 @@ function WorkspacePage() {
     const setIdToSync = String(activeSetId)
 
     runPullDelta(setIdToSync, { silentSuccess: true })
-      .then((result) => {
-        if (!isCancelled && result) {
-          lastAutoDeltaSetIdRef.current = setIdToSync
-        }
-      })
       .catch((error) => {
         if (!isCancelled) {
           showError(getErrorMessage(error, 'No se pudo ejecutar el delta automatico.'))
@@ -239,13 +241,19 @@ function WorkspacePage() {
       isCancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSetId, isSyncing])
+  }, [activeSetId, isOnline, pendingQueueCount])
+
+  useEffect(() => {
+    if (!isOnline) {
+      lastAutoDeltaSetIdRef.current = ''
+    }
+  }, [isOnline])
 
   useEffect(() => {
     const wasOnline = wasOnlineRef.current
     wasOnlineRef.current = isOnline
 
-    if (wasOnline || !isOnline || !activeSetId) {
+    if (wasOnline || !isOnline || !activeSetId || pendingQueueCount === 0 || syncLockRef.current) {
       return
     }
 
@@ -253,7 +261,7 @@ function WorkspacePage() {
       showError(getErrorMessage(error, 'No se pudo sincronizar automaticamente al reconectar.'))
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, activeSetId])
+  }, [isOnline, activeSetId, pendingQueueCount])
 
   async function handleCreateSet(event) {
     event.preventDefault()
@@ -438,8 +446,6 @@ function WorkspacePage() {
       setIsLoggingOut(false)
     }
   }
-
-  const pendingQueueCount = queueItems.filter((item) => item.status === 'pending').length
 
   return (
     <section className="workspace">
