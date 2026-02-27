@@ -96,7 +96,7 @@ function MobileCategoryListPage() {
         title={getExpenseTypePageTitle(parsedExpenseType)}
       />
 
-      <article className="mobile-card">
+      <article className="mobile-card mobile-card-fixed-expense">
         {parsedExpenseType === EXPENSE_TYPE.VARIABLE && (
           <p className="mobile-caption">
             Categoria variable: el proveedor se elige al crear el gasto.

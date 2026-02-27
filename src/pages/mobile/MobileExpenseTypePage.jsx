@@ -18,14 +18,14 @@ function MobileExpenseTypePage() {
   }
 
   return (
-    <section className="mobile-screen">
+    <section className="mobile-screen mobile-screen-type">
       <MobileHeader
         leftAction={{ label: 'Atras', onClick: () => navigate(-1) }}
         rightAction={setName ? { label: setName } : null}
         title="Tipo de gasto"
       />
 
-      <article className="mobile-card">
+      <article className="mobile-card mobile-card-type">
         <div className="type-selector">
           <button
             className="type-selector__button is-fixed"
