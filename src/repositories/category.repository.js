@@ -1,8 +1,8 @@
 import conn from '../config/db_connection.config.js';
 
 export const findCategoryById = async (categoryId) => {
-    const [result] = await conn.query(`
-        SELECT id, expense_type
+    const [rows] = await conn.query(`
+        SELECT id, set_id, expense_type
         FROM categories
         WHERE id = ?
         LIMIT 1
@@ -10,7 +10,7 @@ export const findCategoryById = async (categoryId) => {
         [categoryId]
     )
 
-    return result;
+    return rows[0];
 }
 
 export const findCategoryByIdAndSet = async (id, setId) => {

@@ -1,4 +1,5 @@
 import conn from '../config/db_connection.config.js'
+import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
 
 
 export const getExpensesTotalsByFilters = async (filters) => {
@@ -64,16 +65,17 @@ export const getTotalsByCategory = async (setId, fromDate, toDate) => {
 export const getTotalsByProvider = async (setId, fromDate, toDate) => {
     const [rows] = await conn.query(`
         SELECT
-            p.id AS provider_id,
-            p.name AS provider_name,
+            c.id AS provider_id,
+            c.name AS provider_name,
             SUM(e.amount) AS total
         FROM expenses e
-        LEFT JOIN providers p ON p.id = e.provider_id
+        JOIN categories c ON c.id = e.category_id
         WHERE e.set_id = ?
+          AND c.expense_type = ?
           AND e.expense_date BETWEEN ? AND ?
-        GROUP BY p.id, p.name
+        GROUP BY c.id, c.name
         ORDER BY total DESC
-    `, [setId, fromDate, toDate]);
+    `, [setId, EXPENSE_TYPE.PROVEEDORES, fromDate, toDate]);
 
     return rows;
 };

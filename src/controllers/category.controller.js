@@ -100,7 +100,7 @@ const editCategory = async (req, res) => {
     try {
         const categoryId = req.category_id;
         const categoryName = req.body.category_name;
-        const changeType = Boolean(req.body.change_type);
+        const expenseType = req.body.expense_type;
 
         if (!categoryId) return res.status(400).json({
             ok: false,
@@ -108,7 +108,7 @@ const editCategory = async (req, res) => {
         })
 
 
-        const result = await categoryService.edit(categoryId, categoryName, changeType);
+        const result = await categoryService.edit(categoryId, categoryName, expenseType);
 
         return res.status(200).json({
             ok: true,

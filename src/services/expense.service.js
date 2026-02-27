@@ -1,5 +1,4 @@
 import { findCategoryByIdAndSet } from '../repositories/category.repository.js';
-import { findProviderByIdAndSet } from '../repositories/provider.repository.js';
 import { getTotalsByCategory, getTotalsByProvider, getTotalsByType, getExpensesTotalsByFilters } from '../repositories/totalExpenses.repository.js';
 import { createExpense, getExpensesByFilters, getDeletedExpensesByFilters, updateExpenseById, deleteExpenseById } from '../repositories/expense.repository.js';
 import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
@@ -12,8 +11,7 @@ export const create = async ({
     category_id,
     amount,
     description = null,
-    expense_date = null,
-    provider_id = null
+    expense_date = null
 }) => {
 
     let validExpenseDate = expense_date;
@@ -33,25 +31,6 @@ export const create = async ({
 
     const expenseType = Number(category.expense_type);
 
-    let validProviderId = null;
-
-    if (provider_id !== undefined && provider_id !== null) {
-
-        if (expenseType !== EXPENSE_TYPE.VARIABLE) {
-            throw new AppError('fixed expenses cannot have provider', 400);
-        }
-
-        console.log(provider_id, setId);
-
-
-        const provider = await findProviderByIdAndSet(provider_id, setId);
-        if (!provider) {
-            throw new AppError('invalid provider for this set', 400);
-        }
-
-        validProviderId = provider_id;
-    }
-
     const expenseId = await createExpense(
         setId,
         userId,
@@ -59,8 +38,7 @@ export const create = async ({
         expenseType,
         normAmount,
         description,
-        validExpenseDate,
-        validProviderId
+        validExpenseDate
     );
 
     return expenseId;

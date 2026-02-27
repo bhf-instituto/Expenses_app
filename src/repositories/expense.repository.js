@@ -7,14 +7,13 @@ export const createExpense = async (
     expenseType,
     normAmount,
     description,
-    validExpenseDate,
-    validProviderId
+    validExpenseDate
 ) => {
 
     const [result] = await conn.query(`
     INSERT INTO expenses
-    (set_id, user_id, category_id, expense_type, amount, description, expense_date, provider_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (set_id, user_id, category_id, expense_type, amount, description, expense_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `, [
         setId,
         userId,
@@ -22,8 +21,7 @@ export const createExpense = async (
         expenseType,
         normAmount,
         description,
-        validExpenseDate,
-        validProviderId
+        validExpenseDate
     ]);
 
     return result.insertId;
@@ -56,13 +54,10 @@ export const getExpensesByFilters = async (filters) => {
             u.email AS user_email,
             e.category_id,
             c.name AS category_name,
-            e.provider_id,
-            p.name AS provider_name,
             e.updated_at
         FROM expenses e
         JOIN categories c ON c.id = e.category_id
         JOIN users u ON u.id = e.user_id
-        LEFT JOIN providers p ON p.id = e.provider_id
         WHERE e.set_id = ?
     `;
 
@@ -160,6 +155,17 @@ export const updateExpenseById = async (expenseId, fields) => {
 
     return result.affectedRows > 0;
 };
+
+export const syncExpenseTypeByCategoryId = async (categoryId, expenseType) => {
+    const [result] = await conn.query(`
+        UPDATE expenses
+        SET expense_type = ?
+        WHERE category_id = ?
+    `, [expenseType, categoryId]);
+
+    return result.affectedRows;
+};
+
 export const deleteExpenseById = async (expenseId, setId) => {
 
     const connection = await conn.getConnection();

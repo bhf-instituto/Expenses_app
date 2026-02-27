@@ -1,5 +1,6 @@
 import { normString, validateExpenseType } from "../utils/validations.utils.js";
 import { findCategoryById, findCategoryByUnique, createCategory, getAllFromSet, editCategory, deleteCategoryById } from '../repositories/category.repository.js'
+import { syncExpenseTypeByCategoryId } from '../repositories/expense.repository.js';
 import { AppError } from '../errors/appError.js';
 import EXPENSE_TYPE from "../constants/expenseTypes.constant.js";
 
@@ -27,7 +28,7 @@ export const create = async (setId, expenseType_, categoryName) => {
     return result;
 }
 
-export const edit = async (categoryId, categoryName, changeType) => {
+export const edit = async (categoryId, categoryName, expenseType_) => {
 
     const validName = normString(categoryName, 3, true, 2);
     const category = await findCategoryById(categoryId);
@@ -37,21 +38,26 @@ export const edit = async (categoryId, categoryName, changeType) => {
 
     let newExpenseType = null;
 
-    if (changeType === true) {
-        newExpenseType =
-            category.expense_type === EXPENSE_TYPE.FIJO
-                ? EXPENSE_TYPE.VARIABLE
-                : EXPENSE_TYPE.FIJO;
+    if (expenseType_ !== undefined) {
+        const expenseType = Number(expenseType_);
+        if (!Object.values(EXPENSE_TYPE).includes(expenseType)) {
+            throw new AppError('invalid category type', 400);
+        }
+        newExpenseType = expenseType;
     }
 
 
     const result = await editCategory(
         categoryId,
-        categoryName,
+        validName,
         newExpenseType
     );
 
     if (result === 0) throw new AppError('editing category failed');
+
+    if (newExpenseType !== null && newExpenseType !== Number(category.expense_type)) {
+        await syncExpenseTypeByCategoryId(categoryId, newExpenseType);
+    }
 
     return true;
 

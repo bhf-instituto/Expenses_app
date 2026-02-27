@@ -4,7 +4,6 @@ import authRouter from './routes/auth.route.js';
 import inviteRouter from './routes/invite.route.js';
 import setsRouter from './routes/set.route.js';
 import categoriesRouter from './routes/categories.route.js';
-import providersRouter from './routes/providers.route.js';
 import expensesRouter from './routes/expenses.route.js';
 import healthRouter from './routes/health.route.js';
 import cookieParser from 'cookie-parser';
@@ -29,7 +28,6 @@ app.use('/auth', authRouter);
 app.use('/invite', inviteRouter);
 app.use('/sets', setsRouter);
 app.use('/categories', categoriesRouter);
-app.use('/providers', providersRouter);
 app.use('/expenses', expensesRouter);
 
 app.use('/health', healthRouter);

@@ -9,8 +9,7 @@ const createExpense = async (req, res) => {
             category_id,
             amount,
             description,
-            expense_date,
-            provider_id
+            expense_date
         } = req.body;
 
         if (!category_id || !amount) {
@@ -26,8 +25,7 @@ const createExpense = async (req, res) => {
             category_id,
             amount,
             description,
-            expense_date,
-            provider_id
+            expense_date
         });
 
         return res.status(201).json({
