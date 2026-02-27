@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EXPENSE_TYPE, getExpenseTypeLabel } from '../constants/expenseTypes.js'
 import { SET_ROLE, getSetRoleLabel } from '../constants/setRoles.js'
@@ -59,6 +59,10 @@ function WorkspacePage() {
   const [conflicts, setConflicts] = useState([])
 
   const [screenError, setScreenError] = useState('')
+  const activeSetIdRef = useRef(activeSetId)
+  const wasOnlineRef = useRef(isOnline)
+  const lastAutoDeltaSetIdRef = useRef('')
+  const syncLockRef = useRef(false)
 
   const selectedSet = useMemo(
     () => sets.find((item) => item.id === Number(activeSetId)) ?? null,
@@ -124,6 +128,58 @@ function WorkspacePage() {
     setSyncState(payload.syncState)
   }
 
+  async function runPullDelta(setId, options = {}) {
+    const { silentSuccess = false } = options
+    if (!setId || syncLockRef.current) return null
+
+    syncLockRef.current = true
+    setIsSyncing(true)
+
+    try {
+      const syncResult = await syncSet(setId, { includeCatalog: true })
+
+      if (String(activeSetIdRef.current) === String(setId)) {
+        await loadLocalSetData(setId)
+      }
+
+      if (!silentSuccess) {
+        showSuccess(`Actualizado. Gastos: ${syncResult.upserted}, eliminados: ${syncResult.deleted}.`)
+      }
+
+      return syncResult
+    } finally {
+      syncLockRef.current = false
+      setIsSyncing(false)
+    }
+  }
+
+  async function runFlushQueueAndSync(setId, options = {}) {
+    const { silentSuccess = false } = options
+    if (!setId || syncLockRef.current) return null
+
+    syncLockRef.current = true
+    setIsSyncing(true)
+
+    try {
+      const { queueResult, syncResult } = await flushQueueAndSync(setId)
+
+      if (String(activeSetIdRef.current) === String(setId)) {
+        await loadLocalSetData(setId)
+      }
+
+      if (!silentSuccess) {
+        showSuccess(
+          `Sync ok. Cola procesada: ${queueResult.processed}, conflictos: ${queueResult.conflicts}, actualizados: ${syncResult.upserted}.`,
+        )
+      }
+
+      return { queueResult, syncResult }
+    } finally {
+      syncLockRef.current = false
+      setIsSyncing(false)
+    }
+  }
+
   useEffect(() => {
     if (sets.length === 0) {
       setsSnapshotStorage.clear()
@@ -139,7 +195,12 @@ function WorkspacePage() {
   }, [])
 
   useEffect(() => {
+    activeSetIdRef.current = activeSetId
+  }, [activeSetId])
+
+  useEffect(() => {
     if (!activeSetId) {
+      lastAutoDeltaSetIdRef.current = ''
       setExpenses([])
       setQueueItems([])
       setConflicts([])
@@ -153,6 +214,46 @@ function WorkspacePage() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSetId])
+
+  useEffect(() => {
+    if (!activeSetId || !isOnline) return
+    if (lastAutoDeltaSetIdRef.current === String(activeSetId)) return
+    if (syncLockRef.current) return
+
+    let isCancelled = false
+    const setIdToSync = String(activeSetId)
+
+    runPullDelta(setIdToSync, { silentSuccess: true })
+      .then((result) => {
+        if (!isCancelled && result) {
+          lastAutoDeltaSetIdRef.current = setIdToSync
+        }
+      })
+      .catch((error) => {
+        if (!isCancelled) {
+          showError(getErrorMessage(error, 'No se pudo ejecutar el delta automatico.'))
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSetId, isSyncing])
+
+  useEffect(() => {
+    const wasOnline = wasOnlineRef.current
+    wasOnlineRef.current = isOnline
+
+    if (wasOnline || !isOnline || !activeSetId) {
+      return
+    }
+
+    runFlushQueueAndSync(activeSetId, { silentSuccess: true }).catch((error) => {
+      showError(getErrorMessage(error, 'No se pudo sincronizar automaticamente al reconectar.'))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline, activeSetId])
 
   async function handleCreateSet(event) {
     event.preventDefault()
@@ -199,32 +300,20 @@ function WorkspacePage() {
   async function handleSyncNow() {
     if (!activeSetId) return
 
-    setIsSyncing(true)
     try {
-      const { queueResult, syncResult } = await flushQueueAndSync(activeSetId)
-      await loadLocalSetData(activeSetId)
-      showSuccess(
-        `Sync ok. Cola procesada: ${queueResult.processed}, conflictos: ${queueResult.conflicts}, actualizados: ${syncResult.upserted}.`,
-      )
+      await runFlushQueueAndSync(activeSetId)
     } catch (error) {
       showError(getErrorMessage(error, 'No se pudo sincronizar.'))
-    } finally {
-      setIsSyncing(false)
     }
   }
 
   async function handlePullDelta() {
     if (!activeSetId) return
 
-    setIsSyncing(true)
     try {
-      const syncResult = await syncSet(activeSetId, { includeCatalog: true })
-      await loadLocalSetData(activeSetId)
-      showSuccess(`Actualizado. Gastos: ${syncResult.upserted}, eliminados: ${syncResult.deleted}.`)
+      await runPullDelta(activeSetId)
     } catch (error) {
       showError(getErrorMessage(error, 'No se pudo actualizar desde servidor.'))
-    } finally {
-      setIsSyncing(false)
     }
   }
 
@@ -287,7 +376,7 @@ function WorkspacePage() {
       }
 
       if (isOnline) {
-        await flushQueueAndSync(activeSetId)
+        await runFlushQueueAndSync(activeSetId, { silentSuccess: true })
       }
 
       await loadLocalSetData(activeSetId)
@@ -320,7 +409,7 @@ function WorkspacePage() {
       await enqueueDeleteExpense(activeSetId, expense.id)
 
       if (isOnline) {
-        await flushQueueAndSync(activeSetId)
+        await runFlushQueueAndSync(activeSetId, { silentSuccess: true })
       }
 
       await loadLocalSetData(activeSetId)
@@ -369,6 +458,12 @@ function WorkspacePage() {
             {isLoggingOut ? 'Cerrando...' : 'Logout'}
           </button>
         </div>
+
+        {pendingQueueCount > 0 && (
+          <p className="alert alert--warning">
+            Hay {pendingQueueCount} cambio(s) en cola. {isOnline ? 'Se sincronizaran automaticamente.' : 'Vuelve online para subirlos.'}
+          </p>
+        )}
 
         <div className="workspace__grid">
           <div className="workspace__col">
