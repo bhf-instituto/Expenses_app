@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
+import { useOnlineStatus } from '../hooks/useOnlineStatus.js'
 import { getErrorMessage } from '../lib/getErrorMessage.js'
 
 const initialForm = {
@@ -13,6 +14,7 @@ function LoginPage() {
   const navigate = useNavigate()
   const { login, isAuthenticated } = useAuth()
   const { showError, showSuccess } = useToast()
+  const isOnline = useOnlineStatus()
   const [form, setForm] = useState(initialForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -29,6 +31,14 @@ function LoginPage() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+
+    if (!isOnline) {
+      const message = 'Sin internet. El login requiere conexion.'
+      setError(message)
+      showError(message)
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -75,8 +85,13 @@ function LoginPage() {
         </label>
 
         {error && <p className="alert alert--error">{error}</p>}
+        {!isOnline && (
+          <p className="alert alert--info">
+            Estas offline. Puedes usar modo offline solo si ya iniciaste sesion antes.
+          </p>
+        )}
 
-        <button className="btn btn--primary" disabled={isSubmitting} type="submit">
+        <button className="btn btn--primary" disabled={isSubmitting || !isOnline} type="submit">
           {isSubmitting ? 'Ingresando...' : 'Login'}
         </button>
       </form>

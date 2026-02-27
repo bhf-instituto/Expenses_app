@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getMe, loginUser, logoutUser, registerUser } from '../services/authApi.js'
 import { tokenStorage } from '../lib/tokenStorage.js'
+import { userSnapshotStorage } from '../lib/userSnapshotStorage.js'
 
 const AuthContext = createContext(null)
 
@@ -33,11 +34,12 @@ function extractUser(payload) {
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => tokenStorage.get())
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => userSnapshotStorage.get())
   const [bootstrapping, setBootstrapping] = useState(true)
 
   const clearSession = useCallback(() => {
     tokenStorage.clear()
+    userSnapshotStorage.clear()
     setToken(null)
     setUser(null)
   }, [])
@@ -46,6 +48,9 @@ export function AuthProvider({ children }) {
     const data = await getMe()
     const nextUser = extractUser(data)
     setUser(nextUser)
+    if (nextUser) {
+      userSnapshotStorage.set(nextUser)
+    }
     return nextUser
   }, [])
 
@@ -57,10 +62,18 @@ export function AuthProvider({ children }) {
         const nextUser = await refreshMe()
 
         if (!nextUser) {
+          userSnapshotStorage.clear()
           setUser(null)
         }
-      } catch {
-        clearSession()
+      } catch (error) {
+        const isNetworkIssue = !error?.response
+        const cachedUser = userSnapshotStorage.get()
+
+        if (isNetworkIssue && cachedUser) {
+          setUser(cachedUser)
+        } else if (!isNetworkIssue) {
+          clearSession()
+        }
       } finally {
         if (!isCancelled) {
           setBootstrapping(false)
@@ -88,6 +101,7 @@ export function AuthProvider({ children }) {
 
     if (nextUser) {
       setUser(nextUser)
+      userSnapshotStorage.set(nextUser)
       return nextUser
     }
 
@@ -107,6 +121,7 @@ export function AuthProvider({ children }) {
 
     if (nextUser) {
       setUser(nextUser)
+      userSnapshotStorage.set(nextUser)
       return nextUser
     }
 

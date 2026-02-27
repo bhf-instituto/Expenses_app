@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
+import { useOnlineStatus } from '../hooks/useOnlineStatus.js'
 import { getErrorMessage } from '../lib/getErrorMessage.js'
 
 const initialForm = {
@@ -13,6 +14,7 @@ function RegisterPage() {
   const navigate = useNavigate()
   const { register, isAuthenticated } = useAuth()
   const { showError, showSuccess } = useToast()
+  const isOnline = useOnlineStatus()
   const [form, setForm] = useState(initialForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -29,6 +31,14 @@ function RegisterPage() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+
+    if (!isOnline) {
+      const message = 'Sin internet. El registro requiere conexion.'
+      setError(message)
+      showError(message)
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -82,8 +92,13 @@ function RegisterPage() {
         </label>
 
         {error && <p className="alert alert--error">{error}</p>}
+        {!isOnline && (
+          <p className="alert alert--info">
+            Registro deshabilitado en modo offline.
+          </p>
+        )}
 
-        <button className="btn btn--primary" disabled={isSubmitting} type="submit">
+        <button className="btn btn--primary" disabled={isSubmitting || !isOnline} type="submit">
           {isSubmitting ? 'Creando...' : 'Register'}
         </button>
       </form>
