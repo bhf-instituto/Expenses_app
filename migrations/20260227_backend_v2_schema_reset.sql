@@ -68,6 +68,7 @@ CREATE TABLE expenses (
     user_id INT UNSIGNED NOT NULL,
     category_id INT UNSIGNED NOT NULL,
     expense_type TINYINT UNSIGNED NOT NULL,
+    payment_method TINYINT UNSIGNED NOT NULL,
     amount INT UNSIGNED NOT NULL,
     description VARCHAR(255) DEFAULT NULL,
     expense_date DATE NOT NULL,
@@ -77,6 +78,7 @@ CREATE TABLE expenses (
     KEY fk_expenses_user (user_id),
     KEY idx_expenses_set_date (set_id, expense_date),
     KEY idx_expenses_category (category_id),
+    KEY idx_expenses_payment_method (payment_method),
     CONSTRAINT fk_expenses_category
         FOREIGN KEY (category_id) REFERENCES categories(id),
     CONSTRAINT fk_expenses_set

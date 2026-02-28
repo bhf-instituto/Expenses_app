@@ -23,6 +23,11 @@ export const getExpensesTotalsByFilters = async (filters) => {
         params.push(filters.expense_type);
     }
 
+    if (filters.payment_method !== undefined) {
+        query += ' AND e.payment_method = ?';
+        params.push(filters.payment_method);
+    }
+
     if (filters.user_id) {
         query += ' AND e.user_id = ?';
         params.push(filters.user_id);

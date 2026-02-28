@@ -87,9 +87,15 @@ Atributos funcionales:
 - `user_id` (autor)
 - `category_id`
 - `expense_type` (se toma de la categoria)
+- `payment_method` (forma de pago del gasto)
 - `amount` (entero positivo)
 - `description` (opcional)
 - `expense_date` (obligatoria; si no se envia, el sistema usa fecha actual)
+
+Formas de pago permitidas:
+- `1 = EFECTIVO`
+- `2 = TARJETA_CREDITO`
+- `3 = TARJETA_DEBITO`
 
 Operaciones:
 - Crear gasto
@@ -109,6 +115,7 @@ El sistema expone:
 Filtros disponibles (segun endpoint):
 - categoria
 - tipo
+- forma de pago
 - usuario
 - rango de fechas
 
@@ -147,5 +154,4 @@ Modulos vigentes:
 - `sets`
 - `categories`
 - `expenses`
-
 

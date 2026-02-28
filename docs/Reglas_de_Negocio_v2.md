@@ -38,69 +38,72 @@ RN-14. La eliminacion de categorias sigue reglas comunes de integridad referenci
 
 RN-15. `amount` debe ser entero positivo.
 
-RN-16. `expense_date` es obligatoria funcionalmente; si no se envia al crear, el backend asigna la fecha actual.
+RN-16. `payment_method` es obligatorio y solo admite: `1=EFECTIVO`, `2=TARJETA_CREDITO`, `3=TARJETA_DEBITO`.
 
-RN-17. `description` es opcional.
+RN-17. `expense_date` es obligatoria funcionalmente; si no se envia al crear, el backend asigna la fecha actual.
 
-RN-18. No existe `provider_id` en gastos (v2).
+RN-18. `description` es opcional.
 
-RN-19. Los gastos pueden editarse solo en: monto, descripcion y fecha.
+RN-19. No existe `provider_id` en gastos (v2).
 
-RN-20. La eliminacion de gastos es fisica (hard delete).
+RN-20. Los gastos pueden editarse solo en: monto, descripcion, fecha y forma de pago.
 
-RN-21. Toda eliminacion de gasto deja tombstone en `deleted_expenses` para sincronizacion incremental.
+RN-21. La eliminacion de gastos es fisica (hard delete).
 
-RN-22. El borrado de gasto es idempotente desde API: eliminar un gasto ya eliminado devuelve respuesta exitosa de "already deleted".
+RN-22. Toda eliminacion de gasto deja tombstone en `deleted_expenses` para sincronizacion incremental.
+
+RN-23. El borrado de gasto es idempotente desde API: eliminar un gasto ya eliminado devuelve respuesta exitosa de "already deleted".
 
 ## 5. Reglas de permisos
 
-RN-23. Un usuario sin sesion no puede acceder a endpoints protegidos.
+RN-24. Un usuario sin sesion no puede acceder a endpoints protegidos.
 
-RN-24. Un usuario solo accede a grupos donde participa.
+RN-25. Un usuario solo accede a grupos donde participa.
 
-RN-25. Solo `ADMIN` puede editar/eliminar grupo.
+RN-26. Solo `ADMIN` puede editar/eliminar grupo.
 
-RN-26. Solo `ADMIN` puede crear invitaciones.
+RN-27. Solo `ADMIN` puede crear invitaciones.
 
-RN-27. `PARTICIPANT` y `ADMIN` pueden crear y listar gastos del grupo.
+RN-28. `PARTICIPANT` y `ADMIN` pueden crear y listar gastos del grupo.
 
-RN-28. Edicion de gasto: solo el duenio del gasto.
+RN-29. Edicion de gasto: solo el duenio del gasto.
 
-RN-29. Eliminacion de gasto: duenio del gasto o admin del grupo.
+RN-30. Eliminacion de gasto: duenio del gasto o admin del grupo.
 
 ## 6. Reglas de invitaciones
 
-RN-30. Una invitacion valida contiene `set_id` y usuario invitado.
+RN-31. Una invitacion valida contiene `set_id` y usuario invitado.
 
-RN-31. Solo el usuario destinatario puede aceptar su token de invitacion.
+RN-32. Solo el usuario destinatario puede aceptar su token de invitacion.
 
-RN-32. Un usuario ya participante no puede volver a agregarse al mismo grupo.
+RN-33. Un usuario ya participante no puede volver a agregarse al mismo grupo.
 
 ## 7. Reglas de reportes/totales
 
-RN-33. Totales por categoria: agrupan por categoria en un rango de fechas.
+RN-34. Totales por categoria: agrupan por categoria en un rango de fechas.
 
-RN-34. Totales por tipo: agrupan por `expense_type`.
+RN-35. Totales por tipo: agrupan por `expense_type`.
 
-RN-35. Totales por proveedor: en v2 agrupan categorias cuyo tipo es `PROVEEDORES (3)`.
+RN-36. Totales por proveedor: en v2 agrupan categorias cuyo tipo es `PROVEEDORES (3)`.
 
-RN-36. Totales filtrados respetan filtros validos de categoria, tipo, usuario y rango.
+RN-37. Totales filtrados respetan filtros validos de categoria, tipo, forma de pago, usuario y rango.
 
 ## 8. Reglas de validacion de entrada
 
-RN-37. IDs y filtros numericos deben ser enteros validos.
+RN-38. IDs y filtros numericos deben ser enteros validos.
 
-RN-38. Filtros de fecha y timestamps (`updated_after`, `deleted_after`) deben tener formato parseable.
+RN-39. `payment_method` en filtros debe pertenecer al catalogo permitido.
 
-RN-39. `page` debe ser entero > 0.
+RN-40. Filtros de fecha y timestamps (`updated_after`, `deleted_after`) deben tener formato parseable.
 
-RN-40. `limit` debe ser entero entre 1 y 100.
+RN-41. `page` debe ser entero > 0.
+
+RN-42. `limit` debe ser entero entre 1 y 100.
 
 ## 9. Reglas de consistencia de datos
 
-RN-41. La informacion de cada grupo es independiente de otros grupos.
+RN-43. La informacion de cada grupo es independiente de otros grupos.
 
-RN-42. No se permite acceso cruzado entre recursos de distintos grupos.
+RN-44. No se permite acceso cruzado entre recursos de distintos grupos.
 
-RN-43. El backend debe validar reglas criticas aunque el frontend tambien las valide.
-
+RN-45. El backend debe validar reglas criticas aunque el frontend tambien las valide.

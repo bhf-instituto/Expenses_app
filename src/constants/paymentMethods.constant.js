@@ -1,0 +1,9 @@
+const PAYMENT_METHOD = {
+  EFECTIVO: 1,
+  TARJETA_CREDITO: 2,
+  TARJETA_DEBITO: 3
+};
+
+Object.freeze(PAYMENT_METHOD);
+
+export default PAYMENT_METHOD;

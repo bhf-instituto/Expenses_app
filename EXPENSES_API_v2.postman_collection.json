@@ -455,7 +455,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 12000,\n  \"category_id\": {{category_id}},\n  \"description\": \"gasto ejemplo\",\n  \"expense_date\": \"2026-02-27\"\n}",
+              "raw": "{\n  \"amount\": 12000,\n  \"category_id\": {{category_id}},\n  \"payment_method\": {{payment_method}},\n  \"description\": \"gasto ejemplo\",\n  \"expense_date\": \"2026-02-27\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -500,6 +500,11 @@
                 {
                   "key": "expense_type",
                   "value": "3",
+                  "disabled": true
+                },
+                {
+                  "key": "payment_method",
+                  "value": "{{payment_method}}",
                   "disabled": true
                 },
                 {
@@ -628,6 +633,11 @@
                   "disabled": true
                 },
                 {
+                  "key": "payment_method",
+                  "value": "{{payment_method}}",
+                  "disabled": true
+                },
+                {
                   "key": "user_id",
                   "value": "1",
                   "disabled": true
@@ -652,7 +662,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 9999,\n  \"description\": \"editado\",\n  \"expense_date\": \"2026-02-28\"\n}",
+              "raw": "{\n  \"amount\": 9999,\n  \"payment_method\": 2,\n  \"description\": \"editado\",\n  \"expense_date\": \"2026-02-28\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -728,6 +738,10 @@
     },
     {
       "key": "expense_id",
+      "value": "1"
+    },
+    {
+      "key": "payment_method",
       "value": "1"
     },
     {

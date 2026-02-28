@@ -2,6 +2,7 @@ import { findCategoryByIdAndSet } from '../repositories/category.repository.js';
 import { getTotalsByCategory, getTotalsByProvider, getTotalsByType, getExpensesTotalsByFilters } from '../repositories/totalExpenses.repository.js';
 import { createExpense, getExpensesByFilters, getDeletedExpensesByFilters, updateExpenseById, deleteExpenseById } from '../repositories/expense.repository.js';
 import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
+import PAYMENT_METHOD from '../constants/paymentMethods.constant.js';
 import { AppError } from '../errors/appError.js';
 // import { getExpenseTotalsByFilter } from '../controllers/expenses.controller.js';
 
@@ -10,6 +11,7 @@ export const create = async ({
     userId,
     category_id,
     amount,
+    payment_method,
     description = null,
     expense_date = null
 }) => {
@@ -24,6 +26,11 @@ export const create = async ({
         throw new AppError('invalid amount', 400);
     }
 
+    const paymentMethod = Number(payment_method);
+    if (!Object.values(PAYMENT_METHOD).includes(paymentMethod)) {
+        throw new AppError('invalid payment method', 400);
+    }
+
     const category = await findCategoryByIdAndSet(category_id, setId);
     if (!category) {
         throw new AppError('invalid category for this group', 400);
@@ -36,6 +43,7 @@ export const create = async ({
         userId,
         category_id,
         expenseType,
+        paymentMethod,
         normAmount,
         description,
         validExpenseDate
@@ -48,6 +56,7 @@ export const getAll = async ({
     setId,
     category_id,
     expense_type,
+    payment_method,
     user_id,
     from_date,
     to_date,
@@ -72,6 +81,14 @@ export const getAll = async ({
             throw new AppError('invalid expense type filter', 400);
         }
         filters.expense_type = type;
+    }
+
+    if (payment_method !== undefined) {
+        const method = Number(payment_method);
+        if (!Object.values(PAYMENT_METHOD).includes(method)) {
+            throw new AppError('invalid payment method filter', 400);
+        }
+        filters.payment_method = method;
     }
 
     if (user_id !== undefined) {
@@ -148,6 +165,7 @@ export const getTotalsByFilter = async ({
     setId,
     category_id,
     expense_type,
+    payment_method,
     user_id,
     from_date,
     to_date
@@ -169,6 +187,14 @@ export const getTotalsByFilter = async ({
             throw new AppError('invalid expense type filter', 400);
         }
         filters.expense_type = type;
+    }
+
+    if (payment_method !== undefined) {
+        const method = Number(payment_method);
+        if (!Object.values(PAYMENT_METHOD).includes(method)) {
+            throw new AppError('invalid payment method filter', 400);
+        }
+        filters.payment_method = method;
     }
 
     if (user_id !== undefined) {
@@ -234,6 +260,14 @@ export const update = async (expenseId, data) => {
 
     if (data.expense_date !== undefined) {
         fields.expense_date = data.expense_date;
+    }
+
+    if (data.payment_method !== undefined) {
+        const paymentMethod = Number(data.payment_method);
+        if (!Object.values(PAYMENT_METHOD).includes(paymentMethod)) {
+            throw new AppError('invalid payment method', 400);
+        }
+        fields.payment_method = paymentMethod;
     }
 
     if (Object.keys(fields).length === 0) {

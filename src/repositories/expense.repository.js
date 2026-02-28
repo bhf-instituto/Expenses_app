@@ -5,6 +5,7 @@ export const createExpense = async (
     userId,
     category_id,
     expenseType,
+    paymentMethod,
     normAmount,
     description,
     validExpenseDate
@@ -12,13 +13,14 @@ export const createExpense = async (
 
     const [result] = await conn.query(`
     INSERT INTO expenses
-    (set_id, user_id, category_id, expense_type, amount, description, expense_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (set_id, user_id, category_id, expense_type, payment_method, amount, description, expense_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `, [
         setId,
         userId,
         category_id,
         expenseType,
+        paymentMethod,
         normAmount,
         description,
         validExpenseDate
@@ -50,6 +52,7 @@ export const getExpensesByFilters = async (filters) => {
             e.description,
             e.expense_date,
             e.expense_type,
+            e.payment_method,
             e.user_id,
             u.email AS user_email,
             e.category_id,
@@ -71,6 +74,11 @@ export const getExpensesByFilters = async (filters) => {
     if (filters.expense_type !== undefined) {
         query += ' AND e.expense_type = ?';
         params.push(filters.expense_type);
+    }
+
+    if (filters.payment_method !== undefined) {
+        query += ' AND e.payment_method = ?';
+        params.push(filters.payment_method);
     }
 
     if (filters.user_id) {

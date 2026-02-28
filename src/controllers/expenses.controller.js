@@ -8,11 +8,12 @@ const createExpense = async (req, res) => {
         const {
             category_id,
             amount,
+            payment_method,
             description,
             expense_date
         } = req.body;
 
-        if (!category_id || !amount) {
+        if (!category_id || !amount || payment_method === undefined) {
             return res.status(400).json({
                 ok: false,
                 data: { message: 'missing required fields' }
@@ -24,6 +25,7 @@ const createExpense = async (req, res) => {
             userId,
             category_id,
             amount,
+            payment_method,
             description,
             expense_date
         });
@@ -50,6 +52,7 @@ const getExpenses = async (req, res) => {
         const {
             category_id,
             expense_type,
+            payment_method,
             user_id,
             from_date,
             to_date,
@@ -62,6 +65,7 @@ const getExpenses = async (req, res) => {
             setId,
             category_id,
             expense_type,
+            payment_method,
             user_id,
             from_date,
             to_date,
@@ -122,6 +126,7 @@ const getExpenseTotalsFiltered = async (req, res) => {
         const {
             category_id,
             expense_type,
+            payment_method,
             user_id,
             from_date,
             to_date
@@ -131,6 +136,7 @@ const getExpenseTotalsFiltered = async (req, res) => {
             setId,
             category_id,
             expense_type,
+            payment_method,
             user_id,
             from_date,
             to_date
@@ -186,13 +192,15 @@ const updateExpense = async (req, res) => {
         const {
             amount,
             description,
-            expense_date
+            expense_date,
+            payment_method
         } = req.body;
 
         if (
             amount === undefined &&
             description === undefined &&
-            expense_date === undefined
+            expense_date === undefined &&
+            payment_method === undefined
         ) {
             return res.status(400).json({
                 ok: false,
@@ -203,7 +211,7 @@ const updateExpense = async (req, res) => {
 
         await expenseService.update(
             expenseId,
-            { amount, description, expense_date }
+            { amount, description, expense_date, payment_method }
         );
 
         return res.status(200).json({
