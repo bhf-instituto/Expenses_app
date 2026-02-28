@@ -1,0 +1,746 @@
+{
+  "info": {
+    "_postman_id": "91db1490-96f9-4f7d-b853-0e3a1e63d2d8",
+    "name": "EXPENSES_API_v2",
+    "description": "Backend v2 collection. Expense types: 1=FIJO, 2=VARIABLE, 3=PROVEEDORES.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Home",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user_v2@gmail.com\",\n  \"password\": \"aaaaaaaa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user_v2@gmail.com\",\n  \"password\": \"aaaaaaaa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health DB",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/db",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                "db"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invite",
+      "item": [
+        {
+          "name": "Create Invite",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"another_user@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/invite/{{set_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "invite",
+                "{{set_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Invite",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invite_token\": \"{{invite_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/invite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "invite"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sets",
+      "item": [
+        {
+          "name": "Get All Sets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Set",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"set_name\": \"mi_grupo_v2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/sets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Set By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Set",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"set_name\": \"mi_grupo_v2_editado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Set",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Create Category (FIJO/VARIABLE/PROVEEDORES)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_name\": \"alquiler\",\n  \"expense_type\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Provider Category (expense_type=3)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_name\": \"mercado_pago\",\n  \"expense_type\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Categories By Set",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/categories?expense_type=3",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "expense_type",
+                  "value": "3",
+                  "description": "optional. 1, 2 or 3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Category",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_name\": \"mercado_pago_srl\",\n  \"expense_type\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "Create Expense",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 12000,\n  \"category_id\": {{category_id}},\n  \"description\": \"gasto ejemplo\",\n  \"expense_date\": \"2026-02-27\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/expenses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "expenses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/expenses?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "expense_type",
+                  "value": "3",
+                  "disabled": true
+                },
+                {
+                  "key": "user_id",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "from_date",
+                  "value": "{{from_date}}",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "{{to_date}}",
+                  "disabled": true
+                },
+                {
+                  "key": "updated_after",
+                  "value": "2026-02-27T00:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Deleted Expenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/expenses/deleted?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "expenses",
+                "deleted"
+              ],
+              "query": [
+                {
+                  "key": "deleted_after",
+                  "value": "2026-02-27T00:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expenses Totals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/expenses/totals?from_date={{from_date}}&to_date={{to_date}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "expenses",
+                "totals"
+              ],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "{{from_date}}"
+                },
+                {
+                  "key": "to_date",
+                  "value": "{{to_date}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expenses Totals Filtered",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sets/{{set_id}}/expenses/totalsFiltered?from_date={{from_date}}&to_date={{to_date}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sets",
+                "{{set_id}}",
+                "expenses",
+                "totalsFiltered"
+              ],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "expense_type",
+                  "value": "3",
+                  "disabled": true
+                },
+                {
+                  "key": "user_id",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "from_date",
+                  "value": "{{from_date}}"
+                },
+                {
+                  "key": "to_date",
+                  "value": "{{to_date}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Expense",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 9999,\n  \"description\": \"editado\",\n  \"expense_date\": \"2026-02-28\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses/{{expense_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses",
+                "{{expense_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Expense",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expenses/{{expense_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses",
+                "{{expense_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "set_id",
+      "value": "1"
+    },
+    {
+      "key": "category_id",
+      "value": "1"
+    },
+    {
+      "key": "expense_id",
+      "value": "1"
+    },
+    {
+      "key": "invite_token",
+      "value": ""
+    },
+    {
+      "key": "from_date",
+      "value": "2026-02-01"
+    },
+    {
+      "key": "to_date",
+      "value": "2026-02-28"
+    }
+  ]
+}
