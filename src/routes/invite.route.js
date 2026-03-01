@@ -5,7 +5,7 @@ import { checkSetAccess } from '../middlewares/checkSetAccess.middleware.js';
 
 const router = Router();
 
-router.get('/:id_set', requireUser, checkSetAccess(true), createInvite);
+router.post('/:id_set', requireUser, checkSetAccess(true), createInvite);
 router.post('/', requireUser, acceptInvite);
 
 export default router;

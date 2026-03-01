@@ -3,15 +3,6 @@ import EXPENSE_TYPE from "../constants/expenseTypes.constant.js";
 const BASE_EMAIL_REGEX =
     /^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-const ALLOWED_DOMAINS = new Set([
-    "gmail.com",
-    "hotmail.com",
-    "outlook.com",
-    "live.com",
-    "yahoo.com",
-    "icloud.com"
-]);
-
 const normString = (str, length = 5, lower = true, blankSpc = 3) => {
     if (str == null) return false;
 
@@ -46,6 +37,7 @@ function validatePhone(phone) {
 function validateEmail(email_) {
 
     const email = normString(email_);
+    if (!email) return false;
 
     if (email.length > 127) return false;
 
@@ -56,8 +48,7 @@ function validateEmail(email_) {
     if (localPart.startsWith(".") || localPart.endsWith(".") || localPart.length < 6) return false;
 
     if (localPart.includes("..")) return false;
-
-    if (!ALLOWED_DOMAINS.has(domain)) return false;
+    if (!domain || domain.length < 3) return false;
 
     return email;
 }

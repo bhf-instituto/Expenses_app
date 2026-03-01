@@ -5,13 +5,13 @@ import { AppError } from '../errors/appError.js';
 import jwt from "jsonwebtoken";
 import SET_ROLE from "../constants/setRoles.js";
 
-const create = async (setId, invitedUserEmail, setRole) => {
+const create = async (setId, invitedUserEmail) => {
     
     const validEmail = validateEmail(invitedUserEmail);
 
     if (!validEmail) throw new AppError('invalid email', 400);
 
-    const user = await userExistsByEmail(invitedUserEmail);
+    const user = await userExistsByEmail(validEmail);
 
     if (!user) throw new AppError('user does not exist', 400);
 

@@ -155,3 +155,25 @@ Modulos vigentes:
 - `categories`
 - `expenses`
 
+### 12.1 Invitaciones (metodos vigentes)
+- Crear invitacion: `POST /invite/:id_set`
+  - Body: `{ "email": "usuario@dominio.com" }`
+- Aceptar invitacion: `POST /invite`
+  - Body: `{ "invite_token": "..." }`
+
+## 13. Contrato HTTP base
+
+Formato de respuesta:
+- Exito: `{ "ok": true, "data": { ... } }`
+- Error: `{ "ok": false, "data": { "message": "..." } }`
+
+Codigos esperados:
+- `200`: consultas y operaciones exitosas sin creacion
+- `201`: creacion exitosa de recursos
+- `400`: validacion de entrada
+- `401`: sesion requerida
+- `403`: acceso denegado por permisos/pertenencia
+- `404`: recurso inexistente
+- `409`: conflicto de unicidad/estado
+- `500`: error interno
+

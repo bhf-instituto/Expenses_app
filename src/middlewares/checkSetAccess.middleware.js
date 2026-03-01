@@ -49,7 +49,7 @@ const checkSetAccess = (onlyAdmin = false, setContext = false) => {
             next();
 
         } catch (error) {
-            next();
+            next(error);
         }
 
     }

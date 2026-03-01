@@ -77,8 +77,6 @@ export const loginUser = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-        
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
@@ -104,11 +102,11 @@ export const logoutUser = async (req, res) => {
 
 
     } catch (error) {
-        return res.status(500).json({
+        return res.status(error.status || 500).json({
             ok: false,
             data: {
-                message: 'internal service error'
+                message: error.message || 'internal service error'
             }
         });
     }
-}
+};

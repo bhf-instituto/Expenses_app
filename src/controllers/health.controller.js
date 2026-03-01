@@ -6,8 +6,8 @@ const healthUser = (req, res) => {
 
     return res.status(200).json({
         ok: true,
-        message: 'user logged in',
         data: {
+            message: 'user logged in',
             user
         }
     })
@@ -18,12 +18,12 @@ const healthDb = async(req, res) => {
 
     if(!isDbConnected) return res.status(400).json({
         ok:false,
-        message: 'DB not connected'
+        data: { message: 'DB not connected' }
     })
 
     return res.status(200).json({
         ok: true,
-        message: 'DB connected '
+        data: { message: 'DB connected ' }
     })
 
 }

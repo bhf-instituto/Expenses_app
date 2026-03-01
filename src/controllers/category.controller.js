@@ -1,100 +1,85 @@
 import * as categoryService from '../services/category.service.js';
-// import { validateInt } from '../utils/validations.utils.js';
 
 const createCategory = async (req, res) => {
     try {
-        // espero categoryName y expenseType desde el body de la req. 
         const setId = req.params.id_set;
         const categoryName = req.body.category_name;
         const expenseType = req.body.expense_type;
 
-        if (!categoryName || !expenseType) return res.status(400).json({
-            ok: false,
-            data: { message: 'all fields required' }
-        });
+        if (!categoryName || expenseType === undefined) {
+            return res.status(400).json({
+                ok: false,
+                data: { message: 'all fields required' }
+            });
+        }
 
-        const result = await categoryService.create(setId, expenseType, categoryName);
+        const categoryId = await categoryService.create(setId, expenseType, categoryName);
 
-        if (!result) return res.status(404).json({ ok: true, message: "error creating category" })
-
-        return res.status(200).json({
+        return res.status(201).json({
             ok: true,
-            category_id: result,
-            message: "category created correctly"
-        })
-
+            data: {
+                category_id: categoryId,
+                message: 'category created correctly'
+            }
+        });
     } catch (error) {
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
         });
     }
-}
+};
 
 const deleteCategory = async (req, res) => {
     try {
         const categoryId = req.category_id;
         const setId = req.set.id;
 
-        const result = await categoryService.del(categoryId, setId);
-
-        if (!result)
-            return res.status(404).json({ ok: true, message: "error deleting category" })
+        await categoryService.del(categoryId, setId);
 
         return res.status(200).json({
             ok: true,
-            category_id: result,
-            message: "category deleted correctly"
-        })
-
-
+            data: {
+                category_id: Number(categoryId),
+                message: 'category deleted correctly'
+            }
+        });
     } catch (error) {
-        console.log(error);
-
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
         });
     }
-}
+};
 
 const getAllCategoriesFromSet = async (req, res) => {
     try {
-
         const setId = req.params.id_set;
-        let expenseType = req.query.expense_type;
-
-        // console.log(expenseType);
-
+        const expenseType = req.query.expense_type;
 
         if (!setId) {
-            return res.status(400).json({ ok: false, message: 'all fields needed' })
+            return res.status(400).json({
+                ok: false,
+                data: { message: 'set id is required' }
+            });
         }
-        // if (!expenseType)
-        //     return res.status(400).json({ ok: false, message: 'expense_type req.query required' })
 
-        const result = await categoryService.getAll(setId, expenseType);
+        const categories = await categoryService.getAll(setId, expenseType);
 
-        if (result.length === 0) return res.status(200).json({
+        return res.status(200).json({
             ok: true,
-            setId: setId,
-            message: "theres no categories to show"
-        })
-
-        return res.status(201).json({
-            ok: true,
-            set: setId,
-            categories: result
-        })
-
+            data: {
+                set_id: Number(setId),
+                categories
+            }
+        });
     } catch (error) {
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
         });
     }
-
-}
+};
 
 const editCategory = async (req, res) => {
     try {
@@ -102,28 +87,27 @@ const editCategory = async (req, res) => {
         const categoryName = req.body.category_name;
         const expenseType = req.body.expense_type;
 
-        if (!categoryId) return res.status(400).json({
-            ok: false,
-            message: 'category id needed'
-        })
+        if (!categoryId) {
+            return res.status(400).json({
+                ok: false,
+                data: { message: 'category id needed' }
+            });
+        }
 
-
-        const result = await categoryService.edit(categoryId, categoryName, expenseType);
+        await categoryService.edit(categoryId, categoryName, expenseType);
 
         return res.status(200).json({
             ok: true,
-            message: "category edited correctly"
-        })
-
+            data: {
+                message: 'category edited correctly'
+            }
+        });
     } catch (error) {
-        console.log(error);
-
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
         });
     }
-}
+};
 
-
-export { createCategory, getAllCategoriesFromSet, editCategory, deleteCategory }
+export { createCategory, getAllCategoriesFromSet, editCategory, deleteCategory };

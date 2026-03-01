@@ -106,7 +106,7 @@
         {
           "name": "Health Me",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "url": {
               "raw": "{{base_url}}/health/me",
@@ -124,7 +124,7 @@
         {
           "name": "Health DB",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "url": {
               "raw": "{{base_url}}/health/db",
@@ -150,7 +150,7 @@
             "disableBodyPruning": true
           },
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",

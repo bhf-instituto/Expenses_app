@@ -8,7 +8,7 @@ const attachCategoryContext = async (req, res, next) => {
 
         if (result.length === 0) return res.status(404).json({
             ok: false,
-            message: 'Category not found'
+            data: { message: 'Category not found' }
         });
 
 
@@ -17,7 +17,7 @@ const attachCategoryContext = async (req, res, next) => {
 
         next();
     } catch (error) {
-        next();
+        next(error);
     }
 
 }

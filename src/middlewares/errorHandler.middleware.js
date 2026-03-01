@@ -4,7 +4,7 @@ export const errorHandler = (err, req, res, next) => {
     if (err instanceof AppError) {
         return res.status(err.status).json({
             ok: false,
-            message: err.message
+            data: { message: err.message }
         })
     }
 
@@ -12,7 +12,7 @@ export const errorHandler = (err, req, res, next) => {
 
     return res.status(500).json({
         ok: false,
-        message: 'internal service error'
+        data: { message: 'internal service error' }
     })
 }
 

@@ -80,8 +80,6 @@ const getExpenses = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
@@ -148,8 +146,6 @@ const getExpenseTotalsFiltered = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
@@ -177,8 +173,6 @@ const getExpenseTotals = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
@@ -216,12 +210,12 @@ const updateExpense = async (req, res) => {
 
         return res.status(200).json({
             ok: true,
-            message: 'expense updated correctly'
+            data: {
+                message: 'expense updated correctly'
+            }
         });
 
     } catch (error) {
-        console.log(error);
-
         return res.status(error.status || 500).json({
             ok: false,
             data: { message: error.message || 'internal service error' }
@@ -235,7 +229,9 @@ const deleteExpense = async (req, res) => {
         if (req.expense.alreadyDeleted === true) {
             return res.status(200).json({
                 ok: true,
-                message: 'expense already deleted'
+                data: {
+                    message: 'expense already deleted'
+                }
             });
         }
 
@@ -243,7 +239,9 @@ const deleteExpense = async (req, res) => {
 
         return res.status(200).json({
             ok: true,
-            message: 'expense deleted correctly'
+            data: {
+                message: 'expense deleted correctly'
+            }
         });
 
     } catch (error) {

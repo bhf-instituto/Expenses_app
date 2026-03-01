@@ -78,6 +78,8 @@ RN-32. Solo el usuario destinatario puede aceptar su token de invitacion.
 
 RN-33. Un usuario ya participante no puede volver a agregarse al mismo grupo.
 
+RN-33-bis. La creacion de invitacion se realiza por `POST /invite/:id_set` con email en el body.
+
 ## 7. Reglas de reportes/totales
 
 RN-34. Totales por categoria: agrupan por categoria en un rango de fechas.
@@ -99,6 +101,8 @@ RN-40. Filtros de fecha y timestamps (`updated_after`, `deleted_after`) deben te
 RN-41. `page` debe ser entero > 0.
 
 RN-42. `limit` debe ser entero entre 1 y 100.
+
+RN-42-bis. El email se valida por formato sintactico; no hay whitelist de dominios.
 
 ## 9. Reglas de consistencia de datos
 
