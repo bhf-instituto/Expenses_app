@@ -180,6 +180,21 @@ export const addSetParticipant = async (setId, userId) => {
     return result.insertId;
 }
 
+export const getUsersBySetId = async (setId) => {
+    const [users] = await conn.query(`
+        SELECT
+            u.id,
+            u.email,
+            su.role
+        FROM set_users su
+        JOIN users u ON u.id = su.user_id
+        WHERE su.set_id = ?
+        ORDER BY su.role ASC, u.email ASC
+    `, [setId]);
+
+    return users;
+};
+
 export const getAllSetsById = async (userId) => {
     const [sets] = await conn.query(`
         SELECT s.id, s.name, su.role

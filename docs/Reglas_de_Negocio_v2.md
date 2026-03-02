@@ -6,6 +6,8 @@ RN-01. Todo gasto pertenece a un unico grupo (`set_id`).
 
 RN-02. Todo gasto pertenece a un unico usuario (`user_id`).
 
+RN-02-bis. Al crear un gasto, `user_id` debe pertenecer al grupo (`set_id`) del gasto.
+
 RN-03. Todo gasto pertenece a una unica categoria (`category_id`).
 
 RN-04. Toda categoria pertenece a un unico grupo.
@@ -47,6 +49,8 @@ RN-18. `description` es opcional.
 RN-19. No existe `provider_id` en gastos (v2).
 
 RN-20. Los gastos pueden editarse solo en: monto, descripcion, fecha y forma de pago.
+
+RN-20-bis. En creacion de gasto, si no se informa `user_id`, el backend usa el usuario autenticado.
 
 RN-21. La eliminacion de gastos es fisica (hard delete).
 

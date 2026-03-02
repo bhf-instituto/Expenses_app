@@ -6,6 +6,7 @@ const createExpense = async (req, res) => {
         const userId = req.user.id;
 
         const {
+            user_id,
             category_id,
             amount,
             payment_method,
@@ -23,6 +24,7 @@ const createExpense = async (req, res) => {
         const expenseId = await expenseService.create({
             setId,
             userId,
+            selected_user_id: user_id,
             category_id,
             amount,
             payment_method,

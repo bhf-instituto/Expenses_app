@@ -84,7 +84,7 @@ Reglas:
 
 Atributos funcionales:
 - `set_id` (grupo)
-- `user_id` (autor)
+- `user_id` (autor, seleccionable entre usuarios que pertenezcan al grupo)
 - `category_id`
 - `expense_type` (se toma de la categoria)
 - `payment_method` (forma de pago del gasto)
@@ -139,7 +139,8 @@ Esto permite sincronizacion incremental de eliminaciones (offline-lite).
 2. Usuario crea gasto.
 3. Selecciona categoria valida del grupo.
 4. El sistema deriva automaticamente el tipo desde la categoria.
-5. Usuario informa monto, fecha y descripcion opcional.
+5. Usuario selecciona quien registra el gasto (`Yo` u otro participante del grupo).
+6. Usuario informa monto, fecha y descripcion opcional.
 
 ### 11.3 Analisis
 1. Usuario lista gastos con filtros.
@@ -154,6 +155,9 @@ Modulos vigentes:
 - `sets`
 - `categories`
 - `expenses`
+
+### 12.2 Usuarios de grupo
+- Listar participantes de un grupo: `GET /sets/:id_set/users`
 
 ### 12.1 Invitaciones (metodos vigentes)
 - Crear invitacion: `POST /invite/:id_set`

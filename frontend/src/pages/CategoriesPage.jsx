@@ -133,9 +133,9 @@ export default function CategoriesPage() {
       <section className="scroll-pane">
         <div className="space-y-3">
           <OfflineBanner isOnline={isOnline} />
-          <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
+          {/* <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
             {setName}
-          </div>
+          </div> */}
           <div className="space-y-3 rounded-2xl border border-app-ink/20 bg-app-panel/80 p-3">
             {loading ? <p className="text-sm font-semibold text-app-muted">Cargando...</p> : null}
             {!loading && categories.length === 0 ? (

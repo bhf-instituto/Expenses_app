@@ -1,5 +1,6 @@
 const SETS_CACHE_KEY = 'expenses_mobile_sets_v1';
 const CATEGORIES_CACHE_KEY = 'expenses_mobile_categories_v1';
+const SET_USERS_CACHE_KEY = 'expenses_mobile_set_users_v1';
 const USER_CACHE_KEY = 'expenses_mobile_user_v1';
 
 const read = (key, fallback) => {
@@ -48,4 +49,18 @@ export const setCachedCategories = (setId, expenseType, categories) => {
   };
 
   write(CATEGORIES_CACHE_KEY, nextCache);
+};
+
+export const getCachedSetUsers = (setId) => {
+  const cache = read(SET_USERS_CACHE_KEY, {});
+  return cache?.[setId] || [];
+};
+
+export const setCachedSetUsers = (setId, users) => {
+  const cache = read(SET_USERS_CACHE_KEY, {});
+  const nextCache = {
+    ...cache,
+    [setId]: users,
+  };
+  write(SET_USERS_CACHE_KEY, nextCache);
 };

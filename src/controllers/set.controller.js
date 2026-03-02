@@ -70,6 +70,25 @@ const getAllSets = async (req, res) => {
     }
 };
 
+const getSetUsers = async (req, res) => {
+    try {
+        const setId = req.params.id_set;
+        const users = await setService.getUsers(setId);
+
+        return res.status(200).json({
+            ok: true,
+            data: {
+                users
+            }
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+
 const editSetName = async (req, res) => {
     try {
         const setId = req.params.id_set;
@@ -122,4 +141,4 @@ const deleteSet = async (req, res) => {
     }
 };
 
-export { createSet, getAllSets, editSetName, deleteSet, getSet };
+export { createSet, getAllSets, getSetUsers, editSetName, deleteSet, getSet };

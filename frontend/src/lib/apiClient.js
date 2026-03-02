@@ -61,6 +61,7 @@ export const authApi = {
 export const setsApi = {
   getAll: () => request('/sets'),
   getById: (setId) => request(`/sets/${setId}`),
+  getUsers: (setId) => request(`/sets/${setId}/users`),
   create: (payload) => request('/sets', { method: 'POST', body: payload }),
 };
 

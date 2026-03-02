@@ -62,9 +62,9 @@ export default function CreateCategoryPage() {
       <section className="scroll-pane">
         <div className="space-y-3">
           <OfflineBanner isOnline={isOnline} />
-          <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
+          {/* <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
             {currentSetName}
-          </div>
+          </div> */}
           <div className="rounded-2xl border border-app-ink/20 bg-white p-4 shadow-card">
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">

@@ -41,4 +41,13 @@
   .scroll-pane {
     @apply min-h-0 flex-1 overflow-y-auto px-4 pb-24 pt-3;
   }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

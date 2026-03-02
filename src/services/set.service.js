@@ -5,7 +5,8 @@ import {
     editSetName,
     deleteSet,
     createSet,
-    getSetById
+    getSetById,
+    getUsersBySetId
 } from '../repositories/set.repository.js';
 import { AppError } from '../errors/appError.js';
 
@@ -50,4 +51,8 @@ export const getSet = async (setId) => {
 
 export const getAll = async (userId) => {
     return getAllSetsById(userId);
+};
+
+export const getUsers = async (setId) => {
+    return getUsersBySetId(setId);
 };

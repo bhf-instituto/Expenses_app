@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSet, getAllSets, editSetName, deleteSet, getSet } from '../controllers/set.controller.js';
+import { createSet, getAllSets, getSetUsers, editSetName, deleteSet, getSet } from '../controllers/set.controller.js';
 import { createCategory, getAllCategoriesFromSet } from '../controllers/category.controller.js';
 import { createExpense, getExpenses, getDeletedExpenses, getExpenseTotals, getExpenseTotalsFiltered } from '../controllers/expenses.controller.js';
 import { requireUser } from '../middlewares/requireUser.middleware.js';
@@ -13,6 +13,7 @@ router.use(requireUser)
 router.get('/', getAllSets);
 router.post('/', createSet);
 router.get('/:id_set', checkSetAccess(), getSet)
+router.get('/:id_set/users', checkSetAccess(), getSetUsers)
 router.put('/:id_set', checkSetAccess(true), editSetName)
 router.delete('/:id_set', checkSetAccess(true), deleteSet)
 

@@ -21,16 +21,16 @@ export default function ListCardButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`w-full rounded-2xl border border-app-ink/20 px-4 py-4 text-left shadow-sm transition ${
+        className={`w-full rounded-2xl border border-app-ink/20 px-4 py-8 text-left shadow-sm transition ${
           showFavorite ? 'pr-14' : ''
         } ${
           disabled ? 'cursor-not-allowed opacity-45' : 'hover:-translate-y-0.5 hover:shadow-md'
         } ${accent}`}
       >
-        <p className="font-heading text-base font-semibold text-app-ink">{title}</p>
-        {subtitle ? (
+        <p className="font-heading text-xl font-semibold text-app-ink">{title}</p>
+        {/* {subtitle ? (
           <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-app-muted">{subtitle}</p>
-        ) : null}
+        ) : null} */}
       </button>
 
       {showFavorite ? (

@@ -1,6 +1,7 @@
 import { findCategoryByIdAndSet } from '../repositories/category.repository.js';
 import { getTotalsByCategory, getTotalsByProvider, getTotalsByType, getExpensesTotalsByFilters } from '../repositories/totalExpenses.repository.js';
 import { createExpense, getExpensesByFilters, getDeletedExpensesByFilters, updateExpenseById, deleteExpenseById } from '../repositories/expense.repository.js';
+import { getRole } from '../repositories/set.repository.js';
 import EXPENSE_TYPE from '../constants/expenseTypes.constant.js';
 import PAYMENT_METHOD from '../constants/paymentMethods.constant.js';
 import { AppError } from '../errors/appError.js';
@@ -9,6 +10,7 @@ import { AppError } from '../errors/appError.js';
 export const create = async ({
     setId,
     userId,
+    selected_user_id,
     category_id,
     amount,
     payment_method,
@@ -31,6 +33,24 @@ export const create = async ({
         throw new AppError('invalid payment method', 400);
     }
 
+    let expenseUserId = Number(userId);
+    if (
+        selected_user_id !== undefined &&
+        selected_user_id !== null &&
+        selected_user_id !== ''
+    ) {
+        expenseUserId = Number(selected_user_id);
+    }
+
+    if (!Number.isInteger(expenseUserId) || expenseUserId <= 0) {
+        throw new AppError('invalid creator user', 400);
+    }
+
+    const roleInSet = await getRole(setId, expenseUserId);
+    if (roleInSet === null) {
+        throw new AppError('selected user does not belong to this group', 400);
+    }
+
     const category = await findCategoryByIdAndSet(category_id, setId);
     if (!category) {
         throw new AppError('invalid category for this group', 400);
@@ -40,7 +60,7 @@ export const create = async ({
 
     const expenseId = await createExpense(
         setId,
-        userId,
+        expenseUserId,
         category_id,
         expenseType,
         paymentMethod,
