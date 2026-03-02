@@ -43,7 +43,7 @@ export default function ListCardButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`flex w-full flex-col justify-center rounded-2xl border-0 border-app-ink/20 shadow-sm transition uppercase ${
+        className={`flex w-full flex-col justify-center rounded-2xl border-0 border-app-ink/20 shadow-md transition uppercase ${
           showFavorite ? 'pr-16' : ''
         } ${
           disabled ? 'cursor-not-allowed opacity-45' : 'hover:-translate-y-0.5 hover:shadow-md'
