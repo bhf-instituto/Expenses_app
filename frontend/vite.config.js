@@ -5,8 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '')
   const backendUrl = env.VITE_BACKEND_URL || 'http://localhost:5173'
+  const rawBasePath = (env.VITE_BASE_PATH || '/').trim()
+  const normalizedBasePath =
+    rawBasePath === '' ? '/' : rawBasePath.startsWith('/') ? rawBasePath : `/${rawBasePath}`
+  const basePath = normalizedBasePath.endsWith('/') ? normalizedBasePath : `${normalizedBasePath}/`
 
   return {
+    base: basePath,
     plugins: [
       react(),
       VitePWA({
@@ -20,22 +25,23 @@ export default defineConfig(({ mode }) => {
           background_color: '#f6f4eb',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/',
+          start_url: basePath,
+          scope: basePath,
           icons: [
             {
-              src: '/pwa-192.svg',
+              src: 'pwa-192.svg',
               sizes: '192x192',
               type: 'image/svg+xml',
             },
             {
-              src: '/pwa-512.svg',
+              src: 'pwa-512.svg',
               sizes: '512x512',
               type: 'image/svg+xml',
             },
           ],
         },
         workbox: {
-          navigateFallback: '/index.html',
+          navigateFallback: `${basePath}index.html`,
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.destination === 'document',

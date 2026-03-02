@@ -6,8 +6,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        heading: ['"Outfit"', 'sans-serif'],
-        body: ['"Nunito Sans"', 'sans-serif'],
+        heading: ['"Roboto"', 'sans-serif'],
+        body: ['"Roboto"', 'sans-serif'],
       },
       colors: {
         app: {

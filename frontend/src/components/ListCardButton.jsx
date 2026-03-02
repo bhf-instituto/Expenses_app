@@ -34,8 +34,8 @@ export default function ListCardButton({
   const contentAlignmentClass = centerContent ? 'items-center text-center' : 'items-start text-left';
   const titleClassName =
     size === 'fill'
-      ? 'font-heading text-2xl font-semibold text-app-ink'
-      : 'font-heading text-xl font-semibold text-app-ink';
+      ? 'font-heading text-2xl font-semibold text-app-ink '
+      : 'font-heading text-xl font-semibold text-app-ink ';
 
   return (
     <div className={`relative ${size === 'fill' ? 'h-full' : ''}`}>

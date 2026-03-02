@@ -17,12 +17,30 @@ VITE_BACKEND_URL=http://localhost:5173
 
 # Si queres llamar directo a otro origen en lugar de usar proxy:
 # VITE_API_BASE_URL=http://localhost:5173
+
+# Base path para build (lo calcula GitHub Actions automaticamente en deploy)
+# VITE_BASE_PATH=/
 ```
 
 Si no defines nada:
 
 - `VITE_BACKEND_URL` usa `http://localhost:5173`
 - `VITE_API_BASE_URL` queda vacio (usa mismo origen y proxy de Vite)
+
+## Deploy en GitHub Pages
+
+Hay un workflow en `/.github/workflows/deploy-frontend-pages.yml` que:
+
+- Builda el proyecto de `frontend/`
+- Calcula `VITE_BASE_PATH` automaticamente segun el repo
+- Publica en GitHub Pages
+- Copia `dist/index.html` a `dist/404.html` para soportar refresh de rutas SPA
+
+Configuracion requerida en GitHub:
+
+1. En `Settings > Pages`, selecciona `Source: GitHub Actions`.
+2. En `Settings > Secrets and variables > Actions > Variables`, crea:
+   - `VITE_API_BASE_URL` con la URL publica de tu backend (ej: `https://tu-backend.com`).
 
 ## Scripts
 
