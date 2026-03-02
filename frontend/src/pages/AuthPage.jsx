@@ -103,8 +103,8 @@ export default function AuthPage() {
             disabled={submitting || (!isOnline && mode === 'register')}
             className={`mt-4 w-full rounded-xl py-3 font-heading text-sm font-semibold uppercase tracking-wide ${
               submitting || (!isOnline && mode === 'register')
-                ? 'cursor-not-allowed bg-app-ink/20 text-app-muted'
-                : 'bg-app-coral text-app-ink hover:bg-app-warning'
+                ? 'cursor-not-allowed bg-app-mint text-app-muted'
+                : 'bg-app-sky/30 text-app-ink hover:bg-app-warning'
             }`}
           >
             {submitting ? 'Procesando...' : mode === 'login' ? 'Ingresar' : 'Crear usuario'}

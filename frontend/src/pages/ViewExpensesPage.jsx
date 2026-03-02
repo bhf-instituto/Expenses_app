@@ -337,7 +337,7 @@ export default function ViewExpensesPage() {
           </div>
 
           {!loading && expenses.length > 0 ? (
-            <div className="rounded-2xl border border-app-ink/20 bg-app-mint/40 px-4 py-3">
+            <div className="rounded-2xl border border-app-ink/20 bg-indigo-900 px-4 py-3">
               <p className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Total filtrado</p>
               <p className="mt-1 font-heading text-2xl font-bold text-app-ink">
                 ${totalAmount.toLocaleString('es-AR')}

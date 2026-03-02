@@ -20,8 +20,8 @@ export default function ModeToggle({ mode, onChange, viewDisabled }) {
           viewDisabled
             ? 'cursor-not-allowed text-app-muted/50'
             : mode === 'view'
-              ? 'bg-app-warning text-app-ink'
-              : 'text-app-muted hover:bg-app-bg'
+            ? 'bg-app-mint text-app-ink'
+            : 'text-app-muted hover:bg-app-bg'
         }`}
       >
         Ver

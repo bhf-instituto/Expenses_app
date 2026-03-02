@@ -165,7 +165,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-lg border border-app-ink/50 px-3 py-1.5 text-xs  font-semibold  uppercase tracking-wide text-app-ink hover:bg-app-bg"
+            className="rounded-lg border-0 bg-app-mint/100 border-app-ink/50 px-3 py-1.5 text-xs  font-bold  uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Logout
           </button>
@@ -200,7 +200,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => navigate('/profile')}
-              className="max-w-[100%] truncate rounded-lg border border-app-ink/20 bg-app-panel px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
+              className="max-w-[100%] truncate rounded-lg border-0 bg-app-mint border-app-panel/20  px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
             >
               Perfil
             </button>

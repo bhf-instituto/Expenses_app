@@ -30,6 +30,7 @@ export default function ListCardButton({
   };
 
   const buttonSizeClass = sizeClasses[size] || sizeClasses.default;
+  const backgroundClass = isFavorite ? 'bg-indigo-900' : accent;
   const contentAlignmentClass = centerContent ? 'items-center text-center' : 'items-start text-left';
   const titleClassName =
     size === 'fill'
@@ -42,16 +43,13 @@ export default function ListCardButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`flex w-full flex-col justify-center rounded-2xl border-0 border-app-ink/20 shadow-sm transition ${
+        className={`flex w-full flex-col justify-center rounded-2xl border-0 border-app-ink/20 shadow-sm transition uppercase ${
           showFavorite ? 'pr-16' : ''
         } ${
           disabled ? 'cursor-not-allowed opacity-45' : 'hover:-translate-y-0.5 hover:shadow-md'
-        } ${buttonSizeClass} ${contentAlignmentClass} ${accent}`}
+        } ${buttonSizeClass} ${contentAlignmentClass} ${backgroundClass}`}
       >
         <p className={titleClassName}>{title}</p>
-        {/* {subtitle ? (
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-app-muted">{subtitle}</p>
-        ) : null} */}
       </button>
 
       {showFavorite ? (
