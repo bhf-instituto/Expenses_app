@@ -16,14 +16,21 @@ const accessCookieOptions = {
 const attachSession = async (req, res, next) => {
     req.user = null;
 
-    const accessToken = req.cookies?.access_token;
+    const authorizationHeader = req.headers.authorization || req.headers.Authorization;
+    const headerAccessToken = typeof authorizationHeader === 'string' && authorizationHeader.startsWith('Bearer ')
+        ? authorizationHeader.slice(7).trim()
+        : null;
+    const accessToken = req.cookies?.access_token || headerAccessToken;
 
     // esto evita que pase un string == "undefined"
+    const headerRefreshToken = typeof req.headers['x-refresh-token'] === 'string'
+        ? req.headers['x-refresh-token']
+        : null;
     const refreshToken =
         typeof req.cookies?.refresh_token === 'string' &&
             req.cookies.refresh_token !== 'undefined'
             ? req.cookies.refresh_token
-            : null;
+            : headerRefreshToken;
 
     if (accessToken) {
 

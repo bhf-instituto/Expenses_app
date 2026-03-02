@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { authApi, healthApi } from '../lib/apiClient.js';
 import useOnlineStatus from '../hooks/useOnlineStatus.js';
 import { clearCachedUser, getCachedUser, setCachedUser } from '../lib/localCache.js';
+import { clearStoredTokens, setStoredTokens } from '../lib/tokenStorage.js';
 
 const AuthContext = createContext(null);
 
@@ -27,10 +28,12 @@ export const AuthProvider = ({ children }) => {
           setCachedUser(nextUser);
         } else {
           clearCachedUser();
+          clearStoredTokens();
         }
       } catch {
         setUser(null);
         clearCachedUser();
+        clearStoredTokens();
       } finally {
         setBooting(false);
       }
@@ -46,6 +49,12 @@ export const AuthProvider = ({ children }) => {
     if (nextUser) {
       setCachedUser(nextUser);
     }
+    if (data?.access_token || data?.refresh_token) {
+      setStoredTokens({
+        accessToken: data?.access_token || '',
+        refreshToken: data?.refresh_token || '',
+      });
+    }
     return data;
   }, []);
 
@@ -55,6 +64,12 @@ export const AuthProvider = ({ children }) => {
     setUser(nextUser);
     if (nextUser) {
       setCachedUser(nextUser);
+    }
+    if (data?.access_token || data?.refresh_token) {
+      setStoredTokens({
+        accessToken: data?.access_token || '',
+        refreshToken: data?.refresh_token || '',
+      });
     }
     return data;
   }, []);
@@ -69,6 +84,7 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(null);
     clearCachedUser();
+    clearStoredTokens();
   }, [isOnline]);
 
   const value = useMemo(

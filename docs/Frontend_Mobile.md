@@ -53,10 +53,12 @@ Archivo de referencia:
 Variables:
 - `VITE_BACKEND_URL` (usada por el proxy de Vite en desarrollo)
 - `VITE_API_BASE_URL` (opcional, para forzar base absoluta en el cliente)
+- `VITE_BASE_PATH` (opcional, base path para deploy en subruta como GitHub Pages)
 
 Comportamiento:
 - Si `VITE_API_BASE_URL` no esta definida, el cliente usa `window.location.origin`.
 - En desarrollo, el proxy de Vite redirige rutas API (`/auth`, `/health`, `/sets`, `/invite`, etc.) al backend.
+- `VITE_BASE_PATH` se usa para construir `base` de Vite y `start_url`/`scope` del manifest PWA.
 
 ## 5) Arquitectura general
 
@@ -142,17 +144,25 @@ Endpoints usados actualmente:
 
 ### Cache de datos (`frontend/src/lib/localCache.js`)
 
+Cacheo por sesion de usuario:
+- Todos los caches de grupos/categorias/usuarios se guardan con scope por usuario (`scope:id:<userId>` o `scope:email:<email>`).
+- Si no hay usuario, se usa scope `global` y se reutiliza el cache legacy.
+
+Helper:
+- `frontend/src/lib/sessionScope.js` centraliza la resolucion del scope por usuario.
+
 - `expenses_mobile_user_v1`
   - Usuario para restore offline de sesion.
 
 - `expenses_mobile_sets_v1`
-  - Lista de grupos cacheada.
+  - Lista de grupos cacheada (por usuario).
 
 - `expenses_mobile_categories_v1`
-  - Categorias cacheadas por `setId` y `expenseType`.
+  - Categorias cacheadas por `setId` y `expenseType` (por usuario).
+  - Cuando se piden todas las categorias se usa clave interna `all`.
 
 - `expenses_mobile_set_users_v1`
-  - Usuarios cacheados por grupo.
+  - Usuarios cacheados por grupo (por usuario).
 
 ### Cola offline (`frontend/src/lib/offlineExpenseQueue.js`)
 
@@ -168,13 +178,17 @@ Cada item incluye:
 ### Favoritos y grupo de inicio (`frontend/src/lib/favoritesStorage.js`)
 
 - `expenses_mobile_favorite_groups_v1`
-  - Grupo favorito unico (solo uno a la vez).
+  - Grupo favorito unico (solo uno a la vez), con scope por usuario.
 
 - `expenses_mobile_startup_group_v1`
-  - Ultimo grupo usado para arranque rapido.
+  - Ultimo grupo usado para arranque rapido, con scope por usuario.
 
 - `expenses_mobile_favorite_categories_v1`
-  - Favoritos por scope `setId:expenseTypeId`.
+  - Favoritos por scope `setId:expenseTypeId`, con scope por usuario.
+
+Notas:
+- Los favoritos se guardan en localStorage y funcionan igual online/offline.
+- En caso de datos legacy, el cache global se migra automaticamente al primer uso.
 
 ## 8) Sistema de rutas
 
@@ -190,7 +204,8 @@ Definidas en `frontend/src/App.jsx`.
 
 - `/profile`
   - Protegida
-  - Perfil + invitaciones (solo online).
+- Perfil + invitaciones (solo online).
+ - Selectores de grupo/usuarios usan cache por sesion para evitar flashes de loading.
 
 - `/sets/new`
   - Protegida
@@ -263,6 +278,7 @@ Home (`/groups`) tiene header propio con:
 
 Responsabilidades:
 - Cargar grupos desde API (online) o cache (offline).
+- Online: cache-first (usa cache local si existe y refresca en background).
 - Modo `Crear` y `Ver`.
 - Favoritos de grupo (unico).
 - Arranque rapido a pantalla de tipos.
@@ -285,6 +301,7 @@ Reglas:
 
 - Carga categorias por tipo.
 - Offline usa cache.
+- Online: cache-first (usa cache local si existe y refresca en background).
 - Soporta favoritos por categoria/proveedor.
 - CTA inferior para crear categoria/proveedor (solo online).
 
@@ -310,7 +327,7 @@ Campos:
 - `description` opcional
 
 Carga de usuarios del grupo:
-- Online: API `/sets/:setId/users` + cache.
+- Online: cache-first (usa cache local si existe y refresca en background) + API `/sets/:setId/users`.
 - Offline: cache.
 
 Submit:

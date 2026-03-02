@@ -1,3 +1,5 @@
+import { getStoredTokens } from './tokenStorage.js';
+
 class ApiError extends Error {
   constructor(message, status, payload = null) {
     super(message);
@@ -38,9 +40,20 @@ const parseResponse = async (response) => {
 };
 
 const request = async (path, { method = 'GET', body, query } = {}) => {
+  const { accessToken, refreshToken } = getStoredTokens();
+  const headers = body ? { 'Content-Type': 'application/json' } : {};
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  if (refreshToken) {
+    headers['X-Refresh-Token'] = refreshToken;
+  }
+
   const response = await fetch(toAbsoluteUrl(path, query), {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     credentials: 'include',
     body: body ? JSON.stringify(body) : undefined,
   });
