@@ -60,6 +60,20 @@ Comportamiento:
 - En desarrollo, el proxy de Vite redirige rutas API (`/auth`, `/health`, `/sets`, `/invite`, etc.) al backend.
 - `VITE_BASE_PATH` se usa para construir `base` de Vite y `start_url`/`scope` del manifest PWA.
 
+## 4.1) iOS Safari y modo standalone
+
+- En iOS, el modo pantalla completa solo aplica si la app fue instalada via **Agregar a pantalla de inicio**.
+- En Safari (sin instalar), las barras superior/inferior no se pueden ocultar por limitaciones del navegador.
+- Se agregaron metadatos iOS en `frontend/index.html`:
+  - `apple-mobile-web-app-capable`
+  - `apple-mobile-web-app-status-bar-style`
+  - `apple-mobile-web-app-title`
+  - `viewport-fit=cover`
+
+Zoom automatico en inputs:
+- iOS Safari hace zoom si el input es menor a 16px.
+- Se fuerza `font-size: 16px` en `input/textarea/select` solo en iOS para evitarlo.
+
 ## 5) Arquitectura general
 
 Entrada principal:
@@ -111,6 +125,13 @@ Caracteristicas:
 - Wrapper `request()` con parse de JSON y manejo de errores.
 - Error tipado `ApiError` con `status` y `payload`.
 - Siempre envia cookies/sesion con `credentials: 'include'`.
+- Si hay tokens en localStorage, envia:
+  - `Authorization: Bearer <access_token>`
+  - `X-Refresh-Token: <refresh_token>`
+
+Compatibilidad iOS:
+- Safari puede bloquear cookies cross-site (ITP).
+- El cliente guarda tokens devueltos en login/register y los envia por headers para evitar perder sesion.
 
 Endpoints usados actualmente:
 
@@ -189,6 +210,13 @@ Cada item incluye:
 Notas:
 - Los favoritos se guardan en localStorage y funcionan igual online/offline.
 - En caso de datos legacy, el cache global se migra automaticamente al primer uso.
+
+### Tokens de sesion (`frontend/src/lib/tokenStorage.js`)
+
+- `expenses_mobile_access_token_v1`
+  - Access token usado para `Authorization`.
+- `expenses_mobile_refresh_token_v1`
+  - Refresh token enviado en `X-Refresh-Token`.
 
 ## 8) Sistema de rutas
 

@@ -87,6 +87,10 @@
     height: 100%;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     min-width: 320px;
     overflow: hidden;
@@ -121,6 +125,13 @@
 
   :where(input, textarea, select):focus-visible {
     outline: 0;
+  }
+
+  /* iOS Safari: avoid automatic zoom on focus by keeping inputs >= 16px */
+  @supports (-webkit-touch-callout: none) {
+    :where(input, textarea, select) {
+      font-size: 16px !important;
+    }
   }
 
   /* WebKit (Chrome, Edge, Safari, iOS) */
