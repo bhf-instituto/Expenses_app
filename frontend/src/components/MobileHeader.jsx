@@ -32,16 +32,16 @@ export default function MobileHeader({
   };
 
   return (
-    <header className="border-b border-app-ink/10 bg-app-panel/80 px-4 py-4 backdrop-blur">
+    <header className="border-0 border-app-ink/10 bg-app-panel/80 px-4 py-2 backdrop-blur">
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={handleBack}
-          className="shrink-0 rounded-lg border border-app-ink/20 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
+          className="shrink-0 rounded-lg border border-app-ink/50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
         >
           {leftLabel}
         </button>
-        <h1 className="min-w-0 flex-1 truncate font-heading text-sm font-semibold uppercase tracking-wide text-app-ink">
+        <h1 className="min-w-0 flex-1 ml-2 truncate font-heading text-sm font-semibold uppercase tracking-wide text-app-ink">
           {title}
         </h1>
         <div className="ml-auto flex shrink-0 items-center gap-1">

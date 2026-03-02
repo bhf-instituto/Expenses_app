@@ -1,7 +1,7 @@
 export const EXPENSE_TYPES = [
-  { id: 1, key: 'fijo', label: 'FIJO', shortLabel: 'Fijo', categoryTitle: 'Categorias fijas', accent: 'bg-app-coral' },
-  { id: 2, key: 'variable', label: 'VARIABLE', shortLabel: 'Variable', categoryTitle: 'Categorias variables', accent: 'bg-app-warning' },
-  { id: 3, key: 'proveedor', label: 'PROVEEDOR', shortLabel: 'Proveedor', categoryTitle: 'Proveedores', accent: 'bg-app-mint' },
+  { id: 1, key: 'fijo', label: 'FIJO', shortLabel: 'Fijo', categoryTitle: 'Categorias fijas', accent: 'bg-app-mint/35' },
+  { id: 2, key: 'variable', label: 'VARIABLE', shortLabel: 'Variable', categoryTitle: 'Categorias variables', accent: 'bg-app-mint/45' },
+  { id: 3, key: 'proveedor', label: 'PROVEEDOR', shortLabel: 'Proveedor', categoryTitle: 'Proveedores', accent: 'bg-app-mint/55' },
 ];
 
 export const PAYMENT_METHODS = [

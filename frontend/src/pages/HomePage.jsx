@@ -160,12 +160,12 @@ export default function HomePage() {
 
   return (
     <main className="app-shell">
-      <header className="border-b border-app-ink/10 bg-app-panel/80 px-4 py-4 backdrop-blur">
+      <header className="border-b border-app-ink/0 bg-app-panel/80 px-4 py-2 backdrop-blur">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-lg border border-app-ink/25 px-3 py-1.5 text-xs text-red-400 font-extrabold  uppercase tracking-wide text-app-ink hover:bg-app-bg"
+            className="rounded-lg border border-app-ink/50 px-3 py-1.5 text-xs  font-semibold  uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Logout
           </button>
@@ -222,7 +222,7 @@ export default function HomePage() {
             </p>
           ) : null}
 
-          <div className="space-y-3 rounded-2xl border border-app-ink/20 bg-app-mint/35 p-3">
+          <div className="space-y-3 rounded-2xl border-0 border-app-ink/20 bg-app-mint/35 p-3">
             {loading ? <p className="text-sm font-semibold text-app-muted">Cargando grupos...</p> : null}
             {!loading && groups.length === 0 ? (
               <p className="text-sm font-semibold text-app-muted">
@@ -237,7 +237,7 @@ export default function HomePage() {
                   key={group.id}
                   title={group.name}
                   subtitle={mode === 'create' ? 'Crear gasto' : 'Ver gastos'}
-                  accent="bg-app-panel"
+                  accent="bg-app-mint"
                   onClick={() => openGroup(group)}
                   disabled={mode === 'view' && !isOnline}
                   showFavorite

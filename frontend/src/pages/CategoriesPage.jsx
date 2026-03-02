@@ -134,7 +134,7 @@ export default function CategoriesPage() {
           {/* <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
             {setName}
           </div> */}
-          <div className="space-y-3 rounded-2xl border border-app-ink/20 bg-app-panel/80 p-3">
+          <div className="space-y-3 rounded-2xl border-0 border-app-ink/20 bg-app-panel/80 p-3">
             {loading ? <p className="text-sm font-semibold text-app-muted">Cargando...</p> : null}
             {!loading && categories.length === 0 ? (
               <p className="text-sm font-semibold text-app-muted">
@@ -150,7 +150,7 @@ export default function CategoriesPage() {
                   title={category.name}
                   subtitle={`${typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} ${index + 1}`}
                   onClick={() => openCategory(category)}
-                  accent="bg-app-panel"
+                  accent="bg-app-mint"
                   size="compact"
                   showFavorite
                   isFavorite={favoriteCategoryIds.includes(Number(category.id))}

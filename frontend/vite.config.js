@@ -59,7 +59,29 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       proxy: {
-        '^/(auth|health|sets|invite|categories|expenses)': {
+        // API routes. Keep /sets proxy strict so SPA routes like
+        // /sets/:id/categories/fijo are served by Vite (index.html) on refresh.
+        '^/auth(?:/.*)?(?:\\?.*)?$': {
+          target: backendUrl,
+          changeOrigin: true,
+        },
+        '^/health(?:/.*)?(?:\\?.*)?$': {
+          target: backendUrl,
+          changeOrigin: true,
+        },
+        '^/invite(?:/.*)?(?:\\?.*)?$': {
+          target: backendUrl,
+          changeOrigin: true,
+        },
+        '^/sets(?:\\?.*)?$': {
+          target: backendUrl,
+          changeOrigin: true,
+        },
+        '^/sets/\\d+(?:\\?.*)?$': {
+          target: backendUrl,
+          changeOrigin: true,
+        },
+        '^/sets/\\d+/(users|categories|expenses)(?:\\?.*)?$': {
           target: backendUrl,
           changeOrigin: true,
         },

@@ -8,7 +8,7 @@ export default function BottomActionBar({ label, onClick, disabled = false }) {
         className={`w-full rounded-xl border px-4 py-3 font-heading text-sm font-semibold uppercase tracking-wide transition ${
           disabled
             ? 'cursor-not-allowed border-app-ink/20 bg-app-ink/10 text-app-muted'
-            : 'border-app-ink/30 bg-app-sky text-app-ink hover:bg-app-mint'
+            : 'border-app-ink/0 bg-app-sky/30 text-app-ink hover:bg-app-mint'
         }`}
       >
         {label}

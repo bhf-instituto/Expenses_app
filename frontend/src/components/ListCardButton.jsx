@@ -6,12 +6,13 @@ export default function ListCardButton({
   title,
   subtitle: _subtitle,
   onClick,
-  accent = 'bg-app-panel',
+  accent = 'bg-app-mint',
   disabled = false,
   showFavorite = false,
   isFavorite = false,
   onToggleFavorite = null,
   size = 'default',
+  centerContent = false,
 }) {
   void _subtitle;
 
@@ -29,6 +30,7 @@ export default function ListCardButton({
   };
 
   const buttonSizeClass = sizeClasses[size] || sizeClasses.default;
+  const contentAlignmentClass = centerContent ? 'items-center text-center' : 'items-start text-left';
   const titleClassName =
     size === 'fill'
       ? 'font-heading text-2xl font-semibold text-app-ink'
@@ -40,11 +42,11 @@ export default function ListCardButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`w-full rounded-2xl border border-app-ink/20 text-left shadow-sm transition ${
+        className={`flex w-full flex-col justify-center rounded-2xl border-0 border-app-ink/20 shadow-sm transition ${
           showFavorite ? 'pr-16' : ''
         } ${
           disabled ? 'cursor-not-allowed opacity-45' : 'hover:-translate-y-0.5 hover:shadow-md'
-        } ${buttonSizeClass} ${accent}`}
+        } ${buttonSizeClass} ${contentAlignmentClass} ${accent}`}
       >
         <p className={titleClassName}>{title}</p>
         {/* {subtitle ? (
@@ -56,7 +58,7 @@ export default function ListCardButton({
         <button
           type="button"
           onClick={handleFavoriteClick}
-          className={`absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-sm transition ${
+          className={`absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-0 bg-transparent text-sm transition ${
             isFavorite
               ? 'border-app-ink/30 bg-app-warning text-app-ink'
               : 'border-app-ink/20 bg-app-panel/85 text-app-muted hover:bg-app-bg'
@@ -67,7 +69,7 @@ export default function ListCardButton({
           <MonoIcon
             src={isFavorite ? starFullIcon : starEmptyIcon}
             colorVar={isFavorite ? '--app-icon-star-full' : '--app-icon-star-empty'}
-            className="h-5 w-5"
+            className="h-5 w-6"
           />
         </button>
       ) : null}

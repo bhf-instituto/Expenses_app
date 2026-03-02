@@ -56,7 +56,7 @@
     --app-icon-offline: var(--app-status-offline-text);
     --app-icon-pending: var(--yellow);
     --app-icon-action: var(--app-text-primary);
-    --app-icon-star-full: var(--app-text-primary);
+    --app-icon-star-full: var(--yellow);
     --app-icon-star-empty: var(--app-text-muted);
 
     font-synthesis: none;
@@ -159,7 +159,7 @@
 
   .app-textarea {
     @apply w-full rounded-xl border border-app-ink/20 bg-app-panel px-3 py-3 text-sm outline-none transition focus:border-app-ink/50;
-    min-height: 104px;
+    /* min-height: 104px; */
     resize: none;
   }
 

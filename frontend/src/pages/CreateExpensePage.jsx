@@ -190,7 +190,7 @@ export default function CreateExpensePage() {
             {setName}
           </div> */}
 
-          <div className="rounded-2xl border border-app-ink/20 bg-app-panel p-4 shadow-card">
+          <div className="rounded-2xl border-0 border-app-ink/20 bg-app-panel p-4 shadow-card">
             <p className="font-heading text-lg font-bold uppercase tracking-wide text-app-muted">
               {/* {typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} */}
               {categoryName}
@@ -261,7 +261,7 @@ export default function CreateExpensePage() {
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Descripcion (opcional)</span>
                 <textarea
-                  rows={3}
+                  rows={1}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   className="mt-1 app-textarea"
