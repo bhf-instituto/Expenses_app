@@ -1,6 +1,6 @@
 export default function BottomActionBar({ label, onClick, disabled = false }) {
   return (
-    <div className="border-t border-app-ink/10 bg-white/90 px-4 py-3 backdrop-blur">
+    <div className="border-t border-app-ink/10 bg-app-panel/90 px-4 py-3 backdrop-blur">
       <button
         type="button"
         onClick={onClick}

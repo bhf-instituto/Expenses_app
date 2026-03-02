@@ -218,7 +218,7 @@ export default function ViewExpensesPage() {
       <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
       <section className="scroll-pane">
         <div className="space-y-3">
-          <div className="rounded-2xl border border-app-ink/20 bg-white p-3">
+          <div className="rounded-2xl border border-app-ink/20 bg-app-panel p-3">
             <button
               type="button"
               onClick={() => setFiltersOpen((prev) => !prev)}
@@ -276,7 +276,7 @@ export default function ViewExpensesPage() {
                       </p>
                     ) : null}
                     {usersError ? (
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-red-600">
+                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-app-error-text">
                         {usersError}
                       </p>
                     ) : null}
@@ -286,7 +286,7 @@ export default function ViewExpensesPage() {
                     <select
                       value={filters.category_id}
                       onChange={(event) => setFilters((prev) => ({ ...prev, category_id: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-app-ink/20 px-2 py-2 text-xs"
+                      className="mt-1 app-select"
                     >
                       <option value="">Todas</option>
                       {selectedTypeId
@@ -312,7 +312,7 @@ export default function ViewExpensesPage() {
                       type="date"
                       value={filters.from_date}
                       onChange={(event) => setFilters((prev) => ({ ...prev, from_date: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-app-ink/20 px-2 py-2 text-xs"
+                      className="mt-1 app-input"
                     />
                   </label>
                   <label className="block">
@@ -321,7 +321,7 @@ export default function ViewExpensesPage() {
                       type="date"
                       value={filters.to_date}
                       onChange={(event) => setFilters((prev) => ({ ...prev, to_date: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-app-ink/20 px-2 py-2 text-xs"
+                      className="mt-1 app-input"
                     />
                   </label>
                 </div>
@@ -355,7 +355,7 @@ export default function ViewExpensesPage() {
                 const type = getExpenseTypeById(expense.expense_type);
                 const payment = getPaymentMethodById(expense.payment_method);
                 return (
-                  <article key={expense.id} className="rounded-xl border border-app-ink/15 bg-white p-3">
+                  <article key={expense.id} className="rounded-xl border border-app-ink/15 bg-app-panel p-3">
                     <p className="font-heading text-sm font-semibold uppercase text-app-ink">
                       {expense.category_name}
                     </p>
@@ -371,7 +371,7 @@ export default function ViewExpensesPage() {
               })}
           </div>
           {error ? (
-            <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>
+            <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
           ) : null}
         </div>
       </section>

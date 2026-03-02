@@ -1,3 +1,7 @@
+import starEmptyIcon from '../assets/icons/star-empty-icon.svg';
+import starFullIcon from '../assets/icons/star-full-icon.svg';
+import MonoIcon from './MonoIcon.jsx';
+
 export default function ListCardButton({
   title,
   subtitle: _subtitle,
@@ -25,7 +29,10 @@ export default function ListCardButton({
   };
 
   const buttonSizeClass = sizeClasses[size] || sizeClasses.default;
-  const titleClassName = size === 'fill' ? 'font-heading text-2xl font-semibold text-app-ink' : 'font-heading text-xl font-semibold text-app-ink';
+  const titleClassName =
+    size === 'fill'
+      ? 'font-heading text-2xl font-semibold text-app-ink'
+      : 'font-heading text-xl font-semibold text-app-ink';
 
   return (
     <div className={`relative ${size === 'fill' ? 'h-full' : ''}`}>
@@ -34,7 +41,7 @@ export default function ListCardButton({
         onClick={onClick}
         disabled={disabled}
         className={`w-full rounded-2xl border border-app-ink/20 text-left shadow-sm transition ${
-          showFavorite ? 'pr-14' : ''
+          showFavorite ? 'pr-16' : ''
         } ${
           disabled ? 'cursor-not-allowed opacity-45' : 'hover:-translate-y-0.5 hover:shadow-md'
         } ${buttonSizeClass} ${accent}`}
@@ -49,15 +56,19 @@ export default function ListCardButton({
         <button
           type="button"
           onClick={handleFavoriteClick}
-          className={`absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border text-sm transition ${
+          className={`absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-sm transition ${
             isFavorite
               ? 'border-app-ink/30 bg-app-warning text-app-ink'
-              : 'border-app-ink/20 bg-white/85 text-app-muted hover:bg-app-bg'
+              : 'border-app-ink/20 bg-app-panel/85 text-app-muted hover:bg-app-bg'
           }`}
           aria-label={isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
           title={isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
         >
-          {isFavorite ? '★' : '☆'}
+          <MonoIcon
+            src={isFavorite ? starFullIcon : starEmptyIcon}
+            colorVar={isFavorite ? '--app-icon-star-full' : '--app-icon-star-empty'}
+            className="h-5 w-5"
+          />
         </button>
       ) : null}
     </div>

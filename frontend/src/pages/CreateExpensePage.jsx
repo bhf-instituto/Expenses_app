@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
-import OfflineBanner from '../components/OfflineBanner.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
 import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
 import { ApiError, expensesApi, setsApi } from '../lib/apiClient.js';
@@ -174,7 +173,7 @@ export default function CreateExpensePage() {
       <main className="app-shell">
         <MobileHeader title="Tipo invalido" backTo={backToCategories} />
         <section className="scroll-pane">
-          <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">
+          <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">
             Tipo de gasto no reconocido.
           </p>
         </section>
@@ -187,12 +186,11 @@ export default function CreateExpensePage() {
       <MobileHeader title={`Nuevo gasto ${expenseType.label.toLowerCase()}`} backTo={backToCategories} />
       <section className="scroll-pane">
         <div className="space-y-3">
-          <OfflineBanner isOnline={isOnline} />
           {/* <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
             {setName}
           </div> */}
 
-          <div className="rounded-2xl border border-app-ink/20 bg-white p-4 shadow-card">
+          <div className="rounded-2xl border border-app-ink/20 bg-app-panel p-4 shadow-card">
             <p className="font-heading text-lg font-bold uppercase tracking-wide text-app-muted">
               {/* {typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} */}
               {categoryName}
@@ -209,7 +207,7 @@ export default function CreateExpensePage() {
                   step="1"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-app-ink/20 px-3 py-3 text-base outline-none focus:border-app-ink/50"
+                  className="mt-1 app-input"
                   placeholder="10000"
                 />
               </label>
@@ -220,7 +218,7 @@ export default function CreateExpensePage() {
                   type="date"
                   value={expenseDate}
                   onChange={(event) => setExpenseDate(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-app-ink/20 px-3 py-3 text-sm outline-none focus:border-app-ink/50"
+                  className="mt-1 app-input"
                 />
               </label>
 
@@ -254,7 +252,7 @@ export default function CreateExpensePage() {
                   </p>
                 ) : null}
                 {usersError ? (
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-red-600">
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-app-error-text">
                     {usersError}
                   </p>
                 ) : null}
@@ -266,7 +264,7 @@ export default function CreateExpensePage() {
                   rows={3}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-app-ink/20 px-3 py-3 text-sm outline-none focus:border-app-ink/50"
+                  className="mt-1 app-textarea"
                   placeholder="Detalle del gasto"
                 />
               </label>
@@ -274,7 +272,7 @@ export default function CreateExpensePage() {
           </div>
 
           {error ? (
-            <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>
+            <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
           ) : null}
         </div>
       </section>

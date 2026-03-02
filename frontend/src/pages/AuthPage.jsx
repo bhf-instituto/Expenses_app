@@ -33,7 +33,7 @@ export default function AuthPage() {
   return (
     <main className="app-shell">
       <section className="flex min-h-0 flex-1 flex-col p-4">
-        <header className="mb-3 flex rounded-xl border border-app-ink/20 bg-white p-1">
+        <header className="mb-3 flex rounded-xl border border-app-ink/20 bg-app-panel p-1">
           <button
             type="button"
             onClick={() => setMode('login')}
@@ -54,28 +54,28 @@ export default function AuthPage() {
           </button>
         </header>
 
-        <div className="mb-3 rounded-xl border border-app-ink/15 bg-white px-4 py-3 text-xs font-semibold uppercase tracking-wide text-app-muted">
+        {/* <div className="mb-3 rounded-xl border border-app-ink/15 bg-app-panel px-4 py-3 text-xs font-semibold uppercase tracking-wide text-app-muted">
           {isOnline
             ? 'Conectado. Inicia sesion para continuar.'
             : 'Sin conexion. Solo podras entrar si ya tenias sesion local.'}
-        </div>
+        </div> */}
 
         <form
           onSubmit={onSubmit}
-          className="animate-riseIn rounded-2xl border border-app-ink/20 bg-white p-4 shadow-card"
+          className="animate-riseIn rounded-2xl border border-app-ink/20 bg-app-panel p-4 shadow-card"
         >
-          <h1 className="font-heading text-lg font-semibold uppercase text-app-ink">
+          {/* <h1 className="font-heading text-lg font-semibold uppercase text-app-ink">
             {mode === 'login' ? 'Acceso' : 'Crear cuenta'}
-          </h1>
-          <div className="mt-4 space-y-3">
+          </h1> */}
+          <div className="mt-0 space-y-3">
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Email</span>
+              <span className="text-sm font-semibold uppercase tracking-wide text-app-muted">Email</span>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-app-ink/20 bg-white px-3 py-3 text-sm outline-none focus:border-app-ink/50"
+                className="mt-1 app-input"
                 placeholder="usuario@correo.com"
               />
             </label>
@@ -88,14 +88,14 @@ export default function AuthPage() {
                 minLength={8}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-app-ink/20 bg-white px-3 py-3 text-sm outline-none focus:border-app-ink/50"
+                className="mt-1 app-input"
                 placeholder="Minimo 8 caracteres"
               />
             </label>
           </div>
 
           {error ? (
-            <p className="mt-3 rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>
+            <p className="mt-3 rounded-lg bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
           ) : null}
 
           <button

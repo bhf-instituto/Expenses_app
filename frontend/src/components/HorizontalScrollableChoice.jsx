@@ -52,7 +52,7 @@ export default function HorizontalScrollableChoice({
                 className={`rounded-lg border px-3 py-2 text-xs font-heading font-semibold uppercase tracking-wide transition ${
                   isActive
                     ? 'border-app-ink/60 bg-app-mint text-app-ink'
-                    : 'border-app-ink/20 bg-white text-app-muted hover:bg-app-bg'
+                    : 'border-app-ink/20 bg-app-panel text-app-muted hover:bg-app-bg'
                 }`}
               >
                 {option.label}

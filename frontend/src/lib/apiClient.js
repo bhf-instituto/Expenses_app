@@ -78,4 +78,9 @@ export const expensesApi = {
   getAll: (setId, query) => request(`/sets/${setId}/expenses`, { query }),
 };
 
+export const inviteApi = {
+  create: (setId, payload) => request(`/invite/${setId}`, { method: 'POST', body: payload }),
+  accept: (payload) => request('/invite', { method: 'POST', body: payload }),
+};
+
 export { ApiError };

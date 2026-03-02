@@ -3,7 +3,6 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import ListCardButton from '../components/ListCardButton.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
-import OfflineBanner from '../components/OfflineBanner.jsx';
 import { ApiError, categoriesApi } from '../lib/apiClient.js';
 import { getExpenseTypeByKey } from '../constants/catalogs.js';
 import { getCachedCategories, getCachedSets, setCachedCategories } from '../lib/localCache.js';
@@ -119,7 +118,7 @@ export default function CategoriesPage() {
       <main className="app-shell">
         <MobileHeader title="Tipo invalido" backTo={`/sets/${setId}/types`} />
         <section className="scroll-pane">
-          <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">
+          <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">
             Tipo de gasto no reconocido.
           </p>
         </section>
@@ -132,7 +131,6 @@ export default function CategoriesPage() {
       <MobileHeader title={expenseType.categoryTitle} backTo={`/sets/${setId}/types`} leftLabel="Back" />
       <section className="scroll-pane">
         <div className="space-y-3">
-          <OfflineBanner isOnline={isOnline} />
           {/* <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
             {setName}
           </div> */}
@@ -152,7 +150,7 @@ export default function CategoriesPage() {
                   title={category.name}
                   subtitle={`${typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} ${index + 1}`}
                   onClick={() => openCategory(category)}
-                  accent="bg-white"
+                  accent="bg-app-panel"
                   size="compact"
                   showFavorite
                   isFavorite={favoriteCategoryIds.includes(Number(category.id))}
@@ -161,7 +159,7 @@ export default function CategoriesPage() {
               ))}
           </div>
           {error ? (
-            <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>
+            <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
           ) : null}
         </div>
       </section>

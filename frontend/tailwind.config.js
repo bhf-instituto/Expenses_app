@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const colorFromVar = (variableName) => `rgb(var(${variableName}) / <alpha-value>)`;
+
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
@@ -9,18 +11,32 @@ export default {
       },
       colors: {
         app: {
-          bg: '#f6f4eb',
-          panel: '#fefefe',
-          mint: '#9be7d8',
-          coral: '#f5b6a4',
-          sky: '#a9d9ff',
-          ink: '#1e2a39',
-          muted: '#61708a',
-          warning: '#ffdd8b',
+          bg: colorFromVar('--app-bg'),
+          panel: colorFromVar('--app-panel'),
+          mint: colorFromVar('--app-accent-soft'),
+          coral: colorFromVar('--app-accent-main'),
+          sky: colorFromVar('--app-accent-alt'),
+          warning: colorFromVar('--app-accent-warning'),
+          ink: colorFromVar('--app-text-primary'),
+          muted: colorFromVar('--app-text-muted'),
+          'success-bg': colorFromVar('--app-success-bg'),
+          'success-border': colorFromVar('--app-success-border'),
+          'success-text': colorFromVar('--app-success-text'),
+          'error-bg': colorFromVar('--app-error-bg'),
+          'error-border': colorFromVar('--app-error-border'),
+          'error-text': colorFromVar('--app-error-text'),
+          'status-online-bg': colorFromVar('--app-status-online-bg'),
+          'status-online-border': colorFromVar('--app-status-online-border'),
+          'status-online-text': colorFromVar('--app-status-online-text'),
+          'status-offline-bg': colorFromVar('--app-status-offline-bg'),
+          'status-offline-border': colorFromVar('--app-status-offline-border'),
+          'status-offline-text': colorFromVar('--app-status-offline-text'),
+          'status-pending-bg': colorFromVar('--app-status-pending-bg'),
+          'status-pending-border': colorFromVar('--app-status-pending-border'),
         },
       },
       boxShadow: {
-        card: '0 10px 30px rgba(30, 42, 57, 0.12)',
+        card: '0 10px 30px rgba(0, 0, 0, 0.18)',
       },
       keyframes: {
         riseIn: {

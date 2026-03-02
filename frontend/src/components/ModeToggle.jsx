@@ -1,6 +1,6 @@
 export default function ModeToggle({ mode, onChange, viewDisabled }) {
   return (
-    <div className="grid grid-cols-2 rounded-xl border border-app-ink/20 bg-white p-1">
+    <div className="grid grid-cols-2 rounded-xl border border-app-ink/20 bg-app-panel p-1">
       <button
         type="button"
         onClick={() => onChange('create')}

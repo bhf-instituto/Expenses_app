@@ -3,8 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import ModeToggle from '../components/ModeToggle.jsx';
 import ListCardButton from '../components/ListCardButton.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
-import OfflineBanner from '../components/OfflineBanner.jsx';
+import connectionIcon from '../assets/icons/connection-icon.svg';
+import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
+import MonoIcon from '../components/MonoIcon.jsx';
 import { ApiError, setsApi } from '../lib/apiClient.js';
 import { getCachedSets, setCachedSets } from '../lib/localCache.js';
 import {
@@ -22,8 +24,9 @@ import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 export default function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, isOnline } = useAuth();
-  const { pendingCount, isSyncing, lastSyncSummary } = useExpenseSync();
+  const { logout, isOnline } = useAuth();
+  // const { user, logout, isOnline } = useAuth();
+  const { pendingCount } = useExpenseSync();
   const [mode, setMode] = useState('create');
   const [groups, setGroups] = useState([]);
   const [favoriteGroupId, setFavoriteGroupId] = useState(() => getFavoriteGroupId());
@@ -31,7 +34,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const flashMessage = location.state?.flash || '';
-  const profileAlias = user?.email ? String(user.email).split('@')[0] : '-';
+  // const profileAlias = user?.email ? String(user.email).split('@')[0] : '-';
 
   useEffect(() => {
     if (!isOnline && mode === 'view') {
@@ -123,13 +126,6 @@ export default function HomePage() {
     startupGroupId,
   ]);
 
-  const onlineSyncMessage = useMemo(() => {
-    if (!isOnline) return '';
-    if (isSyncing) return 'Sincronizando gastos en cola...';
-    if (lastSyncSummary) return lastSyncSummary;
-    return '';
-  }, [isOnline, isSyncing, lastSyncSummary]);
-
   const sortedGroups = useMemo(
     () => sortByFavorites(groups, (group) => Number(group.id) === Number(favoriteGroupId)),
     [groups, favoriteGroupId]
@@ -164,24 +160,41 @@ export default function HomePage() {
 
   return (
     <main className="app-shell">
-      <header className="border-b border-app-ink/10 bg-white/80 px-4 py-4 backdrop-blur">
+      <header className="border-b border-app-ink/10 bg-app-panel/80 px-4 py-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-lg border border-app-ink/25 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+            className="rounded-lg border border-app-ink/25 px-3 py-1.5 text-xs text-red-400 font-extrabold  uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Logout
           </button>
-          <div className="ml-auto flex min-w-2 items-center gap-2">
+          <div className="ml-auto flex min-w-0 items-center gap-1">
+            {isOnline ? (
+              <div
+                className="flex h-8 shrink-0 items-center rounded-full border-0 bg-transparent border-app-status-online-border bg-app-status-online-bg px-2"
+                title="Conectado y sincronizado"
+                aria-label="Conectado y sincronizado"
+              >
+                <MonoIcon src={connectionIcon} colorVar="--app-icon-connection" className="h-4 w-7" />
+              </div>
+            ) : (
+              <div
+                className="flex h-8 shrink-0 items-center rounded-full border-0 bg-transparent border-app-status-offline-border bg-app-status-offline-bg px-2"
+                title="Modo offline"
+                aria-label="Modo offline"
+              >
+                <MonoIcon src={offlineIcon} colorVar="--app-icon-offline" className="h-4 w-7 scale-[1.12]" />
+              </div>
+            )}
             {pendingCount > 0 ? (
               <div
-                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-app-ink/20 bg-app-warning px-2"
+                className="flex h-8 shrink-0 items-center gap-0.5 rounded-full border-0 bg-transparent border-app-status-pending-border bg-app-status-pending-bg px-2"
                 title={`Gastos pendientes: ${pendingCount}`}
                 aria-label={`Gastos pendientes: ${pendingCount}`}
               >
-                <img src={pendingIcon} alt="" aria-hidden="true" className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-extrabold leading-none text-app-ink">{pendingCount}</span>
+                <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
+                <span className="text-xs font-extrabold leading-none text-app-ink">{pendingCount}</span>
               </div>
             ) : null}
             <button
@@ -189,7 +202,7 @@ export default function HomePage() {
               onClick={() => navigate('/profile')}
               className="max-w-[100%] truncate rounded-lg border border-app-ink/20 bg-app-panel px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
             >
-              {profileAlias}
+              Perfil
             </button>
           </div>
         </div>
@@ -197,15 +210,9 @@ export default function HomePage() {
 
       <section className="scroll-pane">
         <div className="space-y-3">
-          <OfflineBanner isOnline={isOnline} />
           {flashMessage ? (
             <p className="rounded-xl border border-app-ink/15 bg-app-mint px-3 py-2 text-sm font-semibold text-app-ink">
               {flashMessage}
-            </p>
-          ) : null}
-          {onlineSyncMessage ? (
-            <p className="rounded-xl border border-app-ink/15 bg-app-panel px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
-              {onlineSyncMessage}
             </p>
           ) : null}
           <ModeToggle mode={mode} onChange={setMode} viewDisabled={!isOnline} />
@@ -230,7 +237,7 @@ export default function HomePage() {
                   key={group.id}
                   title={group.name}
                   subtitle={mode === 'create' ? 'Crear gasto' : 'Ver gastos'}
-                  accent="bg-white"
+                  accent="bg-app-panel"
                   onClick={() => openGroup(group)}
                   disabled={mode === 'view' && !isOnline}
                   showFavorite
@@ -241,7 +248,7 @@ export default function HomePage() {
           </div>
 
           {error ? (
-            <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>
+            <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
           ) : null}
         </div>
       </section>

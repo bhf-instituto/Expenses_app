@@ -6,6 +6,59 @@
 
 @layer base {
   :root {
+    /* Base palette */
+    --palette-black: 34 40 49;
+    --palette-indigo: 57 62 70;
+    --palette-copper: 148 137 121;
+    --palette-sand: 223 208 184;
+    --red: 51 23 23;
+    --red-1: 251 44 54;
+    --green: 216 249 153;
+    --green-1: 53 83 14;
+    --yellow: 255 223 32;
+
+    /* Semantic tokens */
+    --app-bg: var(--palette-black);
+    --app-panel: 45 50 58;
+    --app-accent-soft: var(--palette-indigo);
+    --app-accent-main: var(--palette-copper);
+    --app-accent-alt: 131 121 106;
+    --app-accent-warning: 104 96 84;
+    --app-text-primary: var(--palette-sand);
+    --app-text-muted: 184 171 151;
+
+    /* Feedback and status */
+    --app-success-bg: 40 49 58;
+    --app-success-border: 102 116 132;
+    --app-success-text: 207 219 232;
+    --app-error-bg: 73 50 46;
+    --app-error-border: 148 109 92;
+    --app-error-text: 232 208 188;
+    --app-status-online-bg: var(--app-success-bg);
+    --app-status-online-border: var(--green-1);
+    --app-status-online-text: var(--green);
+    --app-status-offline-bg: var(--app-success-bg);
+    --app-status-offline-border: var(--red);
+    --app-status-offline-text: var(--red-1);
+    --app-status-pending-bg: 74 67 58;
+    --app-status-pending-border: var(--palette-copper);
+
+    /* Form controls */
+    --app-input-bg: var(--app-panel);
+    --app-input-border: 106 112 121;
+    --app-input-border-focus: var(--palette-copper);
+    --app-input-text: var(--app-text-primary);
+    --app-input-placeholder: var(--app-text-muted);
+    --app-input-autofill-text: var(--app-text-primary);
+
+    /* SVG icons (single-color stroke/fill) */
+    --app-icon-connection: var(--green);
+    --app-icon-offline: var(--app-status-offline-text);
+    --app-icon-pending: var(--yellow);
+    --app-icon-action: var(--app-text-primary);
+    --app-icon-star-full: var(--app-text-primary);
+    --app-icon-star-empty: var(--app-text-muted);
+
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -23,13 +76,62 @@
   body {
     min-width: 320px;
     overflow: hidden;
-    background: radial-gradient(circle at top, #fff8e8 0%, #f6f4eb 58%, #edf2ef 100%);
-    color: #1e2a39;
+    background: linear-gradient(
+      180deg,
+      rgb(var(--palette-black)) 0%,
+      rgb(var(--palette-black)) 26%,
+      rgb(var(--palette-indigo)) 26%,
+      rgb(var(--palette-indigo)) 55%,
+      rgb(var(--palette-copper)) 55%,
+      rgb(var(--palette-copper)) 77%,
+      rgb(var(--palette-sand)) 77%,
+      rgb(var(--palette-sand)) 100%
+    );
+    color: rgb(var(--app-text-primary));
     font-family: 'Nunito Sans', sans-serif;
   }
 
   * {
     box-sizing: border-box;
+  }
+
+  :where(input, textarea, select) {
+    color: rgb(var(--app-input-text));
+    caret-color: rgb(var(--app-input-text));
+  }
+
+  :where(input, textarea, select)::placeholder {
+    color: rgb(var(--app-input-placeholder));
+    opacity: 1;
+  }
+
+  :where(input, textarea, select):focus-visible {
+    outline: 0;
+  }
+
+  /* WebKit (Chrome, Edge, Safari, iOS) */
+  :where(input, textarea, select):-webkit-autofill,
+  :where(input, textarea, select):-webkit-autofill:hover,
+  :where(input, textarea, select):-webkit-autofill:focus,
+  :where(input, textarea, select):-webkit-autofill:active {
+    -webkit-text-fill-color: rgb(var(--app-input-autofill-text)) !important;
+    caret-color: rgb(var(--app-input-autofill-text));
+    background-color: transparent !important;
+    box-shadow: 0 0 0 1000px transparent inset !important;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+    border-color: rgb(var(--app-input-border-focus) / 0.5);
+    transition: background-color 99999s ease-in-out 0s;
+  }
+
+  /* Firefox */
+  :where(input, textarea, select):-moz-autofill {
+    color: rgb(var(--app-input-autofill-text)) !important;
+    caret-color: rgb(var(--app-input-autofill-text));
+    background-color: transparent !important;
+    box-shadow: 0 0 0 1000px transparent inset !important;
+    border-color: rgb(var(--app-input-border-focus) / 0.5);
   }
 }
 
@@ -49,5 +151,33 @@
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  .app-input {
+    @apply w-full rounded-xl border border-app-ink/20 bg-app-panel px-3 py-3 text-sm outline-none transition focus:border-app-ink/50;
+  }
+
+  .app-textarea {
+    @apply w-full rounded-xl border border-app-ink/20 bg-app-panel px-3 py-3 text-sm outline-none transition focus:border-app-ink/50;
+    min-height: 104px;
+    resize: none;
+  }
+
+  .app-select {
+    @apply w-full rounded-xl border border-app-ink/20 bg-app-panel px-3 py-3 text-sm outline-none transition focus:border-app-ink/50;
+  }
+
+  .icon-mask {
+    display: inline-block;
+    flex-shrink: 0;
+    background-color: var(--icon-color, rgb(var(--app-icon-action)));
+    -webkit-mask-image: var(--icon-src);
+    mask-image: var(--icon-src);
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
   }
 }
