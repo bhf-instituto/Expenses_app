@@ -32,7 +32,7 @@ export default function MobileHeader({
   };
 
   return (
-    <header className="border-0 border-app-ink/10 bg-app-panel/80 px-4 py-2 backdrop-blur">
+    <header className="safe-top border-0 border-app-ink/10 bg-app-panel/80 px-4 pb-2 backdrop-blur">
       <div className="flex items-center gap-2">
         <button
           type="button"

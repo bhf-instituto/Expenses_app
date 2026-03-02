@@ -74,6 +74,11 @@ Zoom automatico en inputs:
 - iOS Safari hace zoom si el input es menor a 16px.
 - Se fuerza `font-size: 16px` en `input/textarea/select` solo en iOS para evitarlo.
 
+Safe area (notch/dynamic island):
+- Se usa `viewport-fit=cover` y padding con `env(safe-area-inset-top)` en headers.
+- Clase utilitaria: `.safe-top` (aplicada en `MobileHeader` y en el header custom de `/groups`).
+- Para el footer se usa `env(safe-area-inset-bottom)` con `.safe-bottom` en `BottomActionBar`.
+
 ## 5) Arquitectura general
 
 Entrada principal:

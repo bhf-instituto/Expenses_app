@@ -205,4 +205,12 @@
     -webkit-mask-size: contain;
     mask-size: contain;
   }
+
+  .safe-top {
+    padding-top: calc(env(safe-area-inset-top) + 0.5rem);
+  }
+
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+  }
 }

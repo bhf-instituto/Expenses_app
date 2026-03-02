@@ -160,7 +160,7 @@ export default function HomePage() {
 
   return (
     <main className="app-shell">
-      <header className="border-b border-app-ink/0 bg-app-panel/80 px-4 py-2 backdrop-blur">
+      <header className="safe-top border-b border-app-ink/0 bg-app-panel/80 px-4 pb-2 backdrop-blur">
         <div className="flex items-center gap-2">
           <button
             type="button"
