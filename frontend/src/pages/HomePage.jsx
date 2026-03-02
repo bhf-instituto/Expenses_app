@@ -208,8 +208,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="scroll-pane">
-        <div className="space-y-3">
+      <section className="min-h-0 flex-1 overflow-hidden px-4 pb-2 pt-3">
+        <div className="flex h-full min-h-0 flex-col gap-3">
           {flashMessage ? (
             <p className="rounded-xl border border-app-ink/15 bg-app-mint px-3 py-2 text-sm font-semibold text-app-ink">
               {flashMessage}
@@ -222,29 +222,33 @@ export default function HomePage() {
             </p>
           ) : null}
 
-          <div className="space-y-3 rounded-2xl border-0 border-app-ink/20 bg-app-mint/35 p-3">
-            {loading ? <p className="text-sm font-semibold text-app-muted">Cargando grupos...</p> : null}
-            {!loading && groups.length === 0 ? (
-              <p className="text-sm font-semibold text-app-muted">
-                {isOnline
-                  ? 'No tenes grupos todavia. Crea el primero.'
-                  : 'Sin conexion y sin grupos cacheados para mostrar.'}
-              </p>
-            ) : null}
-            {!loading &&
-              sortedGroups.map((group) => (
-                <ListCardButton
-                  key={group.id}
-                  title={group.name}
-                  subtitle={mode === 'create' ? 'Crear gasto' : 'Ver gastos'}
-                  accent="bg-app-mint"
-                  onClick={() => openGroup(group)}
-                  disabled={mode === 'view' && !isOnline}
-                  showFavorite
-                  isFavorite={Number(group.id) === Number(favoriteGroupId)}
-                  onToggleFavorite={() => handleToggleGroupFavorite(group.id)}
-                />
-              ))}
+          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border-0 border-app-ink/20 bg-app-mint/35 p-3">
+            <div className="no-scrollbar h-full overflow-y-auto">
+              <div className="space-y-3 pr-1">
+                {loading ? <p className="text-sm font-semibold text-app-muted">Cargando grupos...</p> : null}
+                {!loading && groups.length === 0 ? (
+                  <p className="text-sm font-semibold text-app-muted">
+                    {isOnline
+                      ? 'No tenes grupos todavia. Crea el primero.'
+                      : 'Sin conexion y sin grupos cacheados para mostrar.'}
+                  </p>
+                ) : null}
+                {!loading &&
+                  sortedGroups.map((group) => (
+                    <ListCardButton
+                      key={group.id}
+                      title={group.name}
+                      subtitle={mode === 'create' ? 'Crear gasto' : 'Ver gastos'}
+                      accent="bg-app-mint"
+                      onClick={() => openGroup(group)}
+                      disabled={mode === 'view' && !isOnline}
+                      showFavorite
+                      isFavorite={Number(group.id) === Number(favoriteGroupId)}
+                      onToggleFavorite={() => handleToggleGroupFavorite(group.id)}
+                    />
+                  ))}
+              </div>
+            </div>
           </div>
 
           {error ? (

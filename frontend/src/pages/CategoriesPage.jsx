@@ -129,34 +129,38 @@ export default function CategoriesPage() {
   return (
     <main className="app-shell">
       <MobileHeader title={expenseType.categoryTitle} backTo={`/sets/${setId}/types`} leftLabel="Back" />
-      <section className="scroll-pane">
-        <div className="space-y-3">
+      <section className="min-h-0 flex-1 overflow-hidden px-4 pb-2 pt-3">
+        <div className="flex h-full min-h-0 flex-col gap-3">
           {/* <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
             {setName}
           </div> */}
-          <div className="space-y-3 rounded-2xl border-0 border-app-ink/20 bg-app-panel/80 p-3">
-            {loading ? <p className="text-sm font-semibold text-app-muted">Cargando...</p> : null}
-            {!loading && categories.length === 0 ? (
-              <p className="text-sm font-semibold text-app-muted">
-                {isOnline
-                  ? 'No hay categorias. Crea una para continuar.'
-                  : 'Sin conexion y sin categorias cacheadas para este tipo.'}
-              </p>
-            ) : null}
-            {!loading &&
-              sortedCategories.map((category, index) => (
-                <ListCardButton
-                  key={category.id}
-                  title={category.name}
-                  subtitle={`${typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} ${index + 1}`}
-                  onClick={() => openCategory(category)}
-                  accent="bg-app-mint"
-                  size="compact"
-                  showFavorite
-                  isFavorite={favoriteCategoryIds.includes(Number(category.id))}
-                  onToggleFavorite={() => handleToggleCategoryFavorite(category.id)}
-                />
-              ))}
+          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border-0 border-app-ink/20 bg-app-panel/80 p-3">
+            <div className="no-scrollbar h-full overflow-y-auto">
+              <div className="space-y-3 pr-1">
+                {loading ? <p className="text-sm font-semibold text-app-muted">Cargando...</p> : null}
+                {!loading && categories.length === 0 ? (
+                  <p className="text-sm font-semibold text-app-muted">
+                    {isOnline
+                      ? 'No hay categorias. Crea una para continuar.'
+                      : 'Sin conexion y sin categorias cacheadas para este tipo.'}
+                  </p>
+                ) : null}
+                {!loading &&
+                  sortedCategories.map((category, index) => (
+                    <ListCardButton
+                      key={category.id}
+                      title={category.name}
+                      subtitle={`${typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} ${index + 1}`}
+                      onClick={() => openCategory(category)}
+                      accent="bg-app-mint"
+                      size="compact"
+                      showFavorite
+                      isFavorite={favoriteCategoryIds.includes(Number(category.id))}
+                      onToggleFavorite={() => handleToggleCategoryFavorite(category.id)}
+                    />
+                  ))}
+              </div>
+            </div>
           </div>
           {error ? (
             <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
