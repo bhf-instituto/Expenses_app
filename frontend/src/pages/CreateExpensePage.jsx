@@ -1,0 +1,178 @@
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import MobileHeader from '../components/MobileHeader.jsx';
+import BottomActionBar from '../components/BottomActionBar.jsx';
+import OfflineBanner from '../components/OfflineBanner.jsx';
+import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
+import { ApiError, expensesApi } from '../lib/apiClient.js';
+import { PAYMENT_METHODS, getExpenseTypeByKey } from '../constants/catalogs.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
+
+const todayDate = new Date().toISOString().slice(0, 10);
+
+export default function CreateExpensePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isOnline } = useAuth();
+  const { queueExpense } = useExpenseSync();
+  const { setId, typeKey, categoryId } = useParams();
+  const expenseType = getExpenseTypeByKey(typeKey);
+  const [amount, setAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState(1);
+  const [description, setDescription] = useState('');
+  const [expenseDate, setExpenseDate] = useState(todayDate);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const setName = location.state?.setName || `Grupo ${setId}`;
+  const categoryName = location.state?.categoryName || `Categoria ${categoryId}`;
+  const backToCategories = `/sets/${setId}/categories/${typeKey}`;
+
+  const payload = useMemo(
+    () => ({
+      category_id: Number(categoryId),
+      amount: Number(amount),
+      payment_method: Number(paymentMethod),
+      description: description.trim() || null,
+      expense_date: expenseDate,
+    }),
+    [categoryId, amount, paymentMethod, description, expenseDate]
+  );
+
+  const paymentMethodOptions = useMemo(
+    () =>
+      PAYMENT_METHODS.map((method) => ({
+        value: method.id,
+        label: method.shortLabel || method.label,
+      })),
+    []
+  );
+
+  const submitExpense = async () => {
+    if (submitting) return;
+
+    const numericAmount = Number(amount);
+    if (!Number.isInteger(numericAmount) || numericAmount <= 0) {
+      setError('El monto debe ser un entero positivo.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+
+    try {
+      if (isOnline) {
+        await expensesApi.create(setId, payload);
+        navigate(`/sets/${setId}/types`, {
+          replace: true,
+          state: { setName, flash: 'Gasto creado correctamente.' },
+        });
+      } else {
+        queueExpense({ setId, payload });
+        navigate(`/sets/${setId}/types`, {
+          replace: true,
+          state: { setName, flash: 'Gasto guardado offline. Se enviara automaticamente al reconectar.' },
+        });
+      }
+    } catch (requestError) {
+      const message =
+        requestError instanceof ApiError ? requestError.message : 'No se pudo guardar el gasto';
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!expenseType) {
+    return (
+      <main className="app-shell">
+        <MobileHeader title="Tipo invalido" backTo={backToCategories} />
+        <section className="scroll-pane">
+          <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">
+            Tipo de gasto no reconocido.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="app-shell">
+      <MobileHeader title={`Nuevo gasto ${expenseType.label.toLowerCase()}`} backTo={backToCategories} />
+      <section className="scroll-pane">
+        <div className="space-y-3">
+          <OfflineBanner isOnline={isOnline} />
+          <div className="rounded-xl border border-app-ink/15 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
+            {setName}
+          </div>
+
+          <div className="rounded-2xl border border-app-ink/20 bg-white p-4 shadow-card">
+            <p className="font-heading text-sm font-semibold uppercase tracking-wide text-app-muted">
+              {typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'}
+            </p>
+            <p className="mt-1 text-base font-bold text-app-ink">{categoryName}</p>
+
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Monto</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-app-ink/20 px-3 py-3 text-base outline-none focus:border-app-ink/50"
+                  placeholder="10000"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
+                <input
+                  type="date"
+                  value={expenseDate}
+                  onChange={(event) => setExpenseDate(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-app-ink/20 px-3 py-3 text-sm outline-none focus:border-app-ink/50"
+                />
+              </label>
+
+              <div className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Forma de pago</span>
+                <div className="mt-2">
+                  <SingleChoiceButtons
+                    value={paymentMethod}
+                    onChange={(value) => setPaymentMethod(Number(value))}
+                    options={paymentMethodOptions}
+                    columns={3}
+                  />
+                </div>
+              </div>
+
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Descripcion (opcional)</span>
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-app-ink/20 px-3 py-3 text-sm outline-none focus:border-app-ink/50"
+                  placeholder="Detalle del gasto"
+                />
+              </label>
+            </div>
+          </div>
+
+          {error ? (
+            <p className="rounded-xl bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>
+          ) : null}
+        </div>
+      </section>
+      <BottomActionBar
+        label={submitting ? 'Guardando...' : isOnline ? 'Guardar gasto' : 'Guardar gasto offline'}
+        disabled={submitting || !amount}
+        onClick={submitExpense}
+      />
+    </main>
+  );
+}
