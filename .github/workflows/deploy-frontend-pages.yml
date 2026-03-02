@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - codex/create-mobile-frontend-for-pwa-app
     paths:
       - frontend/**
       - .github/workflows/deploy-frontend-pages.yml
