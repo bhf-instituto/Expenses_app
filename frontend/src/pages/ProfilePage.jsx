@@ -8,11 +8,13 @@ import pasteIcon from '../assets/icons/paste-icon.svg';
 import { useAuth } from '../context/AuthContext.jsx';
 import { ApiError, inviteApi, setsApi } from '../lib/apiClient.js';
 import { getCachedSets, setCachedSets } from '../lib/localCache.js';
+import { resolveSessionScope } from '../lib/sessionScope.js';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, isOnline } = useAuth();
-  const [groups, setGroups] = useState(() => getCachedSets());
+  const sessionScope = resolveSessionScope(user);
+  const [groups, setGroups] = useState(() => getCachedSets(sessionScope));
   const [selectedSetId, setSelectedSetId] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [createdToken, setCreatedToken] = useState('');
@@ -33,7 +35,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
-    const cached = getCachedSets();
+    const cached = getCachedSets(sessionScope);
     if (!cancelled) {
       setGroups(cached);
       setSelectedSetId((prev) => prev || (cached.length > 0 ? String(cached[0].id) : ''));
@@ -50,7 +52,7 @@ export default function ProfilePage() {
         const next = data?.sets || [];
         if (!cancelled) {
           setGroups(next);
-          setCachedSets(next);
+          setCachedSets(next, sessionScope);
           setSelectedSetId((prev) => prev || (next.length > 0 ? String(next[0].id) : ''));
         }
       } catch {
@@ -63,7 +65,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [isOnline]);
+  }, [isOnline, sessionScope]);
 
   const createInvite = async () => {
     if (creatingInvite || !isOnline) return;

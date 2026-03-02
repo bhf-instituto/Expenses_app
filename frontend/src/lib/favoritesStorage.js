@@ -1,6 +1,8 @@
 const GROUP_FAVORITES_KEY = 'expenses_mobile_favorite_groups_v1';
 const CATEGORY_FAVORITES_KEY = 'expenses_mobile_favorite_categories_v1';
 const STARTUP_GROUP_KEY = 'expenses_mobile_startup_group_v1';
+const SCOPE_KEY_PREFIX = 'scope:';
+const DEFAULT_SCOPE_KEY = `${SCOPE_KEY_PREFIX}global`;
 
 const readJson = (key, fallback) => {
   try {
@@ -17,6 +19,16 @@ const writeJson = (key, value) => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const hasScopedEntries = (value) =>
+  isObject(value) && Object.keys(value).some((key) => String(key).startsWith(SCOPE_KEY_PREFIX));
+
+const normalizeScopeKey = (scope) => {
+  const normalizedScope = String(scope || '').trim();
+  return normalizedScope ? `${SCOPE_KEY_PREFIX}${normalizedScope}` : DEFAULT_SCOPE_KEY;
+};
+
 const normalizeGroupFavorite = (rawValue) => {
   if (Array.isArray(rawValue)) {
     const [first] = rawValue.map(Number).filter(Number.isInteger);
@@ -27,86 +39,217 @@ const normalizeGroupFavorite = (rawValue) => {
   return Number.isInteger(normalized) ? normalized : null;
 };
 
-export const getFavoriteGroupId = () => {
+const readScopedGroupFavorites = () => {
   const raw = readJson(GROUP_FAVORITES_KEY, null);
-  return normalizeGroupFavorite(raw);
+
+  if (hasScopedEntries(raw)) {
+    return raw;
+  }
+
+  const legacy = normalizeGroupFavorite(raw);
+  if (legacy === null) {
+    return {};
+  }
+
+  return {
+    [DEFAULT_SCOPE_KEY]: legacy,
+  };
 };
 
-export const setFavoriteGroupId = (groupId) => {
-  const normalizedId = Number(groupId);
-  if (!Number.isInteger(normalizedId)) {
+const writeScopedGroupFavorites = (value) => {
+  if (!isObject(value) || Object.keys(value).length === 0) {
     localStorage.removeItem(GROUP_FAVORITES_KEY);
+    return;
+  }
+  writeJson(GROUP_FAVORITES_KEY, value);
+};
+
+export const getFavoriteGroupId = (scope) => {
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedFavorites = readScopedGroupFavorites();
+  const current = scopedFavorites[scopeKey];
+  if (current !== undefined) {
+    return normalizeGroupFavorite(current);
+  }
+  return normalizeGroupFavorite(scopedFavorites[DEFAULT_SCOPE_KEY]);
+};
+
+export const setFavoriteGroupId = (groupId, scope) => {
+  const normalizedId = Number(groupId);
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedFavorites = readScopedGroupFavorites();
+
+  if (!Number.isInteger(normalizedId)) {
+    const nextScopedFavorites = { ...scopedFavorites };
+    delete nextScopedFavorites[scopeKey];
+    writeScopedGroupFavorites(nextScopedFavorites);
     return null;
   }
-  writeJson(GROUP_FAVORITES_KEY, normalizedId);
+
+  writeScopedGroupFavorites({
+    ...scopedFavorites,
+    [scopeKey]: normalizedId,
+  });
+
   return normalizedId;
 };
 
-export const clearFavoriteGroup = () => {
-  localStorage.removeItem(GROUP_FAVORITES_KEY);
+export const clearFavoriteGroup = (scope) => {
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedFavorites = readScopedGroupFavorites();
+  const nextScopedFavorites = { ...scopedFavorites };
+  delete nextScopedFavorites[scopeKey];
+  writeScopedGroupFavorites(nextScopedFavorites);
   return null;
 };
 
-export const toggleFavoriteGroup = (groupId) => {
+export const toggleFavoriteGroup = (groupId, scope) => {
   const normalizedId = Number(groupId);
-  if (!Number.isInteger(normalizedId)) return getFavoriteGroupId();
+  if (!Number.isInteger(normalizedId)) return getFavoriteGroupId(scope);
 
-  const current = getFavoriteGroupId();
+  const current = getFavoriteGroupId(scope);
   if (current === normalizedId) {
-    return clearFavoriteGroup();
+    return clearFavoriteGroup(scope);
   }
 
-  return setFavoriteGroupId(normalizedId);
+  return setFavoriteGroupId(normalizedId, scope);
 };
 
-export const getStartupGroupId = () => {
-  const raw = readJson(STARTUP_GROUP_KEY, null);
+const normalizeStartupGroup = (raw) => {
   const normalized = Number(raw);
   return Number.isInteger(normalized) ? normalized : null;
 };
 
-export const setStartupGroupId = (groupId) => {
-  const normalizedId = Number(groupId);
-  if (!Number.isInteger(normalizedId)) {
+const readScopedStartupGroups = () => {
+  const raw = readJson(STARTUP_GROUP_KEY, null);
+
+  if (hasScopedEntries(raw)) {
+    return raw;
+  }
+
+  const legacy = normalizeStartupGroup(raw);
+  if (legacy === null) {
+    return {};
+  }
+
+  return {
+    [DEFAULT_SCOPE_KEY]: legacy,
+  };
+};
+
+const writeScopedStartupGroups = (value) => {
+  if (!isObject(value) || Object.keys(value).length === 0) {
     localStorage.removeItem(STARTUP_GROUP_KEY);
+    return;
+  }
+  writeJson(STARTUP_GROUP_KEY, value);
+};
+
+export const getStartupGroupId = (scope) => {
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedStartupGroups = readScopedStartupGroups();
+  if (scopedStartupGroups[scopeKey] !== undefined) {
+    return normalizeStartupGroup(scopedStartupGroups[scopeKey]);
+  }
+
+  return normalizeStartupGroup(scopedStartupGroups[DEFAULT_SCOPE_KEY]);
+};
+
+export const setStartupGroupId = (groupId, scope) => {
+  const normalizedId = Number(groupId);
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedStartupGroups = readScopedStartupGroups();
+
+  if (!Number.isInteger(normalizedId)) {
+    const nextScopedStartupGroups = { ...scopedStartupGroups };
+    delete nextScopedStartupGroups[scopeKey];
+    writeScopedStartupGroups(nextScopedStartupGroups);
     return null;
   }
-  writeJson(STARTUP_GROUP_KEY, normalizedId);
+
+  writeScopedStartupGroups({
+    ...scopedStartupGroups,
+    [scopeKey]: normalizedId,
+  });
+
   return normalizedId;
 };
 
-export const clearStartupGroup = () => {
-  localStorage.removeItem(STARTUP_GROUP_KEY);
+export const clearStartupGroup = (scope) => {
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedStartupGroups = readScopedStartupGroups();
+  const nextScopedStartupGroups = { ...scopedStartupGroups };
+  delete nextScopedStartupGroups[scopeKey];
+  writeScopedStartupGroups(nextScopedStartupGroups);
   return null;
 };
 
-const getCategoryFavoritesMap = () => {
-  const map = readJson(CATEGORY_FAVORITES_KEY, {});
-  return map && typeof map === 'object' ? map : {};
+const getScopedCategoryFavorites = () => {
+  const raw = readJson(CATEGORY_FAVORITES_KEY, {});
+
+  if (hasScopedEntries(raw)) {
+    return raw;
+  }
+
+  if (isObject(raw) && Object.keys(raw).length > 0) {
+    return {
+      [DEFAULT_SCOPE_KEY]: raw,
+    };
+  }
+
+  return {};
 };
 
 const categoryScopeKey = (setId, expenseTypeId) => `${Number(setId)}:${Number(expenseTypeId)}`;
 
-export const getFavoriteCategoryIds = (setId, expenseTypeId) => {
-  const map = getCategoryFavoritesMap();
-  const scoped = map[categoryScopeKey(setId, expenseTypeId)] || [];
+const writeScopedCategoryFavorites = (value) => {
+  if (!isObject(value) || Object.keys(value).length === 0) {
+    localStorage.removeItem(CATEGORY_FAVORITES_KEY);
+    return;
+  }
+  writeJson(CATEGORY_FAVORITES_KEY, value);
+};
+
+const getSessionCategoryFavorites = (scope) => {
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedFavorites = getScopedCategoryFavorites();
+  const scopedMap = scopedFavorites[scopeKey];
+
+  if (isObject(scopedMap)) {
+    return scopedMap;
+  }
+
+  const defaultMap = scopedFavorites[DEFAULT_SCOPE_KEY];
+  return isObject(defaultMap) ? defaultMap : {};
+};
+
+export const getFavoriteCategoryIds = (setId, expenseTypeId, scope) => {
+  const scopedFavorites = getSessionCategoryFavorites(scope);
+  const scoped = scopedFavorites[categoryScopeKey(setId, expenseTypeId)] || [];
   return Array.isArray(scoped) ? scoped.map(Number).filter(Number.isInteger) : [];
 };
 
-export const toggleFavoriteCategory = (setId, expenseTypeId, categoryId) => {
-  const map = getCategoryFavoritesMap();
-  const scope = categoryScopeKey(setId, expenseTypeId);
+export const toggleFavoriteCategory = (setId, expenseTypeId, categoryId, scope) => {
+  const scopeKey = normalizeScopeKey(scope);
+  const scopedFavorites = getScopedCategoryFavorites();
+  const currentSessionFavorites = getSessionCategoryFavorites(scope);
+  const categoryKey = categoryScopeKey(setId, expenseTypeId);
   const normalizedId = Number(categoryId);
-  const current = getFavoriteCategoryIds(setId, expenseTypeId);
+  const current = getFavoriteCategoryIds(setId, expenseTypeId, scope);
   const next = current.includes(normalizedId)
     ? current.filter((id) => id !== normalizedId)
     : [...current, normalizedId];
 
-  const nextMap = {
-    ...map,
-    [scope]: next,
+  const nextSessionFavorites = {
+    ...currentSessionFavorites,
+    [categoryKey]: next,
   };
-  writeJson(CATEGORY_FAVORITES_KEY, nextMap);
+
+  writeScopedCategoryFavorites({
+    ...scopedFavorites,
+    [scopeKey]: nextSessionFavorites,
+  });
+
   return next;
 };
 

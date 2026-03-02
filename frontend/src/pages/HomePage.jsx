@@ -9,6 +9,7 @@ import pendingIcon from '../assets/icons/pending-icon.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import { ApiError, setsApi } from '../lib/apiClient.js';
 import { getCachedSets, setCachedSets } from '../lib/localCache.js';
+import { resolveSessionScope } from '../lib/sessionScope.js';
 import {
   clearFavoriteGroup,
   clearStartupGroup,
@@ -24,35 +25,38 @@ import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 export default function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, isOnline } = useAuth();
+  const { user, logout, isOnline } = useAuth();
   // const { user, logout, isOnline } = useAuth();
   const { pendingCount } = useExpenseSync();
+  const sessionScope = resolveSessionScope(user);
   const [mode, setMode] = useState('create');
-  const [groups, setGroups] = useState([]);
-  const [favoriteGroupId, setFavoriteGroupId] = useState(() => getFavoriteGroupId());
-  const [startupGroupId, setStartupGroupIdState] = useState(() => getStartupGroupId());
-  const [loading, setLoading] = useState(true);
+  const effectiveMode = !isOnline ? 'create' : mode;
+  const [groups, setGroups] = useState(() => getCachedSets(sessionScope));
+  const [favoriteGroupId, setFavoriteGroupId] = useState(() => getFavoriteGroupId(sessionScope));
+  const [startupGroupId, setStartupGroupIdState] = useState(() => getStartupGroupId(sessionScope));
+  const [loading, setLoading] = useState(() => getCachedSets(sessionScope).length === 0);
   const [error, setError] = useState('');
   const flashMessage = location.state?.flash || '';
   // const profileAlias = user?.email ? String(user.email).split('@')[0] : '-';
-
-  useEffect(() => {
-    if (!isOnline && mode === 'view') {
-      setMode('create');
-    }
-  }, [isOnline, mode]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadGroups = async () => {
       setError('');
-      setLoading(true);
+      const cachedSets = getCachedSets(sessionScope);
+      if (!cancelled && cachedSets.length > 0) {
+        setGroups(cachedSets);
+        setFavoriteGroupId(getFavoriteGroupId(sessionScope));
+        setStartupGroupIdState(getStartupGroupId(sessionScope));
+      }
+      if (!cancelled) {
+        setLoading(cachedSets.length === 0);
+      }
 
       if (!isOnline) {
-        const cached = getCachedSets();
         if (!cancelled) {
-          setGroups(cached);
+          setGroups(cachedSets);
           setLoading(false);
         }
         return;
@@ -63,17 +67,15 @@ export default function HomePage() {
         const sets = data?.sets || [];
         if (!cancelled) {
           setGroups(sets);
-          setCachedSets(sets);
+          setCachedSets(sets, sessionScope);
+          setLoading(false);
         }
       } catch (requestError) {
         if (!cancelled) {
           const message =
             requestError instanceof ApiError ? requestError.message : 'No se pudieron cargar los grupos';
           setError(message);
-          setGroups(getCachedSets());
-        }
-      } finally {
-        if (!cancelled) {
+          setGroups(cachedSets);
           setLoading(false);
         }
       }
@@ -83,7 +85,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [isOnline]);
+  }, [isOnline, sessionScope]);
 
   useEffect(() => {
     if (location.pathname !== '/' || loading) return;
@@ -93,8 +95,7 @@ export default function HomePage() {
     if (favoriteGroupId) {
       favoriteGroup = groups.find((group) => Number(group.id) === Number(favoriteGroupId)) || null;
       if (!favoriteGroup) {
-        clearFavoriteGroup();
-        setFavoriteGroupId(null);
+        clearFavoriteGroup(sessionScope);
       }
     }
 
@@ -102,16 +103,14 @@ export default function HomePage() {
     if (startupGroupId) {
       startupGroup = groups.find((group) => Number(group.id) === Number(startupGroupId)) || null;
       if (!startupGroup) {
-        clearStartupGroup();
-        setStartupGroupIdState(null);
+        clearStartupGroup(sessionScope);
       }
     }
 
     const targetGroup = favoriteGroup || startupGroup || groups[0];
     if (!targetGroup) return;
 
-    const savedStartupId = setStartupGroupId(targetGroup.id);
-    setStartupGroupIdState(savedStartupId);
+    setStartupGroupId(targetGroup.id, sessionScope);
 
     navigate(`/sets/${targetGroup.id}/types`, {
       replace: true,
@@ -124,6 +123,7 @@ export default function HomePage() {
     location.pathname,
     navigate,
     startupGroupId,
+    sessionScope,
   ]);
 
   const sortedGroups = useMemo(
@@ -132,10 +132,10 @@ export default function HomePage() {
   );
 
   const openGroup = (group) => {
-    const savedStartupId = setStartupGroupId(group.id);
+    const savedStartupId = setStartupGroupId(group.id, sessionScope);
     setStartupGroupIdState(savedStartupId);
 
-    if (mode === 'view') {
+    if (effectiveMode === 'view') {
       if (!isOnline) return;
       navigate(`/sets/${group.id}/view`, { state: { setName: group.name } });
       return;
@@ -150,10 +150,10 @@ export default function HomePage() {
   };
 
   const handleToggleGroupFavorite = (groupId) => {
-    const next = toggleFavoriteGroup(groupId);
+    const next = toggleFavoriteGroup(groupId, sessionScope);
     setFavoriteGroupId(next);
     if (next) {
-      const savedStartupId = setStartupGroupId(next);
+      const savedStartupId = setStartupGroupId(next, sessionScope);
       setStartupGroupIdState(savedStartupId);
     }
   };
@@ -215,8 +215,8 @@ export default function HomePage() {
               {flashMessage}
             </p>
           ) : null}
-          <ModeToggle mode={mode} onChange={setMode} viewDisabled={!isOnline} />
-          {mode === 'view' && !isOnline ? (
+          <ModeToggle mode={effectiveMode} onChange={setMode} viewDisabled={!isOnline} />
+          {effectiveMode === 'view' && !isOnline ? (
             <p className="rounded-xl border border-app-ink/15 bg-app-panel px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
               El modo VER esta deshabilitado sin conexion.
             </p>
@@ -238,10 +238,10 @@ export default function HomePage() {
                     <ListCardButton
                       key={group.id}
                       title={group.name}
-                      subtitle={mode === 'create' ? 'Crear gasto' : 'Ver gastos'}
+                      subtitle={effectiveMode === 'create' ? 'Crear gasto' : 'Ver gastos'}
                       accent="bg-app-mint"
                       onClick={() => openGroup(group)}
-                      disabled={mode === 'view' && !isOnline}
+                      disabled={effectiveMode === 'view' && !isOnline}
                       showFavorite
                       isFavorite={Number(group.id) === Number(favoriteGroupId)}
                       onToggleFavorite={() => handleToggleGroupFavorite(group.id)}
@@ -257,7 +257,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {mode === 'create' ? (
+      {effectiveMode === 'create' ? (
         <BottomActionBar
           label={isOnline ? 'Crear grupo' : 'Crear grupo (offline bloqueado)'}
           disabled={!isOnline}

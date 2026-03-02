@@ -6,6 +6,7 @@ import BottomActionBar from '../components/BottomActionBar.jsx';
 import { ApiError, categoriesApi } from '../lib/apiClient.js';
 import { getExpenseTypeByKey } from '../constants/catalogs.js';
 import { getCachedCategories, getCachedSets, setCachedCategories } from '../lib/localCache.js';
+import { resolveSessionScope } from '../lib/sessionScope.js';
 import {
   getFavoriteCategoryIds,
   sortByFavorites,
@@ -16,32 +17,29 @@ import { useAuth } from '../context/AuthContext.jsx';
 export default function CategoriesPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOnline } = useAuth();
+  const { isOnline, user } = useAuth();
   const { setId, typeKey } = useParams();
   const expenseType = getExpenseTypeByKey(typeKey);
-  const [setName, setSetName] = useState(location.state?.setName || `Grupo ${setId}`);
-  const [categories, setCategories] = useState([]);
-  const [favoriteCategoryIds, setFavoriteCategoryIds] = useState(() =>
-    expenseType ? getFavoriteCategoryIds(setId, expenseType.id) : []
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const sessionScope = resolveSessionScope(user);
+  const setName = useMemo(() => {
+    if (location.state?.setName) {
+      return location.state.setName;
+    }
 
-  useEffect(() => {
-    const cachedSets = getCachedSets();
+    const cachedSets = getCachedSets(sessionScope);
     const cachedSet = cachedSets.find((set) => String(set.id) === String(setId));
-    if (!location.state?.setName && cachedSet?.name) {
-      setSetName(cachedSet.name);
-    }
-  }, [location.state?.setName, setId]);
-
-  useEffect(() => {
-    if (!expenseType) {
-      setFavoriteCategoryIds([]);
-      return;
-    }
-    setFavoriteCategoryIds(getFavoriteCategoryIds(setId, expenseType.id));
-  }, [setId, expenseType]);
+    return cachedSet?.name || `Grupo ${setId}`;
+  }, [location.state?.setName, sessionScope, setId]);
+  const [categories, setCategories] = useState(() =>
+    expenseType ? getCachedCategories(setId, expenseType.id, sessionScope) : []
+  );
+  const [favoriteCategoryIds, setFavoriteCategoryIds] = useState(() =>
+    expenseType ? getFavoriteCategoryIds(setId, expenseType.id, sessionScope) : []
+  );
+  const [loading, setLoading] = useState(() =>
+    expenseType ? getCachedCategories(setId, expenseType.id, sessionScope).length === 0 : false
+  );
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -49,17 +47,25 @@ export default function CategoriesPage() {
     const loadCategories = async () => {
       if (!expenseType) {
         setError('Tipo de gasto invalido');
+        setCategories([]);
+        setFavoriteCategoryIds([]);
         setLoading(false);
         return;
       }
 
       setError('');
-      setLoading(true);
+      setFavoriteCategoryIds(getFavoriteCategoryIds(setId, expenseType.id, sessionScope));
+      const cachedCategories = getCachedCategories(setId, expenseType.id, sessionScope);
+      if (!cancelled) {
+        if (cachedCategories.length > 0) {
+          setCategories(cachedCategories);
+        }
+        setLoading(cachedCategories.length === 0);
+      }
 
       if (!isOnline) {
-        const cached = getCachedCategories(setId, expenseType.id);
         if (!cancelled) {
-          setCategories(cached);
+          setCategories(cachedCategories);
           setLoading(false);
         }
         return;
@@ -70,18 +76,15 @@ export default function CategoriesPage() {
         const nextCategories = data?.categories || [];
         if (!cancelled) {
           setCategories(nextCategories);
-          setCachedCategories(setId, expenseType.id, nextCategories);
+          setCachedCategories(setId, expenseType.id, nextCategories, sessionScope);
+          setLoading(false);
         }
       } catch (requestError) {
         if (!cancelled) {
-          const cached = getCachedCategories(setId, expenseType.id);
-          setCategories(cached);
+          setCategories(cachedCategories);
           const message =
             requestError instanceof ApiError ? requestError.message : 'No se pudieron cargar categorias';
           setError(message);
-        }
-      } finally {
-        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -91,7 +94,7 @@ export default function CategoriesPage() {
     return () => {
       cancelled = true;
     };
-  }, [setId, expenseType, isOnline]);
+  }, [setId, expenseType, isOnline, sessionScope]);
 
   const sortedCategories = useMemo(
     () => sortByFavorites(categories, (category) => favoriteCategoryIds.includes(Number(category.id))),
@@ -109,7 +112,7 @@ export default function CategoriesPage() {
 
   const handleToggleCategoryFavorite = (categoryId) => {
     if (!expenseType) return;
-    const next = toggleFavoriteCategory(setId, expenseType.id, categoryId);
+    const next = toggleFavoriteCategory(setId, expenseType.id, categoryId, sessionScope);
     setFavoriteCategoryIds(next);
   };
 

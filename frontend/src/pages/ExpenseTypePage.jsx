@@ -5,11 +5,15 @@ import ListCardButton from '../components/ListCardButton.jsx';
 import { EXPENSE_TYPES } from '../constants/catalogs.js';
 import { setsApi } from '../lib/apiClient.js';
 import { getCachedSets } from '../lib/localCache.js';
+import { resolveSessionScope } from '../lib/sessionScope.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function ExpenseTypePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setId } = useParams();
+  const { user } = useAuth();
+  const sessionScope = resolveSessionScope(user);
   const [setName, setSetName] = useState(location.state?.setName || `Grupo ${setId}`);
 
   useEffect(() => {
@@ -18,7 +22,7 @@ export default function ExpenseTypePage() {
     const loadSetName = async () => {
       if (location.state?.setName) return;
 
-      const cached = getCachedSets();
+      const cached = getCachedSets(sessionScope);
       const fromCache = cached.find((set) => String(set.id) === String(setId));
       if (fromCache && !cancelled) {
         setSetName(fromCache.name);
@@ -38,7 +42,7 @@ export default function ExpenseTypePage() {
     return () => {
       cancelled = true;
     };
-  }, [location.state?.setName, setId]);
+  }, [location.state?.setName, sessionScope, setId]);
 
   return (
     <main className="app-shell">

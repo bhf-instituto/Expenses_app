@@ -5,7 +5,13 @@ import BottomActionBar from '../components/BottomActionBar.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
 import { ApiError, categoriesApi, expensesApi, setsApi } from '../lib/apiClient.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
-import { getCachedSetUsers, setCachedSetUsers } from '../lib/localCache.js';
+import {
+  getCachedCategories,
+  getCachedSetUsers,
+  setCachedCategories,
+  setCachedSetUsers,
+} from '../lib/localCache.js';
+import { resolveSessionScope } from '../lib/sessionScope.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const getEmailAlias = (email) => String(email || '').split('@')[0] || String(email || '');
@@ -15,10 +21,11 @@ export default function ViewExpensesPage() {
   const location = useLocation();
   const { isOnline, user } = useAuth();
   const { setId } = useParams();
-  const [groupUsers, setGroupUsers] = useState([]);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const sessionScope = resolveSessionScope(user);
+  const [groupUsers, setGroupUsers] = useState(() => getCachedSetUsers(setId, sessionScope));
+  const [usersLoading, setUsersLoading] = useState(() => getCachedSetUsers(setId, sessionScope).length === 0);
   const [usersError, setUsersError] = useState('');
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(() => getCachedCategories(setId, undefined, sessionScope));
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -130,11 +137,13 @@ export default function ViewExpensesPage() {
   useEffect(() => {
     let cancelled = false;
     setUsersError('');
-    setUsersLoading(true);
 
-    const cachedUsers = getCachedSetUsers(setId);
-    if (cachedUsers.length > 0 && !cancelled) {
-      setGroupUsers(cachedUsers);
+    const cachedUsers = getCachedSetUsers(setId, sessionScope);
+    if (!cancelled) {
+      if (cachedUsers.length > 0) {
+        setGroupUsers(cachedUsers);
+      }
+      setUsersLoading(cachedUsers.length === 0);
     }
 
     if (!isOnline) {
@@ -152,16 +161,14 @@ export default function ViewExpensesPage() {
         const usersList = data?.users || [];
         if (!cancelled) {
           setGroupUsers(usersList);
-          setCachedSetUsers(setId, usersList);
+          setCachedSetUsers(setId, usersList, sessionScope);
+          setUsersLoading(false);
         }
       } catch (requestError) {
         if (!cancelled) {
           const message =
             requestError instanceof ApiError ? requestError.message : 'No se pudieron cargar los usuarios del grupo';
           setUsersError(message);
-        }
-      } finally {
-        if (!cancelled) {
           setUsersLoading(false);
         }
       }
@@ -172,21 +179,28 @@ export default function ViewExpensesPage() {
     return () => {
       cancelled = true;
     };
-  }, [setId, isOnline]);
+  }, [setId, isOnline, sessionScope]);
 
   useEffect(() => {
     if (!isOnline) return;
 
     let cancelled = false;
+    const cachedCategories = getCachedCategories(setId, undefined, sessionScope);
+    if (cachedCategories.length > 0) {
+      setCategories(cachedCategories);
+    }
+
     const loadCategories = async () => {
       try {
         const data = await categoriesApi.getAll(setId, undefined);
+        const nextCategories = data?.categories || [];
         if (!cancelled) {
-          setCategories(data?.categories || []);
+          setCategories(nextCategories);
+          setCachedCategories(setId, undefined, nextCategories, sessionScope);
         }
       } catch {
         if (!cancelled) {
-          setCategories([]);
+          setCategories(cachedCategories);
         }
       }
     };
@@ -197,7 +211,7 @@ export default function ViewExpensesPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, setId]);
+  }, [isOnline, sessionScope, setId]);
 
   if (!isOnline) {
     return (

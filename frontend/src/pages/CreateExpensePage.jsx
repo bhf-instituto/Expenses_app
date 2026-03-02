@@ -9,6 +9,7 @@ import { PAYMENT_METHODS, getExpenseTypeByKey } from '../constants/catalogs.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 import { getCachedSetUsers, setCachedSetUsers } from '../lib/localCache.js';
+import { resolveSessionScope } from '../lib/sessionScope.js';
 
 const todayDate = new Date().toISOString().slice(0, 10);
 const getEmailAlias = (email) => String(email || '').split('@')[0] || email;
@@ -20,11 +21,12 @@ export default function CreateExpensePage() {
   const { queueExpense } = useExpenseSync();
   const { setId, typeKey, categoryId } = useParams();
   const expenseType = getExpenseTypeByKey(typeKey);
+  const sessionScope = resolveSessionScope(user);
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(1);
   const [selectedCreatorId, setSelectedCreatorId] = useState(() => Number(user?.id));
-  const [groupUsers, setGroupUsers] = useState([]);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const [groupUsers, setGroupUsers] = useState(() => getCachedSetUsers(setId, sessionScope));
+  const [usersLoading, setUsersLoading] = useState(() => getCachedSetUsers(setId, sessionScope).length === 0);
   const [usersError, setUsersError] = useState('');
   const [description, setDescription] = useState('');
   const [expenseDate, setExpenseDate] = useState(todayDate);
@@ -92,11 +94,12 @@ export default function CreateExpensePage() {
 
     const loadSetUsers = async () => {
       setUsersError('');
-      setUsersLoading(true);
-
-      const cachedUsers = getCachedSetUsers(setId);
-      if (cachedUsers.length > 0 && !cancelled) {
-        setGroupUsers(cachedUsers);
+      const cachedUsers = getCachedSetUsers(setId, sessionScope);
+      if (!cancelled) {
+        if (cachedUsers.length > 0) {
+          setGroupUsers(cachedUsers);
+        }
+        setUsersLoading(cachedUsers.length === 0);
       }
 
       if (!isOnline) {
@@ -111,16 +114,14 @@ export default function CreateExpensePage() {
         const users = data?.users || [];
         if (!cancelled) {
           setGroupUsers(users);
-          setCachedSetUsers(setId, users);
+          setCachedSetUsers(setId, users, sessionScope);
+          setUsersLoading(false);
         }
       } catch (requestError) {
         if (!cancelled) {
           const message =
             requestError instanceof ApiError ? requestError.message : 'No se pudieron cargar los usuarios del grupo';
           setUsersError(message);
-        }
-      } finally {
-        if (!cancelled) {
           setUsersLoading(false);
         }
       }
@@ -131,7 +132,7 @@ export default function CreateExpensePage() {
     return () => {
       cancelled = true;
     };
-  }, [setId, isOnline]);
+  }, [setId, isOnline, sessionScope]);
 
   const submitExpense = async () => {
     if (submitting) return;
