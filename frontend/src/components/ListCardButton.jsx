@@ -1,13 +1,16 @@
 export default function ListCardButton({
   title,
-  subtitle,
+  subtitle: _subtitle,
   onClick,
   accent = 'bg-app-panel',
   disabled = false,
   showFavorite = false,
   isFavorite = false,
   onToggleFavorite = null,
+  size = 'default',
 }) {
+  void _subtitle;
+
   const handleFavoriteClick = (event) => {
     event.stopPropagation();
     if (onToggleFavorite) {
@@ -15,19 +18,28 @@ export default function ListCardButton({
     }
   };
 
+  const sizeClasses = {
+    default: 'px-4 py-8',
+    compact: 'px-4 py-4',
+    fill: 'h-full px-4 py-4',
+  };
+
+  const buttonSizeClass = sizeClasses[size] || sizeClasses.default;
+  const titleClassName = size === 'fill' ? 'font-heading text-2xl font-semibold text-app-ink' : 'font-heading text-xl font-semibold text-app-ink';
+
   return (
-    <div className="relative">
+    <div className={`relative ${size === 'fill' ? 'h-full' : ''}`}>
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`w-full rounded-2xl border border-app-ink/20 px-4 py-8 text-left shadow-sm transition ${
+        className={`w-full rounded-2xl border border-app-ink/20 text-left shadow-sm transition ${
           showFavorite ? 'pr-14' : ''
         } ${
           disabled ? 'cursor-not-allowed opacity-45' : 'hover:-translate-y-0.5 hover:shadow-md'
-        } ${accent}`}
+        } ${buttonSizeClass} ${accent}`}
       >
-        <p className="font-heading text-xl font-semibold text-app-ink">{title}</p>
+        <p className={titleClassName}>{title}</p>
         {/* {subtitle ? (
           <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-app-muted">{subtitle}</p>
         ) : null} */}

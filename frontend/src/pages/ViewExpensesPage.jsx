@@ -202,20 +202,20 @@ export default function ViewExpensesPage() {
   if (!isOnline) {
     return (
       <main className="app-shell">
-        <MobileHeader title="Ver gastos" backTo="/" />
+        <MobileHeader title="Ver gastos" backTo="/groups" />
         <section className="scroll-pane">
           <div className="rounded-2xl border border-app-ink/20 bg-app-warning p-4 text-sm font-semibold text-app-ink">
             El modo VER esta deshabilitado offline.
           </div>
         </section>
-        <BottomActionBar label="Volver al home" onClick={() => navigate('/')} />
+        <BottomActionBar label="Volver a grupos" onClick={() => navigate('/groups')} />
       </main>
     );
   }
 
   return (
     <main className="app-shell">
-      <MobileHeader title={`Ver gastos: ${setName}`} backTo="/" />
+      <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
       <section className="scroll-pane">
         <div className="space-y-3">
           <div className="rounded-2xl border border-app-ink/20 bg-white p-3">

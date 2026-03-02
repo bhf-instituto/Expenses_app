@@ -20,7 +20,7 @@ export default function CreateSetPage() {
     setSubmitting(true);
     try {
       await setsApi.create({ set_name: setName });
-      navigate('/', { replace: true, state: { flash: 'Grupo creado correctamente.' } });
+      navigate('/groups', { replace: true, state: { flash: 'Grupo creado correctamente.' } });
     } catch (requestError) {
       const message = requestError instanceof ApiError ? requestError.message : 'No se pudo crear el grupo';
       setError(message);
@@ -31,7 +31,7 @@ export default function CreateSetPage() {
 
   return (
     <main className="app-shell">
-      <MobileHeader title="Crear grupo" backTo="/" leftLabel="Back" />
+      <MobileHeader title="Crear grupo" backTo="/groups" leftLabel="Back" />
       <section className="scroll-pane">
         <div className="space-y-3">
           <OfflineBanner isOnline={isOnline} />

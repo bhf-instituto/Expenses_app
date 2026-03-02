@@ -8,7 +8,7 @@ export default function ProfilePage() {
 
   return (
     <main className="app-shell">
-      <MobileHeader title="Perfil" backTo="/" />
+      <MobileHeader title="Perfil" backTo="/groups" />
       <section className="scroll-pane">
         <div className="space-y-3">
           <article className="rounded-2xl border border-app-ink/20 bg-white p-4 shadow-card">
@@ -34,10 +34,10 @@ export default function ProfilePage() {
 
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/groups')}
             className="w-full rounded-xl border border-app-ink/30 bg-app-sky px-4 py-3 font-heading text-sm font-semibold uppercase tracking-wide text-app-ink"
           >
-            Volver al home
+            Volver a grupos
           </button>
         </div>
       </section>

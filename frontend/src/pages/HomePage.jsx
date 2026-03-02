@@ -4,10 +4,15 @@ import ModeToggle from '../components/ModeToggle.jsx';
 import ListCardButton from '../components/ListCardButton.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
 import OfflineBanner from '../components/OfflineBanner.jsx';
+import pendingIcon from '../assets/icons/pending-icon.svg';
 import { ApiError, setsApi } from '../lib/apiClient.js';
 import { getCachedSets, setCachedSets } from '../lib/localCache.js';
 import {
-  getFavoriteGroupIds,
+  clearFavoriteGroup,
+  clearStartupGroup,
+  getFavoriteGroupId,
+  getStartupGroupId,
+  setStartupGroupId,
   sortByFavorites,
   toggleFavoriteGroup,
 } from '../lib/favoritesStorage.js';
@@ -21,10 +26,12 @@ export default function HomePage() {
   const { pendingCount, isSyncing, lastSyncSummary } = useExpenseSync();
   const [mode, setMode] = useState('create');
   const [groups, setGroups] = useState([]);
-  const [favoriteGroupIds, setFavoriteGroupIds] = useState(() => getFavoriteGroupIds());
+  const [favoriteGroupId, setFavoriteGroupId] = useState(() => getFavoriteGroupId());
+  const [startupGroupId, setStartupGroupIdState] = useState(() => getStartupGroupId());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const flashMessage = location.state?.flash || '';
+  const profileAlias = user?.email ? String(user.email).split('@')[0] : '-';
 
   useEffect(() => {
     if (!isOnline && mode === 'view') {
@@ -75,6 +82,47 @@ export default function HomePage() {
     };
   }, [isOnline]);
 
+  useEffect(() => {
+    if (location.pathname !== '/' || loading) return;
+    if (groups.length === 0) return;
+
+    let favoriteGroup = null;
+    if (favoriteGroupId) {
+      favoriteGroup = groups.find((group) => Number(group.id) === Number(favoriteGroupId)) || null;
+      if (!favoriteGroup) {
+        clearFavoriteGroup();
+        setFavoriteGroupId(null);
+      }
+    }
+
+    let startupGroup = null;
+    if (startupGroupId) {
+      startupGroup = groups.find((group) => Number(group.id) === Number(startupGroupId)) || null;
+      if (!startupGroup) {
+        clearStartupGroup();
+        setStartupGroupIdState(null);
+      }
+    }
+
+    const targetGroup = favoriteGroup || startupGroup || groups[0];
+    if (!targetGroup) return;
+
+    const savedStartupId = setStartupGroupId(targetGroup.id);
+    setStartupGroupIdState(savedStartupId);
+
+    navigate(`/sets/${targetGroup.id}/types`, {
+      replace: true,
+      state: { setName: targetGroup.name },
+    });
+  }, [
+    favoriteGroupId,
+    groups,
+    loading,
+    location.pathname,
+    navigate,
+    startupGroupId,
+  ]);
+
   const onlineSyncMessage = useMemo(() => {
     if (!isOnline) return '';
     if (isSyncing) return 'Sincronizando gastos en cola...';
@@ -83,11 +131,14 @@ export default function HomePage() {
   }, [isOnline, isSyncing, lastSyncSummary]);
 
   const sortedGroups = useMemo(
-    () => sortByFavorites(groups, (group) => favoriteGroupIds.includes(Number(group.id))),
-    [groups, favoriteGroupIds]
+    () => sortByFavorites(groups, (group) => Number(group.id) === Number(favoriteGroupId)),
+    [groups, favoriteGroupId]
   );
 
   const openGroup = (group) => {
+    const savedStartupId = setStartupGroupId(group.id);
+    setStartupGroupIdState(savedStartupId);
+
     if (mode === 'view') {
       if (!isOnline) return;
       navigate(`/sets/${group.id}/view`, { state: { setName: group.name } });
@@ -104,27 +155,43 @@ export default function HomePage() {
 
   const handleToggleGroupFavorite = (groupId) => {
     const next = toggleFavoriteGroup(groupId);
-    setFavoriteGroupIds(next);
+    setFavoriteGroupId(next);
+    if (next) {
+      const savedStartupId = setStartupGroupId(next);
+      setStartupGroupIdState(savedStartupId);
+    }
   };
 
   return (
     <main className="app-shell">
-      <header className="border-b border-app-ink/10 bg-white/80 px-4 py-3 backdrop-blur">
+      <header className="border-b border-app-ink/10 bg-white/80 px-4 py-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-lg border border-app-ink/25 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+            className="rounded-lg border border-app-ink/25 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Logout
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/profile')}
-            className="ml-auto max-w-[68%] truncate rounded-lg border border-app-ink/20 bg-app-panel px-3 py-1 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
-          >
-            {user?.email}
-          </button>
+          <div className="ml-auto flex min-w-2 items-center gap-2">
+            {pendingCount > 0 ? (
+              <div
+                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-app-ink/20 bg-app-warning px-2"
+                title={`Gastos pendientes: ${pendingCount}`}
+                aria-label={`Gastos pendientes: ${pendingCount}`}
+              >
+                <img src={pendingIcon} alt="" aria-hidden="true" className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-extrabold leading-none text-app-ink">{pendingCount}</span>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="max-w-[100%] truncate rounded-lg border border-app-ink/20 bg-app-panel px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
+            >
+              {profileAlias}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -141,12 +208,6 @@ export default function HomePage() {
               {onlineSyncMessage}
             </p>
           ) : null}
-          {pendingCount > 0 ? (
-            <p className="rounded-xl border border-app-ink/15 bg-app-warning px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink">
-              Gastos pendientes de envio: {pendingCount}
-            </p>
-          ) : null}
-
           <ModeToggle mode={mode} onChange={setMode} viewDisabled={!isOnline} />
           {mode === 'view' && !isOnline ? (
             <p className="rounded-xl border border-app-ink/15 bg-app-panel px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
@@ -173,7 +234,7 @@ export default function HomePage() {
                   onClick={() => openGroup(group)}
                   disabled={mode === 'view' && !isOnline}
                   showFavorite
-                  isFavorite={favoriteGroupIds.includes(Number(group.id))}
+                  isFavorite={Number(group.id) === Number(favoriteGroupId)}
                   onToggleFavorite={() => handleToggleGroupFavorite(group.id)}
                 />
               ))}

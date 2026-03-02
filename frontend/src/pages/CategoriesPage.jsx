@@ -153,6 +153,7 @@ export default function CategoriesPage() {
                   subtitle={`${typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} ${index + 1}`}
                   onClick={() => openCategory(category)}
                   accent="bg-white"
+                  size="compact"
                   showFavorite
                   isFavorite={favoriteCategoryIds.includes(Number(category.id))}
                   onToggleFavorite={() => handleToggleCategoryFavorite(category.id)}

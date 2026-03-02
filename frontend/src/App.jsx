@@ -36,6 +36,14 @@ function App() {
               )}
             />
             <Route
+              path="/groups"
+              element={(
+                <RequireAuth>
+                  <HomePage />
+                </RequireAuth>
+              )}
+            />
+            <Route
               path="/profile"
               element={(
                 <RequireAuth>

@@ -42,21 +42,23 @@ export default function ExpenseTypePage() {
 
   return (
     <main className="app-shell">
-      <MobileHeader title={setName} backTo="/" leftLabel="Back" />
-      <section className="scroll-pane">
-        <div className="space-y-3 rounded-2xl border border-app-ink/20 bg-app-mint/35 p-3">
+      <MobileHeader title={setName} backTo="/groups" leftLabel="Back" />
+      <section className="flex min-h-0 flex-1 px-4 py-3">
+        <div className="flex h-full w-full flex-col gap-3 rounded-2xl border border-app-ink/20 bg-app-mint/35 p-3">
           {EXPENSE_TYPES.map((type) => (
-            <ListCardButton
-              key={type.id}
-              title={type.label}
-              subtitle="Seleccionar tipo de gasto"
-              accent={type.accent}
-              onClick={() =>
-                navigate(`/sets/${setId}/categories/${type.key}`, {
-                  state: { setName },
-                })
-              }
-            />
+            <div key={type.id} className="min-h-0 flex-1">
+              <ListCardButton
+                title={type.label}
+                subtitle="Seleccionar tipo de gasto"
+                accent={type.accent}
+                size="fill"
+                onClick={() =>
+                  navigate(`/sets/${setId}/categories/${type.key}`, {
+                    state: { setName },
+                  })
+                }
+              />
+            </div>
           ))}
         </div>
       </section>
