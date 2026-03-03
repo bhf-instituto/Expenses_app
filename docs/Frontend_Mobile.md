@@ -114,7 +114,7 @@ Notas:
 #### ExpenseSyncProvider (`frontend/src/context/ExpenseSyncContext.jsx`)
 Responsabilidades:
 - Mantener contador de pendientes `pendingCount`.
-- Encolar gastos offline (`queueExpense`).
+- Encolar acciones offline (el wrapper mobile sigue usando `queueExpense`).
 - Sincronizar automaticamente al estar online (`syncPendingExpenses`).
 
 Regla de sincronizacion:
@@ -190,14 +190,15 @@ Helper:
 - `expenses_mobile_set_users_v1`
   - Usuarios cacheados por grupo (por usuario).
 
-### Cola offline (`frontend/src/lib/offlineExpenseQueue.js`)
+### Cola offline (`frontend/src/lib/offlineActionQueue.js`)
 
-- `expenses_mobile_offline_queue_v1`
-  - Cola de gastos pendientes de sincronizar.
+- `expenses_mobile_offline_actions_v1`
+  - Cola unificada de acciones pendientes de sincronizar.
+  - Incluye migracion automatica desde la key legacy `expenses_mobile_offline_queue_v1`.
 
 Cada item incluye:
 - `id` local
-- `setId`
+- `type` de accion
 - `payload`
 - `queuedAt`
 

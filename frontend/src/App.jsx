@@ -5,6 +5,7 @@ import RequireAuth from './components/RequireAuth.jsx';
 import GuestOnly from './components/GuestOnly.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import HomePage from './pages/HomePage.jsx';
+import DesktopDashboardPage from './pages/DesktopDashboardPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import CreateSetPage from './pages/CreateSetPage.jsx';
 import ExpenseTypePage from './pages/ExpenseTypePage.jsx';
@@ -12,6 +13,12 @@ import CategoriesPage from './pages/CategoriesPage.jsx';
 import CreateCategoryPage from './pages/CreateCategoryPage.jsx';
 import CreateExpensePage from './pages/CreateExpensePage.jsx';
 import ViewExpensesPage from './pages/ViewExpensesPage.jsx';
+import useDesktopViewport from './hooks/useDesktopViewport.js';
+
+function AdaptiveHomePage() {
+  const isDesktop = useDesktopViewport();
+  return isDesktop ? <DesktopDashboardPage /> : <HomePage />;
+}
 
 function App() {
   return (
@@ -31,7 +38,7 @@ function App() {
               path="/"
               element={(
                 <RequireAuth>
-                  <HomePage />
+                  <AdaptiveHomePage />
                 </RequireAuth>
               )}
             />
@@ -39,7 +46,15 @@ function App() {
               path="/groups"
               element={(
                 <RequireAuth>
-                  <HomePage />
+                  <AdaptiveHomePage />
+                </RequireAuth>
+              )}
+            />
+            <Route
+              path="/dashboard"
+              element={(
+                <RequireAuth>
+                  <DesktopDashboardPage />
                 </RequireAuth>
               )}
             />

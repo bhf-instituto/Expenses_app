@@ -38,6 +38,7 @@ Operaciones:
 - Ver un grupo puntual
 - Editar nombre
 - Eliminar grupo
+- Quitar usuarios del grupo (solo admin), con opcion de eliminar tambien sus gastos del grupo
 
 ## 5. Roles dentro del grupo
 
@@ -49,6 +50,8 @@ Permisos:
 - `ADMIN`:
   - Crear/editar/eliminar categorias
   - Editar/eliminar grupo
+  - Quitar participantes del grupo (no admin)
+  - Elegir si al quitar participante se eliminan tambien sus gastos
   - Crear invitaciones
   - Eliminar gastos de cualquier usuario del grupo
 - `PARTICIPANT`:
@@ -146,6 +149,14 @@ Esto permite sincronizacion incremental de eliminaciones (offline-lite).
 1. Usuario lista gastos con filtros.
 2. Usuario consulta totales por categoria/tipo/proveedor (tipo 3).
 
+### 11.4 Gestion de participantes (admin)
+1. Admin abre gestion de usuarios del grupo.
+2. Selecciona participante a quitar.
+3. El sistema pregunta si tambien debe eliminarse el historial de gastos de ese usuario dentro del grupo.
+4. Si se confirma:
+   - El usuario deja de pertenecer al grupo y pierde acceso.
+   - Opcionalmente se eliminan sus gastos del grupo.
+
 ## 12. Endpoints funcionales
 
 Modulos vigentes:
@@ -158,6 +169,8 @@ Modulos vigentes:
 
 ### 12.2 Usuarios de grupo
 - Listar participantes de un grupo: `GET /sets/:id_set/users`
+- Quitar participante de un grupo: `DELETE /sets/:id_set/users/:id_user`
+  - Body: `{ "delete_expenses": true|false }`
 
 ### 12.1 Invitaciones (metodos vigentes)
 - Crear invitacion: `POST /invite/:id_set`

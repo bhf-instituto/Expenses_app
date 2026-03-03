@@ -195,6 +195,79 @@ export const getUsersBySetId = async (setId) => {
     return users;
 };
 
+export const getSetUserMembership = async (setId, userId) => {
+    const [rows] = await conn.query(`
+        SELECT set_id, user_id, role
+        FROM set_users
+        WHERE set_id = ? AND user_id = ?
+        LIMIT 1
+    `, [setId, userId]);
+
+    return rows[0] || null;
+};
+
+export const removeUserFromSet = async (setId, userId, deleteExpenses = false) => {
+    const connection = await conn.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        let deletedExpenses = 0;
+
+        if (deleteExpenses) {
+            const [expenseRows] = await connection.query(`
+                SELECT id
+                FROM expenses
+                WHERE set_id = ? AND user_id = ?
+            `, [setId, userId]);
+
+            if (expenseRows.length > 0) {
+                const valuesClause = expenseRows.map(() => '(?, ?)').join(', ');
+                const values = expenseRows.flatMap((row) => [row.id, setId]);
+
+                await connection.query(`
+                    INSERT INTO deleted_expenses (expense_id, set_id)
+                    VALUES ${valuesClause}
+                    ON DUPLICATE KEY UPDATE
+                        set_id = VALUES(set_id),
+                        deleted_at = CURRENT_TIMESTAMP
+                `, values);
+
+                const [deleted] = await connection.query(`
+                    DELETE FROM expenses
+                    WHERE set_id = ? AND user_id = ?
+                `, [setId, userId]);
+
+                deletedExpenses = deleted.affectedRows;
+            }
+        }
+
+        const [removedMembership] = await connection.query(`
+            DELETE FROM set_users
+            WHERE set_id = ? AND user_id = ?
+        `, [setId, userId]);
+
+        if (removedMembership.affectedRows === 0) {
+            await connection.rollback();
+            return {
+                removed: false,
+                deletedExpenses: 0
+            };
+        }
+
+        await connection.commit();
+        return {
+            removed: true,
+            deletedExpenses
+        };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+};
+
 export const getAllSetsById = async (userId) => {
     const [sets] = await conn.query(`
         SELECT s.id, s.name, su.role

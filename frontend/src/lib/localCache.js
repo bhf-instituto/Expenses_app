@@ -1,6 +1,7 @@
 const SETS_CACHE_KEY = 'expenses_mobile_sets_v1';
 const CATEGORIES_CACHE_KEY = 'expenses_mobile_categories_v1';
 const SET_USERS_CACHE_KEY = 'expenses_mobile_set_users_v1';
+const EXPENSES_CACHE_KEY = 'expenses_mobile_expenses_v1';
 const USER_CACHE_KEY = 'expenses_mobile_user_v1';
 const SCOPE_KEY_PREFIX = 'scope:';
 const DEFAULT_SCOPE_KEY = `${SCOPE_KEY_PREFIX}global`;
@@ -160,4 +161,25 @@ export const setCachedSetUsers = (setId, users, scope) => {
   };
 
   writeScopedValue(SET_USERS_CACHE_KEY, scope, 'object', nextScopedUsers);
+};
+
+export const getCachedExpenses = (setId, scope) => {
+  const scopedExpenses = readScopedValue(EXPENSES_CACHE_KEY, scope, 'object', {});
+  if (!isObject(scopedExpenses)) {
+    return [];
+  }
+
+  const setExpenses = scopedExpenses[String(setId)];
+  return Array.isArray(setExpenses) ? setExpenses : [];
+};
+
+export const setCachedExpenses = (setId, expenses, scope) => {
+  const scopedExpenses = readScopedValue(EXPENSES_CACHE_KEY, scope, 'object', {});
+  const currentScopedExpenses = isObject(scopedExpenses) ? scopedExpenses : {};
+  const nextScopedExpenses = {
+    ...currentScopedExpenses,
+    [String(setId)]: Array.isArray(expenses) ? expenses : [],
+  };
+
+  writeScopedValue(EXPENSES_CACHE_KEY, scope, 'object', nextScopedExpenses);
 };

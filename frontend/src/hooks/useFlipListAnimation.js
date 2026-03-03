@@ -12,6 +12,7 @@ export default function useFlipListAnimation(
 ) {
   const elementsRef = useRef(new Map());
   const previousRectsRef = useRef(new Map());
+  const previousOrderKeyRef = useRef('');
   const duration = options.duration ?? DEFAULT_DURATION;
   const easing = options.easing ?? DEFAULT_EASING;
 
@@ -29,6 +30,8 @@ export default function useFlipListAnimation(
 
   useLayoutEffect(() => {
     const nextRects = new Map();
+    const orderKey = orderedIds.map((itemId) => String(itemId)).join('|');
+    const orderChanged = orderKey !== previousOrderKeyRef.current;
 
     orderedIds.forEach((itemId) => {
       const key = String(itemId);
@@ -38,6 +41,7 @@ export default function useFlipListAnimation(
     });
 
     nextRects.forEach((nextRect, key) => {
+      if (!orderChanged) return;
       const previousRect = previousRectsRef.current.get(key);
       if (!previousRect) return;
 
@@ -67,6 +71,7 @@ export default function useFlipListAnimation(
     });
 
     previousRectsRef.current = nextRects;
+    previousOrderKeyRef.current = orderKey;
   }, [orderedIds, duration, easing]);
 
   return setItemRef;

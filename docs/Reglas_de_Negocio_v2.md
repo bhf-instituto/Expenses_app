@@ -74,6 +74,16 @@ RN-29. Edicion de gasto: solo el duenio del gasto.
 
 RN-30. Eliminacion de gasto: duenio del gasto o admin del grupo.
 
+RN-30-bis. Solo ADMIN puede quitar participantes del grupo.
+
+RN-30-ter. Un ADMIN no puede quitar a otro ADMIN mediante la operacion de remocion de participantes.
+
+RN-30-quater. Un ADMIN no puede quitarse a si mismo con la operacion de remocion de participantes.
+
+RN-30-quinquies. Al quitar un participante, el admin puede elegir si se eliminan tambien sus gastos del grupo.
+
+RN-30-sexies. Si un participante es quitado sin eliminar gastos, sus gastos historicos permanecen en el grupo pero el usuario ya no puede acceder al grupo.
+
 ## 6. Reglas de invitaciones
 
 RN-31. Una invitacion valida contiene `set_id` y usuario invitado.

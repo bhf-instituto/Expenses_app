@@ -141,4 +141,33 @@ const deleteSet = async (req, res) => {
     }
 };
 
-export { createSet, getAllSets, getSetUsers, editSetName, deleteSet, getSet };
+const removeSetUser = async (req, res) => {
+    try {
+        const setId = req.params.id_set;
+        const targetUserId = req.params.id_user;
+        const requesterUserId = req.user.id;
+        const { delete_expenses } = req.body || {};
+
+        const result = await setService.removeUser(
+            setId,
+            targetUserId,
+            requesterUserId,
+            { deleteExpenses: delete_expenses === true }
+        );
+
+        return res.status(200).json({
+            ok: true,
+            data: {
+                message: 'user removed from group correctly',
+                ...result
+            }
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+
+export { createSet, getAllSets, getSetUsers, editSetName, deleteSet, getSet, removeSetUser };

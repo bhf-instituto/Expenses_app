@@ -76,6 +76,10 @@ export const setsApi = {
   getById: (setId) => request(`/sets/${setId}`),
   getUsers: (setId) => request(`/sets/${setId}/users`),
   create: (payload) => request('/sets', { method: 'POST', body: payload }),
+  update: (setId, payload) => request(`/sets/${setId}`, { method: 'PUT', body: payload }),
+  delete: (setId) => request(`/sets/${setId}`, { method: 'DELETE' }),
+  removeUser: (setId, userId, payload) =>
+    request(`/sets/${setId}/users/${userId}`, { method: 'DELETE', body: payload }),
 };
 
 export const categoriesApi = {
@@ -84,11 +88,15 @@ export const categoriesApi = {
       query: { expense_type: expenseType },
     }),
   create: (setId, payload) => request(`/sets/${setId}/categories`, { method: 'POST', body: payload }),
+  update: (categoryId, payload) => request(`/categories/${categoryId}`, { method: 'PUT', body: payload }),
+  delete: (categoryId) => request(`/categories/${categoryId}`, { method: 'DELETE' }),
 };
 
 export const expensesApi = {
   create: (setId, payload) => request(`/sets/${setId}/expenses`, { method: 'POST', body: payload }),
   getAll: (setId, query) => request(`/sets/${setId}/expenses`, { query }),
+  update: (expenseId, payload) => request(`/expenses/${expenseId}`, { method: 'PUT', body: payload }),
+  delete: (expenseId) => request(`/expenses/${expenseId}`, { method: 'DELETE' }),
 };
 
 export const inviteApi = {

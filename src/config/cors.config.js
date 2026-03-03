@@ -1,7 +1,7 @@
 const DEFAULT_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:5174',
-    'http://192.168.0.17:5174',
+    'http://192.168.0.17:5175',
     'https://bhf-instituto.github.io'
 ];
 
