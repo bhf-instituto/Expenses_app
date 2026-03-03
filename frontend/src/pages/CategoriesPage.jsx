@@ -13,6 +13,7 @@ import {
   toggleFavoriteCategory,
 } from '../lib/favoritesStorage.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import useFlipListAnimation from '../hooks/useFlipListAnimation.js';
 
 export default function CategoriesPage() {
   const navigate = useNavigate();
@@ -100,6 +101,7 @@ export default function CategoriesPage() {
     () => sortByFavorites(categories, (category) => favoriteCategoryIds.includes(Number(category.id))),
     [categories, favoriteCategoryIds]
   );
+  const setAnimatedCategoryRef = useFlipListAnimation(sortedCategories.map((category) => category.id));
 
   const openCategory = (category) => {
     navigate(`/sets/${setId}/categories/${typeKey}/${category.id}/expense/new`, {
@@ -150,17 +152,18 @@ export default function CategoriesPage() {
                 ) : null}
                 {!loading &&
                   sortedCategories.map((category, index) => (
-                    <ListCardButton
-                      key={category.id}
-                      title={category.name}
-                      subtitle={`${typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} ${index + 1}`}
-                      onClick={() => openCategory(category)}
-                      accent="bg-app-mint"
-                      size="compact"
-                      showFavorite
-                      isFavorite={favoriteCategoryIds.includes(Number(category.id))}
-                      onToggleFavorite={() => handleToggleCategoryFavorite(category.id)}
-                    />
+                    <div key={category.id} ref={setAnimatedCategoryRef(category.id)}>
+                      <ListCardButton
+                        title={category.name}
+                        subtitle={`${typeKey === 'proveedor' ? 'Proveedor' : 'Categoria'} ${index + 1}`}
+                        onClick={() => openCategory(category)}
+                        accent="bg-app-mint"
+                        size="compact"
+                        showFavorite
+                        isFavorite={favoriteCategoryIds.includes(Number(category.id))}
+                        onToggleFavorite={() => handleToggleCategoryFavorite(category.id)}
+                      />
+                    </div>
                   ))}
               </div>
             </div>

@@ -33,7 +33,7 @@ export default function CreateSetPage() {
       <MobileHeader title="Crear grupo" backTo="/groups" leftLabel="Back" />
       <section className="scroll-pane">
         <div className="space-y-3">
-          <div className="rounded-2xl border border-app-ink/20 bg-app-panel p-4 shadow-card">
+          <div className="rounded-2xl border-0 border-app-ink/20 bg-app-panel p-4 shadow-card">
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Nombre del grupo</span>
               <input

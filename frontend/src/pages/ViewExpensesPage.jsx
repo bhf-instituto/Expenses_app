@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
+import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
 import { ApiError, categoriesApi, expensesApi, setsApi } from '../lib/apiClient.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
 import {
@@ -15,6 +16,12 @@ import { resolveSessionScope } from '../lib/sessionScope.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const getEmailAlias = (email) => String(email || '').split('@')[0] || String(email || '');
+const formatDateOnly = (value) => {
+  const rawValue = String(value || '');
+  if (!rawValue) return '-';
+  const dateMatch = rawValue.match(/\d{4}-\d{2}-\d{2}/);
+  return dateMatch ? dateMatch[0] : rawValue;
+};
 
 export default function ViewExpensesPage() {
   const navigate = useNavigate();
@@ -232,59 +239,55 @@ export default function ViewExpensesPage() {
       <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
       <section className="scroll-pane">
         <div className="space-y-3">
-          <div className="rounded-2xl border-0 bg-app-panel p-3">
+          <div className="rounded-2xl border-0 bg-app-panel p-4">
             <button
               type="button"
               onClick={() => setFiltersOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-lg border-0 bg-app-mint/100 px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+              className="flex w-full items-center justify-between rounded-lg border-0 border-app-ink/20 bg-app-panel py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
             >
               <span>Filtros</span>
               <span>{filtersOpen ? 'Ocultar' : 'Mostrar'}</span>
             </button>
 
             <div
-              className={`grid overflow-hidden transition-all duration-300 ease-out ${
+              className={`grid overflow-hidden p-1transition-all duration-300 ease-out ${
                 filtersOpen ? 'mt-3 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
               }`}
             >
               <div className="min-h-0">
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="col-span-2 block">
+                  <div className="col-span-2 block">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Tipo</span>
-                    <div className="mt-1">
-                      <HorizontalScrollableChoice
+                    <div className="mt-2">
+                      <SingleChoiceButtons
                         value={filters.expense_type}
                         onChange={(value) => setFilters((prev) => ({ ...prev, expense_type: String(value) }))}
                         options={typeFilterOptions}
-                        itemMinWidth={86}
+                        columns={4}
                         compact
-                        borderless
                       />
                     </div>
-                  </label>
-                  <label className="col-span-2 block">
+                  </div>
+                  <div className="col-span-2 block">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Forma pago</span>
-                    <div className="mt-1">
-                      <HorizontalScrollableChoice
+                    <div className="mt-2">
+                      <SingleChoiceButtons
                         value={filters.payment_method}
                         onChange={(value) => setFilters((prev) => ({ ...prev, payment_method: String(value) }))}
                         options={paymentFilterOptions}
-                        itemMinWidth={86}
+                        columns={4}
                         compact
-                        borderless
                       />
                     </div>
-                  </label>
-                  <label className="col-span-2 block">
+                  </div>
+                  <div className="col-span-2 block">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Usuario</span>
-                    <div className="mt-1">
+                    <div className="mt-2">
                       <HorizontalScrollableChoice
                         value={filters.user_id}
                         onChange={(value) => setFilters((prev) => ({ ...prev, user_id: String(value) }))}
                         options={userFilterOptions}
                         itemMinWidth={86}
-                        compact
-                        borderless
                       />
                     </div>
                     {usersLoading ? (
@@ -297,7 +300,7 @@ export default function ViewExpensesPage() {
                         {usersError}
                       </p>
                     ) : null}
-                  </label>
+                  </div>
                   <label className="block col-span-2">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Categoria</span>
                     <select
@@ -345,7 +348,7 @@ export default function ViewExpensesPage() {
                 <button
                   type="button"
                   onClick={() => loadExpenses(query)}
-                  className="mt-3 w-full rounded-lg border-0 bg-app-mint/100 px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+                  className="mt-3 w-full rounded-lg border border-app-ink/30 bg-app-panel px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
                 >
                   Aplicar filtros
                 </button>
@@ -371,14 +374,17 @@ export default function ViewExpensesPage() {
               expenses.map((expense) => {
                 const type = getExpenseTypeById(expense.expense_type);
                 const payment = getPaymentMethodById(expense.payment_method);
+                const expenseDate = formatDateOnly(expense.expense_date);
                 return (
                   <article key={expense.id} className="rounded-xl border-0 bg-app-panel p-3">
-                    <p className="font-heading text-sm font-semibold uppercase text-app-ink">
-                      {expense.category_name}
-                    </p>
-                    <p className="mt-1 text-lg font-extrabold text-app-ink">${expense.amount}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-heading text-sm font-semibold uppercase text-app-ink">
+                        {expense.category_name}
+                      </p>
+                      <p className="whitespace-nowrap text-lg font-extrabold text-app-ink">${expense.amount}</p>
+                    </div>
                     <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-app-muted">
-                      {type?.label || 'Sin tipo'} | {payment?.label || 'Sin forma pago'} | {expense.expense_date}
+                      {type?.label || 'Sin tipo'} | {payment?.label || 'Sin forma pago'} | {expenseDate}
                     </p>
                     {expense.description ? (
                       <p className="mt-1 text-xs font-semibold text-app-muted">{expense.description}</p>

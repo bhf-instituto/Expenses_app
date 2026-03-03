@@ -15,7 +15,7 @@ export default function InlineActionInput({
   actionDisabled = false,
 }) {
   return (
-    <div className="mt-1 flex w-full items-stretch overflow-hidden rounded-xl border border-app-ink/20 bg-app-panel focus-within:border-app-ink/50">
+    <div className="mt-1 flex w-full items-stretch border-0 border-b border-app-ink/35 bg-transparent transition focus-within:border-app-ink/70">
       <input
         type={type}
         value={value}
@@ -23,7 +23,7 @@ export default function InlineActionInput({
         placeholder={placeholder}
         disabled={disabled}
         readOnly={readOnly}
-        className="min-w-0 flex-1 border-0 bg-transparent px-3 py-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-w-0 flex-1 border-0 bg-transparent px-1 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60"
       />
       <button
         type="button"
@@ -31,7 +31,7 @@ export default function InlineActionInput({
         disabled={actionDisabled}
         title={actionLabel}
         aria-label={actionLabel}
-        className="flex h-[46px] w-10 shrink-0 items-center justify-center border-l border-app-ink/20 bg-app-panel/35 text-sm font-black text-app-ink hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-45"
+        className="flex h-[40px] w-10 shrink-0 items-center justify-center border-0 bg-transparent text-sm font-black text-app-ink hover:bg-app-bg/40 disabled:cursor-not-allowed disabled:opacity-45"
       >
         {actionIconSrc ? (
           <MonoIcon src={actionIconSrc} colorVar={actionIconColorVar} className="h-4 w-4" />

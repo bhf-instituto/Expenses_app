@@ -21,6 +21,7 @@ import {
 } from '../lib/favoritesStorage.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
+import useFlipListAnimation from '../hooks/useFlipListAnimation.js';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -130,6 +131,7 @@ export default function HomePage() {
     () => sortByFavorites(groups, (group) => Number(group.id) === Number(favoriteGroupId)),
     [groups, favoriteGroupId]
   );
+  const setAnimatedGroupRef = useFlipListAnimation(sortedGroups.map((group) => group.id));
 
   const openGroup = (group) => {
     const savedStartupId = setStartupGroupId(group.id, sessionScope);
@@ -235,17 +237,18 @@ export default function HomePage() {
                 ) : null}
                 {!loading &&
                   sortedGroups.map((group) => (
-                    <ListCardButton
-                      key={group.id}
-                      title={group.name}
-                      subtitle={effectiveMode === 'create' ? 'Crear gasto' : 'Ver gastos'}
-                      accent="bg-app-mint"
-                      onClick={() => openGroup(group)}
-                      disabled={effectiveMode === 'view' && !isOnline}
-                      showFavorite
-                      isFavorite={Number(group.id) === Number(favoriteGroupId)}
-                      onToggleFavorite={() => handleToggleGroupFavorite(group.id)}
-                    />
+                    <div key={group.id} ref={setAnimatedGroupRef(group.id)}>
+                      <ListCardButton
+                        title={group.name}
+                        subtitle={effectiveMode === 'create' ? 'Crear gasto' : 'Ver gastos'}
+                        accent="bg-app-mint"
+                        onClick={() => openGroup(group)}
+                        disabled={effectiveMode === 'view' && !isOnline}
+                        showFavorite
+                        isFavorite={Number(group.id) === Number(favoriteGroupId)}
+                        onToggleFavorite={() => handleToggleGroupFavorite(group.id)}
+                      />
+                    </div>
                   ))}
               </div>
             </div>

@@ -179,17 +179,17 @@
   }
 
   .app-input {
-    @apply w-full rounded-xl border border-app-ink/20 bg-app-panel px-3 py-3 text-sm outline-none transition focus:border-app-ink/50;
+    @apply w-full rounded-none border-0 border-b border-app-ink/35 bg-transparent px-1 py-2 text-sm outline-none transition focus:border-app-ink/70;
   }
 
   .app-textarea {
-    @apply w-full rounded-xl border border-app-ink/20 bg-app-panel px-3 py-3 text-sm outline-none transition focus:border-app-ink/50;
+    @apply w-full rounded-none border-0 border-b border-app-ink/35 bg-transparent px-1 py-2 text-sm outline-none transition focus:border-app-ink/70;
     /* min-height: 104px; */
     resize: none;
   }
 
   .app-select {
-    @apply w-full rounded-xl border border-app-ink/20 bg-app-panel px-3 py-3 text-sm outline-none transition focus:border-app-ink/50;
+    @apply w-full rounded-none border-0 border-b border-app-ink/35 bg-transparent px-1 py-2 text-sm outline-none transition focus:border-app-ink/70;
   }
 
   .icon-mask {
