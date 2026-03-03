@@ -218,11 +218,11 @@ export default function ViewExpensesPage() {
       <main className="app-shell">
         <MobileHeader title="Ver gastos" backTo="/groups" />
         <section className="scroll-pane">
-          <div className="rounded-2xl border border-app-ink/20 bg-app-warning p-4 text-sm font-semibold text-app-ink">
+          <div className="rounded-2xl border-0 bg-app-warning p-4 text-sm font-semibold text-app-ink">
             El modo VER esta deshabilitado offline.
           </div>
         </section>
-        <BottomActionBar label="Volver a grupos" onClick={() => navigate('/groups')} />
+        <BottomActionBar label="Volver a grupos" borderless tone="logout" onClick={() => navigate('/groups')} />
       </main>
     );
   }
@@ -232,11 +232,11 @@ export default function ViewExpensesPage() {
       <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
       <section className="scroll-pane">
         <div className="space-y-3">
-          <div className="rounded-2xl border border-app-ink/20 bg-app-panel p-3">
+          <div className="rounded-2xl border-0 bg-app-panel p-3">
             <button
               type="button"
               onClick={() => setFiltersOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-lg border border-app-ink/20 bg-app-panel px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+              className="flex w-full items-center justify-between rounded-lg border-0 bg-app-mint/100 px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
             >
               <span>Filtros</span>
               <span>{filtersOpen ? 'Ocultar' : 'Mostrar'}</span>
@@ -258,6 +258,7 @@ export default function ViewExpensesPage() {
                         options={typeFilterOptions}
                         itemMinWidth={86}
                         compact
+                        borderless
                       />
                     </div>
                   </label>
@@ -270,6 +271,7 @@ export default function ViewExpensesPage() {
                         options={paymentFilterOptions}
                         itemMinWidth={86}
                         compact
+                        borderless
                       />
                     </div>
                   </label>
@@ -282,6 +284,7 @@ export default function ViewExpensesPage() {
                         options={userFilterOptions}
                         itemMinWidth={86}
                         compact
+                        borderless
                       />
                     </div>
                     {usersLoading ? (
@@ -342,7 +345,7 @@ export default function ViewExpensesPage() {
                 <button
                   type="button"
                   onClick={() => loadExpenses(query)}
-                  className="mt-3 w-full rounded-lg bg-app-sky px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+                  className="mt-3 w-full rounded-lg border-0 bg-app-mint/100 px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
                 >
                   Aplicar filtros
                 </button>
@@ -351,7 +354,7 @@ export default function ViewExpensesPage() {
           </div>
 
           {!loading && expenses.length > 0 ? (
-            <div className="rounded-2xl border border-app-ink/20 bg-indigo-900 px-4 py-3">
+            <div className="rounded-2xl border-0 bg-indigo-900 px-4 py-3">
               <p className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Total filtrado</p>
               <p className="mt-1 font-heading text-2xl font-bold text-app-ink">
                 ${totalAmount.toLocaleString('es-AR')}
@@ -359,7 +362,7 @@ export default function ViewExpensesPage() {
             </div>
           ) : null}
 
-          <div className="space-y-2 rounded-2xl border border-app-ink/20 bg-app-panel/70 p-3">
+          <div className="space-y-2 rounded-2xl border-0 bg-app-panel/70 p-3">
             {loading ? <p className="text-sm font-semibold text-app-muted">Cargando gastos...</p> : null}
             {!loading && expenses.length === 0 ? (
               <p className="text-sm font-semibold text-app-muted">No hay gastos con esos filtros.</p>
@@ -369,7 +372,7 @@ export default function ViewExpensesPage() {
                 const type = getExpenseTypeById(expense.expense_type);
                 const payment = getPaymentMethodById(expense.payment_method);
                 return (
-                  <article key={expense.id} className="rounded-xl border border-app-ink/15 bg-app-panel p-3">
+                  <article key={expense.id} className="rounded-xl border-0 bg-app-panel p-3">
                     <p className="font-heading text-sm font-semibold uppercase text-app-ink">
                       {expense.category_name}
                     </p>

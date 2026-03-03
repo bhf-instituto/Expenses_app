@@ -37,7 +37,7 @@ export default function MobileHeader({
         <button
           type="button"
           onClick={handleBack}
-          className="shrink-0 rounded-lg border border-app-ink/50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
+          className="shrink-0 rounded-lg border-0 bg-app-mint/100 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
         >
           {leftLabel}
         </button>

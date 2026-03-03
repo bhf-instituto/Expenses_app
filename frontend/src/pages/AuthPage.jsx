@@ -34,7 +34,7 @@ export default function AuthPage() {
     <main className="app-shell">
       <section className="no-scrollbar flex min-h-0 flex-1 flex-col justify-center overflow-y-auto p-4">
         <div className="my-auto space-y-3">
-          <header className="flex rounded-xl border border-app-ink/20 bg-app-panel p-1">
+          <header className="flex rounded-xl border-0 bg-app-panel p-1">
             <button
               type="button"
               onClick={() => setMode('login')}
@@ -63,7 +63,7 @@ export default function AuthPage() {
 
           <form
             onSubmit={onSubmit}
-            className="animate-riseIn rounded-2xl border border-app-ink/20 bg-app-panel p-4 shadow-card"
+            className="animate-riseIn rounded-2xl border-0 bg-app-panel p-4 shadow-card"
           >
             {/* <h1 className="font-heading text-lg font-semibold uppercase text-app-ink">
             {mode === 'login' ? 'Acceso' : 'Crear cuenta'}

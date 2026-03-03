@@ -280,6 +280,7 @@ export default function CreateExpensePage() {
       <BottomActionBar
         label={submitting ? 'Guardando...' : isOnline ? 'Guardar gasto' : 'Guardar gasto offline'}
         disabled={submitting || !amount}
+        borderless
         onClick={submitExpense}
       />
     </main>

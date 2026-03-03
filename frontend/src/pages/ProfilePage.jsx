@@ -170,12 +170,12 @@ export default function ProfilePage() {
       <MobileHeader title="Perfil" backTo="/groups" />
       <section className="scroll-pane">
         <div className="space-y-3">
-          <article className="rounded-2xl border border-app-ink/20 bg-app-panel p-4 shadow-card">
+          <article className="rounded-2xl border-0 bg-app-panel p-4 shadow-card">
             <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Usuario</p>
             <p className="mt-1 font-heading text-base font-semibold text-app-ink">{user?.email || '-'}</p>
           </article>
 
-          <article className="rounded-2xl border border-app-ink/20 bg-app-panel p-4">
+          <article className="rounded-2xl border-0 bg-app-panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Estado</p>
             {/* <p className="mt-1 text-sm font-semibold text-app-ink">{isOnline ? 'Online' : 'Offline'}</p> */}
 
@@ -189,7 +189,7 @@ export default function ProfilePage() {
           </article>
 
           {isOnline ? (
-            <article className="space-y-3 rounded-2xl border border-app-ink/20 bg-app-panel p-4">
+            <article className="space-y-3 rounded-2xl border-0 bg-app-panel p-4">
               <div className="space-y-2">
                 <button
                   type="button"
