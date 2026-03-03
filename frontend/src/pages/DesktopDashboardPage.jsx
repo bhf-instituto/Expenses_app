@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
@@ -33,15 +33,96 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 import useFlipListAnimation from '../hooks/useFlipListAnimation.js';
 
+const LazyDesktopTopCategoryChart = lazy(() => import('../components/DesktopTopCategoryChart.jsx'));
+
 const TAB = {
   EXPENSES: 'expenses',
   CATEGORIES: 'categories',
   USERS: 'users',
+  CHARTS: 'charts',
 };
+
+const CHART_ANALYTICS = [
+  { id: 'top-all', label: 'Top 5 (todas)' },
+  { id: 'top-fijo', label: 'Top 5 fijo' },
+  { id: 'top-variable', label: 'Top 5 variable' },
+  { id: 'top-proveedor', label: 'Top 5 proveedor' },
+  { id: 'monthly-total', label: 'Evolucion total' },
+  { id: 'monthly-by-type', label: 'Evolucion por tipo' },
+  { id: 'monthly-top-categories', label: 'Evolucion top categorias' },
+];
+
+const TEMPORAL_ANALYTIC_IDS = new Set([
+  'monthly-total',
+  'monthly-by-type',
+  'monthly-top-categories',
+]);
+
+const TIME_INTERVAL_OPTIONS = [
+  { value: 'day', label: 'Dia' },
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mes' },
+  { value: 'year', label: 'Anio' },
+];
+
+const CHART_COLORS = [
+  'rgb(var(--app-accent-main))',
+  'rgb(var(--app-text-primary))',
+  'rgb(var(--app-text-muted))',
+  'rgb(var(--app-input-border))',
+  'rgb(var(--app-accent-soft))',
+];
 
 const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
 const formatDateOnly = (value) => String(value || '').slice(0, 10);
 const getEmailAlias = (email) => String(email || '').split('@')[0] || String(email || '');
+const pad2 = (value) => String(value).padStart(2, '0');
+const formatUTCYmd = (date) =>
+  `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
+const parseUTCDate = (value) => {
+  const dateText = formatDateOnly(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!year || !month || !day) return null;
+  return new Date(Date.UTC(year, month - 1, day));
+};
+const getWeekStartUtc = (date) => {
+  const start = new Date(date.getTime());
+  const mondayShift = (start.getUTCDay() + 6) % 7;
+  start.setUTCDate(start.getUTCDate() - mondayShift);
+  start.setUTCHours(0, 0, 0, 0);
+  return start;
+};
+const getTimeBucket = (value, interval) => {
+  const date = parseUTCDate(value);
+  if (!date) return null;
+
+  if (interval === 'day') {
+    const key = formatUTCYmd(date);
+    return { key, label: key, sortKey: date.getTime() };
+  }
+
+  if (interval === 'week') {
+    const start = getWeekStartUtc(date);
+    const end = new Date(start.getTime());
+    end.setUTCDate(end.getUTCDate() + 6);
+    const key = `W-${formatUTCYmd(start)}`;
+    const label = `${formatUTCYmd(start)} a ${formatUTCYmd(end)}`;
+    return { key, label, sortKey: start.getTime() };
+  }
+
+  if (interval === 'year') {
+    const key = String(date.getUTCFullYear());
+    return { key, label: key, sortKey: Number(key) };
+  }
+
+  const key = `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}`;
+  const label = `${pad2(date.getUTCMonth() + 1)}/${date.getUTCFullYear()}`;
+  return { key, label, sortKey: Number(`${date.getUTCFullYear()}${pad2(date.getUTCMonth() + 1)}`) };
+};
 const normalizeInt = (value) => {
   const normalized = Number(value);
   return Number.isInteger(normalized) ? normalized : null;
@@ -104,6 +185,10 @@ const EXPENSE_SORT_DEFAULT_DIRECTION = {
   user: 'asc',
   date: 'asc',
 };
+const CATEGORY_SORT_DEFAULT_DIRECTION = {
+  name: 'asc',
+  type: 'asc',
+};
 
 function DesktopModal({ open, title, children, onClose, maxWidthClass = 'max-w-lg' }) {
   if (!open) return null;
@@ -162,6 +247,7 @@ export default function DesktopDashboardPage() {
     name: '',
     expense_type: '1',
   });
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState(defaultExpenseForm);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
@@ -179,6 +265,9 @@ export default function DesktopDashboardPage() {
   const [error, setError] = useState('');
   const [expandedExpenseIds, setExpandedExpenseIds] = useState([]);
   const [expenseSort, setExpenseSort] = useState({ key: null, direction: 'asc' });
+  const [categorySort, setCategorySort] = useState({ key: null, direction: 'asc' });
+  const [chartAnalyticId, setChartAnalyticId] = useState('top-all');
+  const [chartTimeInterval, setChartTimeInterval] = useState('month');
   const expensesScrollRef = useRef(null);
   const [expensesScrollProgress, setExpensesScrollProgress] = useState(0);
 
@@ -417,6 +506,42 @@ export default function DesktopDashboardPage() {
       .map((item) => item.expense);
   }, [expenseSort, filteredExpenses]);
 
+  const sortedCategories = useMemo(() => {
+    if (!categorySort.key) return categories;
+
+    const direction = categorySort.direction === 'desc' ? 'desc' : 'asc';
+    const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
+    const typeOrder = direction === 'asc' ? [1, 2, 3] : [3, 2, 1];
+    const typeRank = new Map(typeOrder.map((value, index) => [value, index]));
+
+    return categories
+      .map((category, index) => ({ category, index }))
+      .sort((left, right) => {
+        const a = left.category;
+        const b = right.category;
+        let result = 0;
+
+        if (categorySort.key === 'name') {
+          result = collator.compare(String(a.name || ''), String(b.name || ''));
+          if (result !== 0) {
+            return direction === 'desc' ? result * -1 : result;
+          }
+          return left.index - right.index;
+        }
+
+        if (categorySort.key === 'type') {
+          const rankA = typeRank.get(Number(a.expense_type));
+          const rankB = typeRank.get(Number(b.expense_type));
+          result = (rankA ?? Number.MAX_SAFE_INTEGER) - (rankB ?? Number.MAX_SAFE_INTEGER);
+          if (result !== 0) return result;
+          return left.index - right.index;
+        }
+
+        return left.index - right.index;
+      })
+      .map((item) => item.category);
+  }, [categories, categorySort]);
+
   const toggleExpenseSort = (key) => {
     setExpenseSort((prev) => {
       if (prev.key !== key) {
@@ -435,7 +560,27 @@ export default function DesktopDashboardPage() {
 
   const getSortIndicator = (key) => {
     if (expenseSort.key !== key) return '';
-    return expenseSort.direction === 'asc' ? '↑' : '↓';
+    return expenseSort.direction === 'asc' ? '^' : 'v';
+  };
+
+  const toggleCategorySort = (key) => {
+    setCategorySort((prev) => {
+      if (prev.key !== key) {
+        return {
+          key,
+          direction: CATEGORY_SORT_DEFAULT_DIRECTION[key] || 'asc',
+        };
+      }
+      return {
+        key,
+        direction: prev.direction === 'asc' ? 'desc' : 'asc',
+      };
+    });
+  };
+
+  const getCategorySortIndicator = (key) => {
+    if (categorySort.key !== key) return '';
+    return categorySort.direction === 'asc' ? '^' : 'v';
   };
 
   useEffect(() => {
@@ -451,7 +596,233 @@ export default function DesktopDashboardPage() {
     [filteredExpenses]
   );
 
+  const topCategoriesByType = useMemo(() => {
+    const buildTop = (expenseTypeId = null) => {
+      const totalsByCategory = new Map();
+      filteredExpenses.forEach((expense) => {
+        if (expenseTypeId !== null && Number(expense.expense_type) !== Number(expenseTypeId)) return;
+        const categoryId = String(expense.category_id || '');
+        if (!categoryId) return;
+
+        const current = totalsByCategory.get(categoryId);
+        if (current) {
+          current.total += Number(expense.amount || 0);
+          return;
+        }
+
+        totalsByCategory.set(categoryId, {
+          categoryId,
+          name: expense.category_name || `Categoria ${categoryId}`,
+          total: Number(expense.amount || 0),
+        });
+      });
+
+      return [...totalsByCategory.values()]
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+    };
+
+    return {
+      all: buildTop(null),
+      fijo: buildTop(1),
+      variable: buildTop(2),
+      proveedor: buildTop(3),
+    };
+  }, [filteredExpenses]);
+
+  const temporalTotalData = useMemo(() => {
+    const bucketMap = new Map();
+    filteredExpenses.forEach((expense) => {
+      const bucket = getTimeBucket(expense.expense_date, chartTimeInterval);
+      if (!bucket) return;
+
+      const current = bucketMap.get(bucket.key) || {
+        bucketKey: bucket.key,
+        period: bucket.label,
+        sortKey: bucket.sortKey,
+        total: 0,
+      };
+      current.total += Number(expense.amount || 0);
+      bucketMap.set(bucket.key, current);
+    });
+
+    return [...bucketMap.values()]
+      .sort((a, b) => Number(a.sortKey) - Number(b.sortKey))
+      .map(({ period, total }) => ({ period, total }));
+  }, [chartTimeInterval, filteredExpenses]);
+
+  const temporalByTypeData = useMemo(() => {
+    const bucketMap = new Map();
+    filteredExpenses.forEach((expense) => {
+      const bucket = getTimeBucket(expense.expense_date, chartTimeInterval);
+      if (!bucket) return;
+
+      const current = bucketMap.get(bucket.key) || {
+        bucketKey: bucket.key,
+        period: bucket.label,
+        sortKey: bucket.sortKey,
+        fijo: 0,
+        variable: 0,
+        proveedor: 0,
+      };
+
+      const expenseTypeKey = getExpenseTypeById(expense.expense_type)?.key;
+      if (expenseTypeKey && current[expenseTypeKey] !== undefined) {
+        current[expenseTypeKey] += Number(expense.amount || 0);
+      }
+      bucketMap.set(bucket.key, current);
+    });
+
+    return [...bucketMap.values()]
+      .sort((a, b) => Number(a.sortKey) - Number(b.sortKey))
+      .map(({ period, fijo, variable, proveedor }) => ({ period, fijo, variable, proveedor }));
+  }, [chartTimeInterval, filteredExpenses]);
+
+  const temporalTopCategories = useMemo(() => {
+    const topCategories = topCategoriesByType.all.slice(0, 3);
+    if (topCategories.length === 0) {
+      return { rows: [], series: [] };
+    }
+
+    const topCategoryIdSet = new Set(topCategories.map((item) => String(item.categoryId)));
+    const bucketMap = new Map();
+
+    filteredExpenses.forEach((expense) => {
+      const categoryId = String(expense.category_id || '');
+      if (!topCategoryIdSet.has(categoryId)) return;
+
+      const bucket = getTimeBucket(expense.expense_date, chartTimeInterval);
+      if (!bucket) return;
+
+      const row = bucketMap.get(bucket.key) || {
+        bucketKey: bucket.key,
+        period: bucket.label,
+        sortKey: bucket.sortKey,
+      };
+      const valueKey = `c_${categoryId}`;
+      row[valueKey] = Number(row[valueKey] || 0) + Number(expense.amount || 0);
+      bucketMap.set(bucket.key, row);
+    });
+
+    const rows = [...bucketMap.values()]
+      .sort((a, b) => Number(a.sortKey) - Number(b.sortKey))
+      .map((row) => {
+        const next = { period: row.period };
+        topCategories.forEach((category) => {
+          const valueKey = `c_${category.categoryId}`;
+          next[valueKey] = Number(row[valueKey] || 0);
+        });
+        return next;
+      });
+
+    const series = topCategories.map((category, index) => ({
+      key: `c_${category.categoryId}`,
+      label: category.name,
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+
+    return { rows, series };
+  }, [chartTimeInterval, filteredExpenses, topCategoriesByType.all]);
+
+  const chartIntervalLabel = useMemo(
+    () => TIME_INTERVAL_OPTIONS.find((option) => option.value === chartTimeInterval)?.label || 'Mes',
+    [chartTimeInterval]
+  );
+
+  const chartConfig = useMemo(() => {
+    switch (chartAnalyticId) {
+      case 'top-fijo':
+        return {
+          title: 'Top 5 categorias de gasto fijo',
+          subtitle: 'Ranking de categorias fijas por monto acumulado.',
+          type: 'verticalBar',
+          data: topCategoriesByType.fijo,
+          xKey: 'name',
+          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
+        };
+      case 'top-variable':
+        return {
+          title: 'Top 5 categorias de gasto variable',
+          subtitle: 'Ranking de categorias variables por monto acumulado.',
+          type: 'verticalBar',
+          data: topCategoriesByType.variable,
+          xKey: 'name',
+          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
+        };
+      case 'top-proveedor':
+        return {
+          title: 'Top 5 proveedores',
+          subtitle: 'Ranking de proveedores por monto acumulado.',
+          type: 'verticalBar',
+          data: topCategoriesByType.proveedor,
+          xKey: 'name',
+          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
+        };
+      case 'monthly-total':
+        return {
+          title: `Evolucion de gasto total por ${chartIntervalLabel.toLowerCase()}`,
+          subtitle: 'Permite comparar periodos y detectar picos de gasto.',
+          type: 'line',
+          data: temporalTotalData,
+          xKey: 'period',
+          series: [{ key: 'total', label: 'Total', color: CHART_COLORS[0] }],
+        };
+      case 'monthly-by-type':
+        return {
+          title: `Evolucion por tipo (${chartIntervalLabel.toLowerCase()})`,
+          subtitle: 'Comparativa entre fijo, variable y proveedor.',
+          type: 'stackedBar',
+          data: temporalByTypeData,
+          xKey: 'period',
+          series: [
+            { key: 'fijo', label: 'Fijo', color: CHART_COLORS[0] },
+            { key: 'variable', label: 'Variable', color: CHART_COLORS[1] },
+            { key: 'proveedor', label: 'Proveedor', color: CHART_COLORS[2] },
+          ],
+        };
+      case 'monthly-top-categories':
+        return {
+          title: `Evolucion de top categorias (${chartIntervalLabel.toLowerCase()})`,
+          subtitle: 'Detecta rapidamente si una categoria gasto mas en un periodo que en otro.',
+          type: 'line',
+          data: temporalTopCategories.rows,
+          xKey: 'period',
+          series: temporalTopCategories.series,
+        };
+      case 'top-all':
+      default:
+        return {
+          title: 'Top 5 entre todas las categorias',
+          subtitle: 'Ranking global de categorias por monto acumulado.',
+          type: 'verticalBar',
+          data: topCategoriesByType.all,
+          xKey: 'name',
+          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
+        };
+    }
+  }, [
+    chartIntervalLabel,
+    chartAnalyticId,
+    temporalByTypeData,
+    temporalTopCategories.rows,
+    temporalTopCategories.series,
+    temporalTotalData,
+    topCategoriesByType.all,
+    topCategoriesByType.fijo,
+    topCategoriesByType.proveedor,
+    topCategoriesByType.variable,
+  ]);
+  const isTemporalAnalytic = TEMPORAL_ANALYTIC_IDS.has(chartAnalyticId);
+
   const expenseTypeOptions = useMemo(
+    () =>
+      EXPENSE_TYPES.map((type) => ({
+        value: String(type.id),
+        label: type.shortLabel || type.label,
+      })),
+    []
+  );
+  const categoryTypeOptions = useMemo(
     () =>
       EXPENSE_TYPES.map((type) => ({
         value: String(type.id),
@@ -739,9 +1110,20 @@ export default function DesktopDashboardPage() {
       name: category.name || '',
       expense_type: String(category.expense_type || '1'),
     });
+    setCategoryModalOpen(true);
+  };
+
+  const openCreateCategoryModal = () => {
+    setCategoryForm({
+      editingId: null,
+      name: '',
+      expense_type: '1',
+    });
+    setCategoryModalOpen(true);
   };
 
   const resetCategoryForm = () => {
+    setCategoryModalOpen(false);
     setCategoryForm({
       editingId: null,
       name: '',
@@ -1320,6 +1702,13 @@ export default function DesktopDashboardPage() {
               >
                 Usuarios
               </button>
+              <button
+                type="button"
+                onClick={() => setTab(TAB.CHARTS)}
+                className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase ${tab === TAB.CHARTS ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+              >
+                Graficos <span className='text-red-600'>(test)</span>
+              </button>
               {tab === TAB.EXPENSES ? (
                 <button
                   type="button"
@@ -1350,11 +1739,23 @@ export default function DesktopDashboardPage() {
                   </button>
                 </div>
               ) : null}
+              {tab === TAB.CATEGORIES ? (
+                <div className="ml-auto flex items-center">
+                  <button
+                    type="button"
+                    onClick={openCreateCategoryModal}
+                    disabled={!isAdmin || !selectedSetId}
+                    className="rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    Crear
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {tab === TAB.EXPENSES ? (
               <div className="min-h-0 flex flex-1 flex-col overflow-hidden">
-                <table className="w-full min-w-[980px] table-fixed text-left">
+                <table className="w-full table-fixed text-left">
                   <colgroup>
                     <col className="w-[15%]" />
                     <col className="w-[15%]" />
@@ -1366,67 +1767,67 @@ export default function DesktopDashboardPage() {
                   </colgroup>
                   <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
                     <tr>
-                      <th className="px-2 py-2">
+                      <th className="px-2 py-2 text-left">
                         <button
                           type="button"
                           onClick={() => toggleExpenseSort('category')}
-                          className="flex items-center gap-1 uppercase"
+                          className="flex w-full items-center justify-start gap-1 uppercase"
                         >
                           Categoria
                           <span className="w-3 text-left">{getSortIndicator('category')}</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2">
+                      <th className="px-2 py-2 text-left">
                         <button
                           type="button"
                           onClick={() => toggleExpenseSort('amount')}
-                          className="flex items-center gap-1 uppercase"
+                          className="flex w-full items-center justify-start gap-1 uppercase"
                         >
                           Monto
                           <span className="w-3 text-left">{getSortIndicator('amount')}</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2">
+                      <th className="px-2 py-2 text-left">
                         <button
                           type="button"
                           onClick={() => toggleExpenseSort('type')}
-                          className="flex items-center gap-1 uppercase"
+                          className="flex w-full items-center justify-start gap-1 uppercase"
                         >
                           Tipo
                           <span className="w-3 text-left">{getSortIndicator('type')}</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2">
+                      <th className="px-2 py-2 text-left">
                         <button
                           type="button"
                           onClick={() => toggleExpenseSort('payment')}
-                          className="flex items-center gap-1 uppercase"
+                          className="flex w-full items-center justify-start gap-1 uppercase"
                         >
                           Pago
                           <span className="w-3 text-left">{getSortIndicator('payment')}</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2">
+                      <th className="px-2 py-2 text-left">
                         <button
                           type="button"
                           onClick={() => toggleExpenseSort('user')}
-                          className="flex items-center gap-1 uppercase"
+                          className="flex w-full items-center justify-start gap-1 uppercase"
                         >
                           Usuario
                           <span className="w-3 text-left">{getSortIndicator('user')}</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2">
+                      <th className="px-2 py-2 text-left">
                         <button
                           type="button"
                           onClick={() => toggleExpenseSort('date')}
-                          className="flex items-center gap-1 uppercase"
+                          className="flex w-full items-center justify-start gap-1 uppercase"
                         >
                           Fecha
                           <span className="w-3 text-left">{getSortIndicator('date')}</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2">Acciones</th>
+                      <th className="px-2 py-2 text-left">Acciones</th>
                     </tr>
                   </thead>
                 </table>
@@ -1435,7 +1836,7 @@ export default function DesktopDashboardPage() {
                   onScroll={updateExpensesScrollProgress}
                   className="no-scrollbar min-h-0 flex-1 overflow-auto"
                 >
-                  <table className="w-full min-w-[980px] table-fixed text-left">
+                  <table className="w-full table-fixed text-left">
                     <colgroup>
                       <col className="w-[15%]" />
                       <col className="w-[15%]" />
@@ -1468,7 +1869,7 @@ export default function DesktopDashboardPage() {
                               <td className="px-2 py-2">{getEmailAlias(expense.user_email)}</td>
                               <td className="px-2 py-2">{formatDateOnly(expense.expense_date)}</td>
                               <td className="px-2 py-2">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center justify-start gap-1">
                                   <button
                                     type="button"
                                     title="Editar gasto"
@@ -1515,52 +1916,133 @@ export default function DesktopDashboardPage() {
               </div>
             ) : null}
 
+            {tab === TAB.CHARTS ? (
+              <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
+                <article className="rounded-xl bg-app-bg/25 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {CHART_ANALYTICS.map((analytic) => (
+                      <button
+                        key={analytic.id}
+                        type="button"
+                        onClick={() => setChartAnalyticId(analytic.id)}
+                        className={`rounded-lg px-3 py-2 text-xs font-bold uppercase ${
+                          chartAnalyticId === analytic.id
+                            ? 'bg-app-mint text-app-ink'
+                            : 'bg-app-panel text-app-muted'
+                        }`}
+                      >
+                        {analytic.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {isTemporalAnalytic ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                        Intervalo
+                      </span>
+                      {TIME_INTERVAL_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setChartTimeInterval(option.value)}
+                          className={`rounded-lg px-3 py-2 text-xs font-bold uppercase ${
+                            chartTimeInterval === option.value
+                              ? 'bg-app-mint text-app-ink'
+                              : 'bg-app-panel text-app-muted'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3">
+                    <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                      {chartConfig.title}
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-app-muted">
+                      {chartConfig.subtitle}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 h-[24rem] w-full">
+                    {chartConfig.data.length > 0 ? (
+                      <Suspense
+                        fallback={
+                          <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                            Cargando grafico...
+                          </div>
+                        }
+                      >
+                        <LazyDesktopTopCategoryChart
+                          type={chartConfig.type}
+                          data={chartConfig.data}
+                          xKey={chartConfig.xKey}
+                          series={chartConfig.series}
+                        />
+                      </Suspense>
+                    ) : (
+                      <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                        Sin datos para graficar con la seleccion actual.
+                      </div>
+                    )}
+                  </div>
+                </article>
+              </div>
+            ) : null}
+
             {tab === TAB.CATEGORIES ? (
               <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
-                <div className="mb-3 grid grid-cols-4 gap-2">
-                  <input
-                    className="app-input"
-                    placeholder="Nombre categoria/proveedor"
-                    value={categoryForm.name}
-                    onChange={(event) => setCategoryForm((prev) => ({ ...prev, name: event.target.value }))}
-                  />
-                  <select
-                    className="app-select"
-                    value={categoryForm.expense_type}
-                    onChange={(event) => setCategoryForm((prev) => ({ ...prev, expense_type: event.target.value }))}
-                  >
-                    <option value="1">Fijo</option>
-                    <option value="2">Variable</option>
-                    <option value="3">Proveedor</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => onAction(saveCategory)}
-                    className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase"
-                  >
-                    {categoryForm.editingId ? 'Guardar' : 'Crear'}
-                  </button>
-                  {categoryForm.editingId ? (
-                    <button
-                      type="button"
-                      onClick={resetCategoryForm}
-                      className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase"
-                    >
-                      Cancelar
-                    </button>
-                  ) : <div />}
-                </div>
-                <table className="w-full min-w-[760px] text-left">
-                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted"><tr><th className="px-2 py-2">Nombre</th><th className="px-2 py-2">Tipo</th><th className="px-2 py-2">Acciones</th></tr></thead>
-                  <tbody>{categories.map((category) => <tr key={category.id} className="border-t border-app-ink/10 text-base"><td className="px-2 py-2 font-semibold">{category.name}</td><td className="px-2 py-2">{getExpenseTypeById(category.expense_type)?.label || '-'}</td><td className="px-2 py-2"><div className="flex items-center gap-2"><button type="button" onClick={() => startCategoryEdit(category)} className="rounded-md bg-app-panel px-2 py-1 text-[11px] font-bold uppercase">Editar</button><button type="button" onClick={() => requestDeleteCategory(category)} className="rounded-md bg-app-error-bg px-2 py-1 text-[11px] font-bold uppercase text-app-error-text">Eliminar</button></div></td></tr>)}</tbody>
+                <table className="w-full max-w-[68rem] table-fixed text-left">
+                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
+                    <tr>
+                      <th className="px-2 py-2 text-left">
+                        <button
+                          type="button"
+                          onClick={() => toggleCategorySort('name')}
+                          className="flex w-full items-center justify-start gap-1 uppercase"
+                        >
+                          Nombre
+                          <span className="w-3 text-left">{getCategorySortIndicator('name')}</span>
+                        </button>
+                      </th>
+                      <th className="px-2 py-2 text-left">
+                        <button
+                          type="button"
+                          onClick={() => toggleCategorySort('type')}
+                          className="flex w-full items-center justify-start gap-1 uppercase"
+                        >
+                          Tipo
+                          <span className="w-3 text-left">{getCategorySortIndicator('type')}</span>
+                        </button>
+                      </th>
+                      <th className="px-2 py-2 text-left">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedCategories.map((category) => (
+                      <tr key={category.id} className="border-t border-app-ink/10 text-base">
+                        <td className="px-2 py-2 font-semibold">{category.name}</td>
+                        <td className="px-2 py-2">{getExpenseTypeById(category.expense_type)?.label || '-'}</td>
+                        <td className="px-2 py-2">
+                          <div className="flex items-center justify-start gap-2">
+                            <button type="button" onClick={() => startCategoryEdit(category)} className="rounded-md bg-app-panel px-2 py-1 text-[11px] font-bold uppercase">Editar</button>
+                            <button type="button" onClick={() => requestDeleteCategory(category)} className="rounded-md bg-app-error-bg px-2 py-1 text-[11px] font-bold uppercase text-app-error-text">Eliminar</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             ) : null}
 
             {tab === TAB.USERS ? (
               <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[760px] text-left">
-                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted"><tr><th className="px-2 py-2">Usuario</th><th className="px-2 py-2">Rol</th><th className="px-2 py-2">Acciones</th></tr></thead>
+                <table className="w-full max-w-[68rem] table-fixed text-left">
+                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted"><tr><th className="px-2 py-2 text-left">Usuario</th><th className="px-2 py-2 text-left">Rol</th><th className="px-2 py-2 text-left">Acciones</th></tr></thead>
                   <tbody>{users.map((groupUser) => <tr key={groupUser.id} className="border-t border-app-ink/10 text-base"><td className="px-2 py-2 font-semibold">{groupUser.email}</td><td className="px-2 py-2">{Number(groupUser.role) === 1 ? 'Admin' : 'Participante'}</td><td className="px-2 py-2"><button type="button" onClick={() => requestRemoveUser(groupUser)} disabled={!isAdmin || Number(groupUser.role) === 1 || Number(groupUser.id) === Number(user?.id)} className="rounded-md bg-app-error-bg px-2 py-1 text-[11px] font-bold uppercase text-app-error-text disabled:cursor-not-allowed disabled:opacity-45">Quitar</button></td></tr>)}</tbody>
                 </table>
               </div>
@@ -1709,6 +2191,58 @@ export default function DesktopDashboardPage() {
             className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
           >
             {editingExpenseId ? 'Guardar cambios' : 'Guardar gasto'}
+          </button>
+        </div>
+      </DesktopModal>
+
+      <DesktopModal
+        open={categoryModalOpen}
+        onClose={resetCategoryForm}
+        title={categoryForm.editingId ? 'Editar categoria/proveedor' : 'Crear categoria/proveedor'}
+      >
+        <div className="space-y-3">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Nombre</span>
+            <input
+              className="app-input mt-2"
+              placeholder="Nombre categoria/proveedor"
+              value={categoryForm.name}
+              onChange={(event) => setCategoryForm((prev) => ({ ...prev, name: event.target.value }))}
+            />
+          </label>
+
+          <div className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo de gasto</span>
+            <div className="mt-2">
+              <WrappedChoiceGroup
+                options={categoryTypeOptions}
+                value={categoryForm.expense_type}
+                onChange={(value) =>
+                  setCategoryForm((prev) => ({
+                    ...prev,
+                    expense_type: String(value),
+                  }))
+                }
+                itemMinWidth={120}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={resetCategoryForm}
+            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => onAction(saveCategory)}
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+          >
+            {categoryForm.editingId ? 'Guardar' : 'Crear'}
           </button>
         </div>
       </DesktopModal>
