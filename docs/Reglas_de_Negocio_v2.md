@@ -125,3 +125,19 @@ RN-43. La informacion de cada grupo es independiente de otros grupos.
 RN-44. No se permite acceso cruzado entre recursos de distintos grupos.
 
 RN-45. El backend debe validar reglas criticas aunque el frontend tambien las valide.
+
+## 10. Reglas de ingresos
+
+RN-46. Todo ingreso pertenece a un unico grupo (`set_id`).
+
+RN-47. `income_type` es obligatorio y solo admite: `1=EFECTIVO`, `3=TARJETA_DEBITO`.
+
+RN-48. `income_date` es obligatoria y debe ser fecha valida.
+
+RN-49. `amount` de ingreso debe ser entero positivo.
+
+RN-50. Solo `ADMIN` puede crear ingresos en el grupo.
+
+RN-51. Miembros del grupo (`ADMIN` y `PARTICIPANT`) pueden listar ingresos y consultar analitica de ingresos.
+
+RN-52. La analitica de ingresos vs gastos se calcula por rango de fechas y expone al menos: ingreso total, gasto total, saldo y porcentajes por tipo/categoria.

@@ -130,13 +130,14 @@ Caracteristicas:
 - Wrapper `request()` con parse de JSON y manejo de errores.
 - Error tipado `ApiError` con `status` y `payload`.
 - Siempre envia cookies/sesion con `credentials: 'include'`.
-- Si hay tokens en localStorage, envia:
+- Si existen tokens legacy en localStorage, envia:
   - `Authorization: Bearer <access_token>`
   - `X-Refresh-Token: <refresh_token>`
 
 Compatibilidad iOS:
 - Safari puede bloquear cookies cross-site (ITP).
-- El cliente guarda tokens devueltos en login/register y los envia por headers para evitar perder sesion.
+- El backend actual no devuelve tokens en `login/register`; la sesion principal es por cookies `HttpOnly`.
+- El envio por headers se mantiene solo como compatibilidad con tokens legacy preexistentes.
 
 Endpoints usados actualmente:
 
@@ -220,9 +221,9 @@ Notas:
 ### Tokens de sesion (`frontend/src/lib/tokenStorage.js`)
 
 - `expenses_mobile_access_token_v1`
-  - Access token usado para `Authorization`.
+  - Access token legacy usado para `Authorization` (compatibilidad).
 - `expenses_mobile_refresh_token_v1`
-  - Refresh token enviado en `X-Refresh-Token`.
+  - Refresh token legacy enviado en `X-Refresh-Token` (compatibilidad).
 
 ## 8) Sistema de rutas
 

@@ -23,6 +23,7 @@ Cada gasto pertenece a:
 
 - Los usuarios se registran con email y password.
 - La autenticacion usa cookies (`access_token` + `refresh_token`).
+- Los tokens se envian por cookie `HttpOnly`; no se devuelven en el body de `login/register`.
 - Un usuario puede existir sin grupos.
 - Un usuario puede crear grupos y participar en grupos de terceros.
 
@@ -54,9 +55,11 @@ Permisos:
   - Elegir si al quitar participante se eliminan tambien sus gastos
   - Crear invitaciones
   - Eliminar gastos de cualquier usuario del grupo
+  - Cargar ingresos del grupo
 - `PARTICIPANT`:
   - Crear gastos
   - Ver gastos/categorias/totales
+  - Ver ingresos y analiticas de ingresos
   - Editar y eliminar solo sus propios gastos
 
 ## 6. Tipos de gasto (catalogo cerrado)
@@ -107,6 +110,27 @@ Operaciones:
 - Eliminar gasto (hard delete)
 - Consultar totales
 
+## 8.1 Ingresos (entidad de analitica)
+
+Atributos funcionales:
+- `set_id` (grupo)
+- `income_type` (catalogo cerrado)
+- `amount` (entero positivo)
+- `income_date` (obligatoria)
+
+Tipos permitidos:
+- `1 = EFECTIVO`
+- `3 = TARJETA_DEBITO`
+
+Reglas de acceso:
+- Solo `ADMIN` puede crear ingresos.
+- `ADMIN` y `PARTICIPANT` pueden listar ingresos y consultar analitica.
+
+Operaciones:
+- Crear ingreso
+- Listar ingresos (con filtros y paginacion)
+- Consultar analitica `ingresos vs gastos` por rango
+
 ## 9. Totales y analitica
 
 El sistema expone:
@@ -114,6 +138,12 @@ El sistema expone:
 - Totales por tipo de gasto
 - Totales por "proveedor".
 - Total acumulado filtrado
+- Analitica de ingresos vs gastos:
+  - total de ingresos en rango
+  - total de gastos en rango
+  - saldo restante
+  - porcentaje ejecutado (`gastos / ingresos`)
+  - desglose por tipo y categoria con porcentajes
 
 Filtros disponibles (segun endpoint):
 - categoria
@@ -166,11 +196,21 @@ Modulos vigentes:
 - `sets`
 - `categories`
 - `expenses`
+- `incomes` (recurso bajo `/sets/:id_set/incomes`)
 
 ### 12.2 Usuarios de grupo
 - Listar participantes de un grupo: `GET /sets/:id_set/users`
 - Quitar participante de un grupo: `DELETE /sets/:id_set/users/:id_user`
   - Body: `{ "delete_expenses": true|false }`
+
+### 12.3 Ingresos
+- Crear ingreso (solo admin): `POST /sets/:id_set/incomes`
+  - Body: `{ "income_type": 1|3, "amount": 1000, "income_date": "YYYY-MM-DD" }`
+- Listar ingresos: `GET /sets/:id_set/incomes`
+  - Query opcional: `income_type`, `from_date`, `to_date`, `updated_after`, `page`, `limit`
+- Analitica ingresos vs gastos: `GET /sets/:id_set/incomes/analytics`
+  - Query: `from_date`, `to_date`
+  - Query opcional: `income_type`, `category_limit`
 
 ### 12.1 Invitaciones (metodos vigentes)
 - Crear invitacion: `POST /invite/:id_set`
