@@ -10,7 +10,7 @@ import starFullIcon from '../assets/icons/star-full-icon.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import WrappedChoiceGroup from '../components/WrappedChoiceGroup.jsx';
 import WrappedMultiChoiceGroup from '../components/WrappedMultiChoiceGroup.jsx';
-import { ApiError, categoriesApi, expensesApi, setsApi } from '../lib/apiClient.js';
+import { ApiError, categoriesApi, expensesApi, incomesApi, setsApi } from '../lib/apiClient.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
 import {
   getCachedCategories,
@@ -39,31 +39,8 @@ const TAB = {
   EXPENSES: 'expenses',
   CATEGORIES: 'categories',
   USERS: 'users',
-  CHARTS: 'charts',
+  ANALYTICS: 'analytics',
 };
-
-const CHART_ANALYTICS = [
-  { id: 'top-all', label: 'Top 5 (todas)' },
-  { id: 'top-fijo', label: 'Top 5 fijo' },
-  { id: 'top-variable', label: 'Top 5 variable' },
-  { id: 'top-proveedor', label: 'Top 5 proveedor' },
-  { id: 'monthly-total', label: 'Evolucion total' },
-  { id: 'monthly-by-type', label: 'Evolucion por tipo' },
-  { id: 'monthly-top-categories', label: 'Evolucion top categorias' },
-];
-
-const TEMPORAL_ANALYTIC_IDS = new Set([
-  'monthly-total',
-  'monthly-by-type',
-  'monthly-top-categories',
-]);
-
-const TIME_INTERVAL_OPTIONS = [
-  { value: 'day', label: 'Dia' },
-  { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mes' },
-  { value: 'year', label: 'Anio' },
-];
 
 const CHART_COLORS = [
   'rgb(var(--app-accent-main))',
@@ -73,55 +50,57 @@ const CHART_COLORS = [
   'rgb(var(--app-accent-soft))',
 ];
 
+const ANALYTICS_INCOME_TYPE_OPTIONS = [
+  { value: '', label: 'Todos los ingresos' },
+  { value: '1', label: 'Efectivo' },
+  { value: '3', label: 'Debito' },
+];
+
+const ANALYTICS_CATEGORY_LIMIT_OPTIONS = [
+  { value: '3', label: 'Top 3 categorias' },
+  { value: '5', label: 'Top 5 categorias' },
+  { value: '10', label: 'Top 10 categorias' },
+];
+
+const ANALYTICS_CATEGORY_SORT_OPTIONS = [
+  { value: 'total', label: 'Mayor total actual' },
+  { value: 'growth', label: 'Mayor crecimiento' },
+];
+
 const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
 const formatDateOnly = (value) => String(value || '').slice(0, 10);
 const getEmailAlias = (email) => String(email || '').split('@')[0] || String(email || '');
-const pad2 = (value) => String(value).padStart(2, '0');
-const formatUTCYmd = (date) =>
-  `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
-const parseUTCDate = (value) => {
-  const dateText = formatDateOnly(value);
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (!year || !month || !day) return null;
-  return new Date(Date.UTC(year, month - 1, day));
+const formatLocalYmd = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
-const getWeekStartUtc = (date) => {
-  const start = new Date(date.getTime());
-  const mondayShift = (start.getUTCDay() + 6) % 7;
-  start.setUTCDate(start.getUTCDate() - mondayShift);
-  start.setUTCHours(0, 0, 0, 0);
-  return start;
+const getTodayYmd = () => formatLocalYmd(new Date());
+const getMonthsAgoMonthStartYmd = (monthsAgo) => {
+  const date = new Date();
+  return formatLocalYmd(new Date(date.getFullYear(), date.getMonth() - monthsAgo, 1));
 };
-const getTimeBucket = (value, interval) => {
-  const date = parseUTCDate(value);
-  if (!date) return null;
-
-  if (interval === 'day') {
-    const key = formatUTCYmd(date);
-    return { key, label: key, sortKey: date.getTime() };
+const formatMonthLabel = (year, month) => `${String(month).padStart(2, '0')}/${year}`;
+const formatMoney = (value) => `$${Number(value || 0).toLocaleString('es-AR')}`;
+const formatPercentFromDecimal = (value, digits = 2) =>
+  value === null || value === undefined
+    ? '-'
+    : `${(Number(value) * 100).toLocaleString('es-AR', { maximumFractionDigits: digits })}%`;
+const formatSignedPercentFromDecimal = (value, digits = 2) =>
+  value === null || value === undefined
+    ? '-'
+    : `${Number(value) >= 0 ? '+' : ''}${(Number(value) * 100).toLocaleString('es-AR', { maximumFractionDigits: digits })}%`;
+const getHeatCellStyle = (value) => {
+  if (value === null || value === undefined) {
+    return { backgroundColor: 'rgba(148, 163, 184, 0.16)' };
   }
-
-  if (interval === 'week') {
-    const start = getWeekStartUtc(date);
-    const end = new Date(start.getTime());
-    end.setUTCDate(end.getUTCDate() + 6);
-    const key = `W-${formatUTCYmd(start)}`;
-    const label = `${formatUTCYmd(start)} a ${formatUTCYmd(end)}`;
-    return { key, label, sortKey: start.getTime() };
+  const absValue = Math.min(Math.abs(Number(value)), 1);
+  const alpha = 0.2 + absValue * 0.45;
+  if (Number(value) >= 0) {
+    return { backgroundColor: `rgba(34, 197, 94, ${alpha})` };
   }
-
-  if (interval === 'year') {
-    const key = String(date.getUTCFullYear());
-    return { key, label: key, sortKey: Number(key) };
-  }
-
-  const key = `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}`;
-  const label = `${pad2(date.getUTCMonth() + 1)}/${date.getUTCFullYear()}`;
-  return { key, label, sortKey: Number(`${date.getUTCFullYear()}${pad2(date.getUTCMonth() + 1)}`) };
+  return { backgroundColor: `rgba(239, 68, 68, ${alpha})` };
 };
 const normalizeInt = (value) => {
   const normalized = Number(value);
@@ -188,6 +167,13 @@ const EXPENSE_SORT_DEFAULT_DIRECTION = {
 const CATEGORY_SORT_DEFAULT_DIRECTION = {
   name: 'asc',
   type: 'asc',
+};
+const defaultAnalyticsFilters = {
+  from_date: getMonthsAgoMonthStartYmd(11),
+  to_date: getTodayYmd(),
+  income_type: '',
+  category_limit: '5',
+  category_sort: 'total',
 };
 
 function DesktopModal({ open, title, children, onClose, maxWidthClass = 'max-w-lg' }) {
@@ -266,8 +252,11 @@ export default function DesktopDashboardPage() {
   const [expandedExpenseIds, setExpandedExpenseIds] = useState([]);
   const [expenseSort, setExpenseSort] = useState({ key: null, direction: 'asc' });
   const [categorySort, setCategorySort] = useState({ key: null, direction: 'asc' });
-  const [chartAnalyticId, setChartAnalyticId] = useState('top-all');
-  const [chartTimeInterval, setChartTimeInterval] = useState('month');
+  const [analyticsFilters, setAnalyticsFilters] = useState(defaultAnalyticsFilters);
+  const [analyticsAppliedFilters, setAnalyticsAppliedFilters] = useState(defaultAnalyticsFilters);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState('');
   const expensesScrollRef = useRef(null);
   const [expensesScrollProgress, setExpensesScrollProgress] = useState(0);
 
@@ -306,6 +295,24 @@ export default function DesktopDashboardPage() {
     }
   }, [commitGroups, favoriteGroupId, isOnline, scope]);
 
+  const fetchAllExpensesForSet = useCallback(async (setId) => {
+    const pageSize = 100;
+    const maxPages = 1000;
+    const allExpenses = [];
+
+    for (let page = 1; page <= maxPages; page += 1) {
+      const batch = await expensesApi.getAll(setId, { page, limit: pageSize });
+      const rows = Array.isArray(batch) ? batch : [];
+      allExpenses.push(...rows);
+
+      if (rows.length < pageSize) {
+        break;
+      }
+    }
+
+    return allExpenses;
+  }, []);
+
   const loadSetData = useCallback(async (setId) => {
     if (!setId || Number(setId) <= 0) {
       setCategories([]);
@@ -329,7 +336,7 @@ export default function DesktopDashboardPage() {
       const [cats, groupUsers, exps] = await Promise.all([
         categoriesApi.getAll(setId, undefined),
         setsApi.getUsers(setId),
-        expensesApi.getAll(setId, { page: 1, limit: 100 }),
+        fetchAllExpensesForSet(setId),
       ]);
       const nextCategories = cats?.categories || [];
       const nextUsers = groupUsers?.users || [];
@@ -345,7 +352,7 @@ export default function DesktopDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [isOnline, scope]);
+  }, [fetchAllExpensesForSet, isOnline, scope]);
 
   useEffect(() => {
     loadGroups();
@@ -596,223 +603,232 @@ export default function DesktopDashboardPage() {
     [filteredExpenses]
   );
 
-  const topCategoriesByType = useMemo(() => {
-    const buildTop = (expenseTypeId = null) => {
-      const totalsByCategory = new Map();
-      filteredExpenses.forEach((expense) => {
-        if (expenseTypeId !== null && Number(expense.expense_type) !== Number(expenseTypeId)) return;
-        const categoryId = String(expense.category_id || '');
-        if (!categoryId) return;
-
-        const current = totalsByCategory.get(categoryId);
-        if (current) {
-          current.total += Number(expense.amount || 0);
-          return;
-        }
-
-        totalsByCategory.set(categoryId, {
-          categoryId,
-          name: expense.category_name || `Categoria ${categoryId}`,
-          total: Number(expense.amount || 0),
-        });
-      });
-
-      return [...totalsByCategory.values()]
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5);
-    };
-
-    return {
-      all: buildTop(null),
-      fijo: buildTop(1),
-      variable: buildTop(2),
-      proveedor: buildTop(3),
-    };
-  }, [filteredExpenses]);
-
-  const temporalTotalData = useMemo(() => {
-    const bucketMap = new Map();
-    filteredExpenses.forEach((expense) => {
-      const bucket = getTimeBucket(expense.expense_date, chartTimeInterval);
-      if (!bucket) return;
-
-      const current = bucketMap.get(bucket.key) || {
-        bucketKey: bucket.key,
-        period: bucket.label,
-        sortKey: bucket.sortKey,
-        total: 0,
-      };
-      current.total += Number(expense.amount || 0);
-      bucketMap.set(bucket.key, current);
-    });
-
-    return [...bucketMap.values()]
-      .sort((a, b) => Number(a.sortKey) - Number(b.sortKey))
-      .map(({ period, total }) => ({ period, total }));
-  }, [chartTimeInterval, filteredExpenses]);
-
-  const temporalByTypeData = useMemo(() => {
-    const bucketMap = new Map();
-    filteredExpenses.forEach((expense) => {
-      const bucket = getTimeBucket(expense.expense_date, chartTimeInterval);
-      if (!bucket) return;
-
-      const current = bucketMap.get(bucket.key) || {
-        bucketKey: bucket.key,
-        period: bucket.label,
-        sortKey: bucket.sortKey,
-        fijo: 0,
-        variable: 0,
-        proveedor: 0,
-      };
-
-      const expenseTypeKey = getExpenseTypeById(expense.expense_type)?.key;
-      if (expenseTypeKey && current[expenseTypeKey] !== undefined) {
-        current[expenseTypeKey] += Number(expense.amount || 0);
-      }
-      bucketMap.set(bucket.key, current);
-    });
-
-    return [...bucketMap.values()]
-      .sort((a, b) => Number(a.sortKey) - Number(b.sortKey))
-      .map(({ period, fijo, variable, proveedor }) => ({ period, fijo, variable, proveedor }));
-  }, [chartTimeInterval, filteredExpenses]);
-
-  const temporalTopCategories = useMemo(() => {
-    const topCategories = topCategoriesByType.all.slice(0, 3);
-    if (topCategories.length === 0) {
-      return { rows: [], series: [] };
+  const loadAnalytics = useCallback(async () => {
+    if (!selectedSetId || Number(selectedSetId) <= 0) {
+      setAnalyticsData(null);
+      setAnalyticsError('');
+      return;
     }
 
-    const topCategoryIdSet = new Set(topCategories.map((item) => String(item.categoryId)));
-    const bucketMap = new Map();
+    if (!isOnline) {
+      setAnalyticsData(null);
+      setAnalyticsError('Analiticas disponibles solo online.');
+      return;
+    }
 
-    filteredExpenses.forEach((expense) => {
-      const categoryId = String(expense.category_id || '');
-      if (!topCategoryIdSet.has(categoryId)) return;
+    const fromDate = String(analyticsAppliedFilters.from_date || '').trim();
+    const toDate = String(analyticsAppliedFilters.to_date || '').trim();
 
-      const bucket = getTimeBucket(expense.expense_date, chartTimeInterval);
-      if (!bucket) return;
+    if (!fromDate || !toDate) {
+      setAnalyticsData(null);
+      setAnalyticsError('Debes seleccionar desde y hasta.');
+      return;
+    }
 
-      const row = bucketMap.get(bucket.key) || {
-        bucketKey: bucket.key,
-        period: bucket.label,
-        sortKey: bucket.sortKey,
-      };
-      const valueKey = `c_${categoryId}`;
-      row[valueKey] = Number(row[valueKey] || 0) + Number(expense.amount || 0);
-      bucketMap.set(bucket.key, row);
-    });
+    if (fromDate > toDate) {
+      setAnalyticsData(null);
+      setAnalyticsError('Rango de fechas invalido.');
+      return;
+    }
 
-    const rows = [...bucketMap.values()]
-      .sort((a, b) => Number(a.sortKey) - Number(b.sortKey))
-      .map((row) => {
-        const next = { period: row.period };
-        topCategories.forEach((category) => {
-          const valueKey = `c_${category.categoryId}`;
-          next[valueKey] = Number(row[valueKey] || 0);
-        });
-        return next;
+    setAnalyticsLoading(true);
+    setAnalyticsError('');
+    try {
+      const data = await incomesApi.getAnalytics(selectedSetId, {
+        from_date: fromDate,
+        to_date: toDate,
+        income_type: analyticsAppliedFilters.income_type || undefined,
+        category_limit: analyticsAppliedFilters.category_limit || undefined,
+        category_sort: analyticsAppliedFilters.category_sort || undefined,
       });
+      setAnalyticsData(data || null);
+    } catch (requestError) {
+      setAnalyticsData(null);
+      setAnalyticsError(requestError instanceof ApiError ? requestError.message : 'No se pudo cargar analiticas');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [analyticsAppliedFilters, isOnline, selectedSetId]);
 
-    const series = topCategories.map((category, index) => ({
-      key: `c_${category.categoryId}`,
-      label: category.name,
-      color: CHART_COLORS[index % CHART_COLORS.length],
-    }));
+  useEffect(() => {
+    if (tab !== TAB.ANALYTICS) return;
+    loadAnalytics();
+  }, [tab, loadAnalytics]);
 
-    return { rows, series };
-  }, [chartTimeInterval, filteredExpenses, topCategoriesByType.all]);
+  useEffect(() => {
+    if (tab !== TAB.ANALYTICS) return;
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [tab, analyticsData, analyticsLoading]);
 
-  const chartIntervalLabel = useMemo(
-    () => TIME_INTERVAL_OPTIONS.find((option) => option.value === chartTimeInterval)?.label || 'Mes',
-    [chartTimeInterval]
+  const analyticsSummary = useMemo(() => analyticsData?.summary || null, [analyticsData]);
+  const analyticsMonthlyTrendRows = useMemo(() => analyticsData?.monthly_trend || [], [analyticsData]);
+
+  const analyticsMonthlyCoreChartData = useMemo(
+    () =>
+      analyticsMonthlyTrendRows.map((item) => ({
+        period: formatMonthLabel(item.year, item.month),
+        income: Number(item.income || 0),
+        expense: Number(item.expense || 0),
+        balance: Number(item.balance || 0),
+      })),
+    [analyticsMonthlyTrendRows]
   );
 
-  const chartConfig = useMemo(() => {
-    switch (chartAnalyticId) {
-      case 'top-fijo':
-        return {
-          title: 'Top 5 categorias de gasto fijo',
-          subtitle: 'Ranking de categorias fijas por monto acumulado.',
-          type: 'verticalBar',
-          data: topCategoriesByType.fijo,
-          xKey: 'name',
-          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
-        };
-      case 'top-variable':
-        return {
-          title: 'Top 5 categorias de gasto variable',
-          subtitle: 'Ranking de categorias variables por monto acumulado.',
-          type: 'verticalBar',
-          data: topCategoriesByType.variable,
-          xKey: 'name',
-          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
-        };
-      case 'top-proveedor':
-        return {
-          title: 'Top 5 proveedores',
-          subtitle: 'Ranking de proveedores por monto acumulado.',
-          type: 'verticalBar',
-          data: topCategoriesByType.proveedor,
-          xKey: 'name',
-          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
-        };
-      case 'monthly-total':
-        return {
-          title: `Evolucion de gasto total por ${chartIntervalLabel.toLowerCase()}`,
-          subtitle: 'Permite comparar periodos y detectar picos de gasto.',
-          type: 'line',
-          data: temporalTotalData,
-          xKey: 'period',
-          series: [{ key: 'total', label: 'Total', color: CHART_COLORS[0] }],
-        };
-      case 'monthly-by-type':
-        return {
-          title: `Evolucion por tipo (${chartIntervalLabel.toLowerCase()})`,
-          subtitle: 'Comparativa entre fijo, variable y proveedor.',
-          type: 'stackedBar',
-          data: temporalByTypeData,
-          xKey: 'period',
-          series: [
-            { key: 'fijo', label: 'Fijo', color: CHART_COLORS[0] },
-            { key: 'variable', label: 'Variable', color: CHART_COLORS[1] },
-            { key: 'proveedor', label: 'Proveedor', color: CHART_COLORS[2] },
-          ],
-        };
-      case 'monthly-top-categories':
-        return {
-          title: `Evolucion de top categorias (${chartIntervalLabel.toLowerCase()})`,
-          subtitle: 'Detecta rapidamente si una categoria gasto mas en un periodo que en otro.',
-          type: 'line',
-          data: temporalTopCategories.rows,
-          xKey: 'period',
-          series: temporalTopCategories.series,
-        };
-      case 'top-all':
-      default:
-        return {
-          title: 'Top 5 entre todas las categorias',
-          subtitle: 'Ranking global de categorias por monto acumulado.',
-          type: 'verticalBar',
-          data: topCategoriesByType.all,
-          xKey: 'name',
-          series: [{ key: 'total', label: 'Monto', color: CHART_COLORS[0] }],
-        };
-    }
-  }, [
-    chartIntervalLabel,
-    chartAnalyticId,
-    temporalByTypeData,
-    temporalTopCategories.rows,
-    temporalTopCategories.series,
-    temporalTotalData,
-    topCategoriesByType.all,
-    topCategoriesByType.fijo,
-    topCategoriesByType.proveedor,
-    topCategoriesByType.variable,
-  ]);
-  const isTemporalAnalytic = TEMPORAL_ANALYTIC_IDS.has(chartAnalyticId);
+  const analyticsExecutionRatioChartData = useMemo(
+    () =>
+      analyticsMonthlyTrendRows.map((item) => ({
+        period: formatMonthLabel(item.year, item.month),
+        execution_ratio_percent:
+          item.execution_ratio === null ? null : Number(item.execution_ratio || 0) * 100,
+      })),
+    [analyticsMonthlyTrendRows]
+  );
+
+  const analyticsGrowthRatesChartData = useMemo(
+    () =>
+      analyticsMonthlyTrendRows.map((item) => ({
+        period: formatMonthLabel(item.year, item.month),
+        growth_income: item.growth_income === null ? null : Number(item.growth_income || 0) * 100,
+        growth_expense: item.growth_expense === null ? null : Number(item.growth_expense || 0) * 100,
+        growth_balance: item.growth_balance === null ? null : Number(item.growth_balance || 0) * 100,
+      })),
+    [analyticsMonthlyTrendRows]
+  );
+
+  const analyticsMonthlyMarginChartData = useMemo(
+    () =>
+      analyticsMonthlyTrendRows.map((item) => ({
+        period: formatMonthLabel(item.year, item.month),
+        margin: item.margin === null ? null : Number(item.margin || 0) * 100,
+        rolling_margin_3m:
+          item.rolling_margin_3m === null ? null : Number(item.rolling_margin_3m || 0) * 100,
+      })),
+    [analyticsMonthlyTrendRows]
+  );
+
+  const analyticsTypeTrendChartData = useMemo(
+    () =>
+      (analyticsData?.type_trend || []).map((item) => ({
+        period: formatMonthLabel(item.year, item.month),
+        fixed_total: Number(item.fixed_total || 0),
+        variable_total: Number(item.variable_total || 0),
+        providers_total: Number(item.providers_total || 0),
+      })),
+    [analyticsData]
+  );
+
+  const analyticsStructureChartData = useMemo(() => {
+    const structure = analyticsData?.structure;
+    if (!structure) return [];
+    return [{
+      period: 'Estructura',
+      fixed_ratio_percent: Number(structure.fixed_ratio || 0) * 100,
+      variable_ratio_percent: Number(structure.variable_ratio || 0) * 100,
+      providers_ratio_percent: Number(structure.providers_ratio || 0) * 100,
+    }];
+  }, [analyticsData]);
+
+  const analyticsCategoryRankingChartData = useMemo(
+    () =>
+      (analyticsData?.category_ranking || []).map((item) => ({
+        name: item.name || `Categoria ${item.category_id}`,
+        total_current: Number(item.total_current || 0),
+        total_previous: Number(item.total_previous || 0),
+        growth_rate: item.growth_rate,
+        is_new_active: Boolean(item.is_new_active),
+      })),
+    [analyticsData]
+  );
+
+  const analyticsGrowthMatrixRows = useMemo(() => {
+    const byType = analyticsSummary?.expense_growth_by_type || {};
+    return [
+      {
+        label: 'Total gasto',
+        g3: analyticsSummary?.expense_growth_3m ?? null,
+        g6: analyticsSummary?.expense_growth_6m ?? null,
+        g12: analyticsSummary?.expense_growth_12m ?? null,
+      },
+      {
+        label: 'FIJO',
+        g3: byType.fixed_3m ?? null,
+        g6: byType.fixed_6m ?? null,
+        g12: byType.fixed_12m ?? null,
+      },
+      {
+        label: 'VARIABLE',
+        g3: byType.variable_3m ?? null,
+        g6: byType.variable_6m ?? null,
+        g12: byType.variable_12m ?? null,
+      },
+      {
+        label: 'PROVEEDOR',
+        g3: byType.providers_3m ?? null,
+        g6: byType.providers_6m ?? null,
+        g12: byType.providers_12m ?? null,
+      },
+    ];
+  }, [analyticsSummary]);
+
+  const analyticsIncomeExpenseSeries = useMemo(
+    () => [
+      { key: 'income', label: 'Ingresos', color: CHART_COLORS[1] },
+      { key: 'expense', label: 'Gastos', color: CHART_COLORS[0] },
+      { key: 'balance', label: 'Saldo', color: CHART_COLORS[2] },
+    ],
+    []
+  );
+
+  const analyticsExecutionSeries = useMemo(
+    () => [{ key: 'execution_ratio_percent', label: 'Ratio ejecucion %', color: CHART_COLORS[2] }],
+    []
+  );
+
+  const analyticsGrowthRatesSeries = useMemo(
+    () => [
+      { key: 'growth_income', label: 'Crec. ingresos %', color: CHART_COLORS[1] },
+      { key: 'growth_expense', label: 'Crec. gastos %', color: CHART_COLORS[0] },
+      { key: 'growth_balance', label: 'Crec. saldo %', color: CHART_COLORS[2] },
+    ],
+    []
+  );
+
+  const analyticsMarginSeries = useMemo(
+    () => [
+      { key: 'margin', label: 'Margen %', color: CHART_COLORS[0] },
+      { key: 'rolling_margin_3m', label: 'Prom. movil 3m %', color: CHART_COLORS[1] },
+    ],
+    []
+  );
+
+  const analyticsTypeTrendSeries = useMemo(
+    () => [
+      { key: 'fixed_total', label: 'FIJO', color: CHART_COLORS[0] },
+      { key: 'variable_total', label: 'VARIABLE', color: CHART_COLORS[1] },
+      { key: 'providers_total', label: 'PROVEEDOR', color: CHART_COLORS[2] },
+    ],
+    []
+  );
+
+  const analyticsStructureSeries = useMemo(
+    () => [
+      { key: 'fixed_ratio_percent', label: 'FIJO', color: CHART_COLORS[0] },
+      { key: 'variable_ratio_percent', label: 'VARIABLE', color: CHART_COLORS[1] },
+      { key: 'providers_ratio_percent', label: 'PROVEEDOR', color: CHART_COLORS[2] },
+    ],
+    []
+  );
+
+  const analyticsCategoryCompareSeries = useMemo(
+    () => [
+      { key: 'total_current', label: 'Actual', color: CHART_COLORS[0] },
+      { key: 'total_previous', label: 'Anterior', color: CHART_COLORS[3] },
+    ],
+    []
+  );
 
   const expenseTypeOptions = useMemo(
     () =>
@@ -1516,6 +1532,26 @@ export default function DesktopDashboardPage() {
     setCategoryFilterPaneIndex(0);
   };
 
+  const applyAnalyticsFilters = () => {
+    const fromDate = String(analyticsFilters.from_date || '').trim();
+    const toDate = String(analyticsFilters.to_date || '').trim();
+    if (!fromDate || !toDate) {
+      setAnalyticsError('Debes seleccionar desde y hasta.');
+      return;
+    }
+    if (fromDate > toDate) {
+      setAnalyticsError('Rango de fechas invalido.');
+      return;
+    }
+    setAnalyticsAppliedFilters({
+      from_date: fromDate,
+      to_date: toDate,
+      income_type: String(analyticsFilters.income_type || ''),
+      category_limit: String(analyticsFilters.category_limit || '5'),
+      category_sort: String(analyticsFilters.category_sort || 'total'),
+    });
+  };
+
   const toggleDraftExpenseTypes = (nextExpenseTypeIds) => {
     setFiltersDraft((prev) => {
       const allowedCategoryIds = categories
@@ -1704,10 +1740,10 @@ export default function DesktopDashboardPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTab(TAB.CHARTS)}
-                className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase ${tab === TAB.CHARTS ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+                onClick={() => setTab(TAB.ANALYTICS)}
+                className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase ${tab === TAB.ANALYTICS ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
               >
-                Graficos <span className='text-red-600'>(test)</span>
+                Analiticas
               </button>
               {tab === TAB.EXPENSES ? (
                 <button
@@ -1916,79 +1952,480 @@ export default function DesktopDashboardPage() {
               </div>
             ) : null}
 
-            {tab === TAB.CHARTS ? (
-              <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
-                <article className="rounded-xl bg-app-bg/25 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {CHART_ANALYTICS.map((analytic) => (
-                      <button
-                        key={analytic.id}
-                        type="button"
-                        onClick={() => setChartAnalyticId(analytic.id)}
-                        className={`rounded-lg px-3 py-2 text-xs font-bold uppercase ${
-                          chartAnalyticId === analytic.id
-                            ? 'bg-app-mint text-app-ink'
-                            : 'bg-app-panel text-app-muted'
-                        }`}
+            {tab === TAB.ANALYTICS ? (
+              <div className="no-scrollbar min-h-0 min-w-0 flex-1 overflow-auto">
+                <article className="min-w-0 rounded-xl bg-app-bg/25 p-4">
+                  <div className="grid gap-3 xl:grid-cols-6">
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Desde</span>
+                      <input
+                        className="app-input mt-2"
+                        type="date"
+                        value={analyticsFilters.from_date}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            from_date: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Hasta</span>
+                      <input
+                        className="app-input mt-2"
+                        type="date"
+                        value={analyticsFilters.to_date}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            to_date: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo ingreso</span>
+                      <select
+                        className="app-select mt-2"
+                        value={analyticsFilters.income_type}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            income_type: event.target.value,
+                          }))
+                        }
                       >
-                        {analytic.label}
+                        {ANALYTICS_INCOME_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value || 'all'} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Top categorias</span>
+                      <select
+                        className="app-select mt-2"
+                        value={analyticsFilters.category_limit}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            category_limit: event.target.value,
+                          }))
+                        }
+                      >
+                        {ANALYTICS_CATEGORY_LIMIT_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Orden ranking</span>
+                      <select
+                        className="app-select mt-2"
+                        value={analyticsFilters.category_sort}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            category_sort: event.target.value,
+                          }))
+                        }
+                      >
+                        {ANALYTICS_CATEGORY_SORT_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={applyAnalyticsFilters}
+                        className="w-full rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg"
+                      >
+                        Aplicar
                       </button>
-                    ))}
+                    </div>
                   </div>
 
-                  {isTemporalAnalytic ? (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                        Intervalo
-                      </span>
-                      {TIME_INTERVAL_OPTIONS.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setChartTimeInterval(option.value)}
-                          className={`rounded-lg px-3 py-2 text-xs font-bold uppercase ${
-                            chartTimeInterval === option.value
-                              ? 'bg-app-mint text-app-ink'
-                              : 'bg-app-panel text-app-muted'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                  {analyticsError ? (
+                    <p className="mt-3 rounded-lg bg-app-error-bg px-3 py-2 text-xs font-semibold text-app-error-text">
+                      {analyticsError}
+                    </p>
+                  ) : null}
+
+                  {analyticsLoading ? (
+                    <div className="mt-4 flex h-40 items-center justify-center rounded-lg bg-app-panel/60 text-sm font-semibold text-app-muted">
+                      Cargando analiticas...
                     </div>
                   ) : null}
 
-                  <div className="mt-3">
-                    <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
-                      {chartConfig.title}
-                    </h3>
-                    <p className="mt-1 text-xs font-semibold text-app-muted">
-                      {chartConfig.subtitle}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 h-[24rem] w-full">
-                    {chartConfig.data.length > 0 ? (
-                      <Suspense
-                        fallback={
-                          <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
-                            Cargando grafico...
-                          </div>
-                        }
-                      >
-                        <LazyDesktopTopCategoryChart
-                          type={chartConfig.type}
-                          data={chartConfig.data}
-                          xKey={chartConfig.xKey}
-                          series={chartConfig.series}
-                        />
-                      </Suspense>
-                    ) : (
-                      <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
-                        Sin datos para graficar con la seleccion actual.
+                  {!analyticsLoading && analyticsData ? (
+                    <>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Ingresos</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatMoney(analyticsSummary?.total_income)}
+                          </p>
+                        </article>
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Gastos</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatMoney(analyticsSummary?.total_expense)}
+                          </p>
+                        </article>
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Saldo</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatMoney(analyticsSummary?.balance)}
+                          </p>
+                        </article>
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Margen operativo</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatPercentFromDecimal(analyticsSummary?.operating_margin)}
+                          </p>
+                        </article>
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Crec. gasto 3m</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatSignedPercentFromDecimal(analyticsSummary?.expense_growth_3m)}
+                          </p>
+                        </article>
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Crec. gasto 6m</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatSignedPercentFromDecimal(analyticsSummary?.expense_growth_6m)}
+                          </p>
+                        </article>
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Crec. gasto 12m</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatSignedPercentFromDecimal(analyticsSummary?.expense_growth_12m)}
+                          </p>
+                        </article>
+                        <article className="rounded-xl bg-app-panel/70 p-3">
+                          <p className="text-xs uppercase text-app-muted">Tendencia margen 3m</p>
+                          <p className="mt-1 font-heading text-xl font-bold">
+                            {formatSignedPercentFromDecimal(analyticsSummary?.margin_trend_3m)}
+                          </p>
+                        </article>
                       </div>
-                    )}
-                  </div>
+
+                      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+                        <article className="rounded-xl bg-app-panel/65 p-4 xl:col-span-2">
+                          <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                            Evolucion mensual ingreso vs gasto
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold text-app-muted">
+                            Core Financiero N1 por mes: ingresos, gastos y saldo.
+                          </p>
+                          <div className="mt-3 h-72 min-w-0">
+                            {analyticsMonthlyCoreChartData.length > 0 ? (
+                              <Suspense
+                                fallback={
+                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                    Cargando grafico...
+                                  </div>
+                                }
+                              >
+                                <LazyDesktopTopCategoryChart
+                                  key={`analytics-monthly-core-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsMonthlyCoreChartData.length}`}
+                                  type="line"
+                                  data={analyticsMonthlyCoreChartData}
+                                  xKey="period"
+                                  series={analyticsIncomeExpenseSeries}
+                                />
+                              </Suspense>
+                            ) : (
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Sin datos mensuales para el rango seleccionado.
+                              </div>
+                            )}
+                          </div>
+                        </article>
+
+                        <article className="rounded-xl bg-app-panel/65 p-4">
+                          <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                            Ratio de ejecucion mensual
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold text-app-muted">
+                            Mide que porcentaje del ingreso se ejecuta en gastos.
+                          </p>
+                          <div className="mt-3 h-72 min-w-0">
+                            {analyticsExecutionRatioChartData.length > 0 ? (
+                              <Suspense
+                                fallback={
+                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                    Cargando grafico...
+                                  </div>
+                                }
+                              >
+                                <LazyDesktopTopCategoryChart
+                                  key={`analytics-execution-ratio-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsExecutionRatioChartData.length}`}
+                                  type="line"
+                                  data={analyticsExecutionRatioChartData}
+                                  xKey="period"
+                                  series={analyticsExecutionSeries}
+                                  valueFormat="percent"
+                                />
+                              </Suspense>
+                            ) : (
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Sin datos de ejecucion para mostrar.
+                              </div>
+                            )}
+                          </div>
+                        </article>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                        <article className="rounded-xl bg-app-panel/65 p-4">
+                          <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                            Crecimiento mensual (ingreso / gasto / saldo)
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold text-app-muted">
+                            Variacion porcentual contra el mes anterior.
+                          </p>
+                          <div className="mt-3 h-72 min-w-0">
+                            {analyticsGrowthRatesChartData.length > 0 ? (
+                              <Suspense
+                                fallback={
+                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                    Cargando grafico...
+                                  </div>
+                                }
+                              >
+                                <LazyDesktopTopCategoryChart
+                                  key={`analytics-growth-rates-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsGrowthRatesChartData.length}`}
+                                  type="line"
+                                  data={analyticsGrowthRatesChartData}
+                                  xKey="period"
+                                  series={analyticsGrowthRatesSeries}
+                                  valueFormat="percent"
+                                  showZeroReference
+                                />
+                              </Suspense>
+                            ) : (
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Sin datos de crecimiento para mostrar.
+                              </div>
+                            )}
+                          </div>
+                        </article>
+
+                        <article className="rounded-xl bg-app-panel/65 p-4">
+                          <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                            Margen operativo mensual
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold text-app-muted">
+                            Margen y promedio movil de 3 meses.
+                          </p>
+                          <div className="mt-3 h-72 min-w-0">
+                            {analyticsMonthlyMarginChartData.length > 0 ? (
+                              <Suspense
+                                fallback={
+                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                    Cargando grafico...
+                                  </div>
+                                }
+                              >
+                                <LazyDesktopTopCategoryChart
+                                  key={`analytics-monthly-margin-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsMonthlyMarginChartData.length}`}
+                                  type="line"
+                                  data={analyticsMonthlyMarginChartData}
+                                  xKey="period"
+                                  series={analyticsMarginSeries}
+                                  valueFormat="percent"
+                                />
+                              </Suspense>
+                            ) : (
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Sin datos de margen para mostrar.
+                              </div>
+                            )}
+                          </div>
+                        </article>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                        <article className="rounded-xl bg-app-panel/65 p-4">
+                          <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                            Evolucion mensual por tipo de gasto
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold text-app-muted">
+                            Composicion del gasto total por FIJO / VARIABLE / PROVEEDOR.
+                          </p>
+                          <div className="mt-3 h-72 min-w-0">
+                            {analyticsTypeTrendChartData.length > 0 ? (
+                              <Suspense
+                                fallback={
+                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                    Cargando grafico...
+                                  </div>
+                                }
+                              >
+                                <LazyDesktopTopCategoryChart
+                                  key={`analytics-type-trend-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsTypeTrendChartData.length}`}
+                                  type="stackedArea"
+                                  data={analyticsTypeTrendChartData}
+                                  xKey="period"
+                                  series={analyticsTypeTrendSeries}
+                                />
+                              </Suspense>
+                            ) : (
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Sin datos por tipo para el rango seleccionado.
+                              </div>
+                            )}
+                          </div>
+                        </article>
+
+                        <article className="rounded-xl bg-app-panel/65 p-4">
+                          <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                            Ratio estructural por tipo
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold text-app-muted">
+                            Participacion relativa del gasto total (100% apilado).
+                          </p>
+                          <div className="mt-3 h-72 min-w-0">
+                            {analyticsStructureChartData.length > 0 ? (
+                              <Suspense
+                                fallback={
+                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                    Cargando grafico...
+                                  </div>
+                                }
+                              >
+                                <LazyDesktopTopCategoryChart
+                                  key={`analytics-structure-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsStructureChartData.length}`}
+                                  type="stackedBar"
+                                  data={analyticsStructureChartData}
+                                  xKey="period"
+                                  series={analyticsStructureSeries}
+                                  valueFormat="percent"
+                                />
+                              </Suspense>
+                            ) : (
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Sin estructura para mostrar.
+                              </div>
+                            )}
+                          </div>
+                        </article>
+                      </div>
+
+                      <article className="mt-4 rounded-xl bg-app-panel/65 p-4">
+                        <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                          Crecimiento acumulado del gasto (3m / 6m / 12m)
+                        </h3>
+                        <p className="mt-1 text-xs font-semibold text-app-muted">
+                          Matriz comparativa por ventana y por tipo. Escala divergente centrada en 0.
+                        </p>
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="w-full min-w-[28rem] text-left text-xs">
+                            <thead>
+                              <tr className="uppercase tracking-wide text-app-muted">
+                                <th className="px-3 py-2">Serie</th>
+                                <th className="px-3 py-2">3 meses</th>
+                                <th className="px-3 py-2">6 meses</th>
+                                <th className="px-3 py-2">12 meses</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analyticsGrowthMatrixRows.map((row) => (
+                                <tr key={row.label} className="border-t border-app-ink/10">
+                                  <td className="px-3 py-2 font-semibold">{row.label}</td>
+                                  <td className="px-3 py-2" style={getHeatCellStyle(row.g3)}>
+                                    {formatSignedPercentFromDecimal(row.g3)}
+                                  </td>
+                                  <td className="px-3 py-2" style={getHeatCellStyle(row.g6)}>
+                                    {formatSignedPercentFromDecimal(row.g6)}
+                                  </td>
+                                  <td className="px-3 py-2" style={getHeatCellStyle(row.g12)}>
+                                    {formatSignedPercentFromDecimal(row.g12)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </article>
+
+                      <article className="mt-4 rounded-xl bg-app-panel/65 p-4">
+                        <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                          Ranking dinamico de categorias
+                        </h3>
+                        <p className="mt-1 text-xs font-semibold text-app-muted">
+                          Top N por total actual o crecimiento segun filtro seleccionado.
+                        </p>
+
+                        <div className="mt-3 grid gap-4 xl:grid-cols-[2fr,1fr]">
+                          <div className="h-80 min-w-0">
+                            {analyticsCategoryRankingChartData.length > 0 ? (
+                              <Suspense
+                                fallback={
+                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                    Cargando grafico...
+                                  </div>
+                                }
+                              >
+                                <LazyDesktopTopCategoryChart
+                                  key={`analytics-categories-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsCategoryRankingChartData.length}-${analyticsAppliedFilters.category_limit}-${analyticsAppliedFilters.category_sort}`}
+                                  type="horizontalBar"
+                                  data={analyticsCategoryRankingChartData}
+                                  xKey="name"
+                                  series={analyticsCategoryCompareSeries}
+                                />
+                              </Suspense>
+                            ) : (
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Sin categorias para mostrar.
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="no-scrollbar max-h-80 overflow-auto rounded-lg border border-app-ink/10 bg-app-bg/20">
+                            <table className="w-full text-left text-xs">
+                              <thead className="sticky top-0 bg-app-panel/90">
+                                <tr className="uppercase tracking-wide text-app-muted">
+                                  <th className="px-2 py-2">Categoria</th>
+                                  <th className="px-2 py-2">Actual</th>
+                                  <th className="px-2 py-2">Anterior</th>
+                                  <th className="px-2 py-2">Crec.</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(analyticsData?.category_ranking || []).map((item) => (
+                                  <tr key={item.category_id} className="border-t border-app-ink/10">
+                                    <td className="px-2 py-2 font-semibold">{item.name}</td>
+                                    <td className="px-2 py-2">{formatMoney(item.total_current)}</td>
+                                    <td className="px-2 py-2">{formatMoney(item.total_previous)}</td>
+                                    <td className="px-2 py-2">
+                                      {item.is_new_active
+                                        ? 'Nueva'
+                                        : formatSignedPercentFromDecimal(item.growth_rate)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </article>
+                    </>
+                  ) : null}
+
+                  {!analyticsLoading && !analyticsData && !analyticsError ? (
+                    <div className="mt-4 flex h-40 items-center justify-center rounded-lg bg-app-panel/60 px-3 text-sm font-semibold text-app-muted">
+                      Sin analiticas para mostrar. Presiona "Aplicar" para cargar datos.
+                    </div>
+                  ) : null}
                 </article>
               </div>
             ) : null}

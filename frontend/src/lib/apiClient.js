@@ -25,11 +25,19 @@ const toAbsoluteUrl = (path, query = {}) => {
 };
 
 const parseResponse = async (response) => {
-  const payload = await response.json().catch(() => null);
+  if (response.status === 204) return null;
+
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  const isJson = contentType.includes('application/json');
+  const payload = isJson ? await response.json().catch(() => null) : null;
   const message = payload?.data?.message || payload?.message || 'request failed';
 
   if (!response.ok || payload?.ok === false) {
     throw new ApiError(message, response.status, payload);
+  }
+
+  if (!isJson) {
+    throw new ApiError('unexpected non-JSON response from API', response.status, null);
   }
 
   if (payload && Object.prototype.hasOwnProperty.call(payload, 'data')) {
@@ -97,6 +105,12 @@ export const expensesApi = {
   getAll: (setId, query) => request(`/sets/${setId}/expenses`, { query }),
   update: (expenseId, payload) => request(`/expenses/${expenseId}`, { method: 'PUT', body: payload }),
   delete: (expenseId) => request(`/expenses/${expenseId}`, { method: 'DELETE' }),
+};
+
+export const incomesApi = {
+  create: (setId, payload) => request(`/sets/${setId}/incomes`, { method: 'POST', body: payload }),
+  getAll: (setId, query) => request(`/sets/${setId}/incomes`, { query }),
+  getAnalytics: (setId, query) => request(`/sets/${setId}/incomes/analytics`, { query }),
 };
 
 export const inviteApi = {

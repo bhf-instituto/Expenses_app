@@ -91,6 +91,10 @@ export default defineConfig(({ mode }) => {
           target: backendUrl,
           changeOrigin: true,
         },
+        '^/sets/\\d+/incomes(?:/analytics)?(?:\\?.*)?$': {
+          target: backendUrl,
+          changeOrigin: true,
+        },
       },
     },
   }

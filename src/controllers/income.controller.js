@@ -75,7 +75,8 @@ const getIncomeAnalytics = async (req, res) => {
             from_date,
             to_date,
             income_type,
-            category_limit
+            category_limit,
+            category_sort
         } = req.query;
 
         const analytics = await incomeService.getAnalytics({
@@ -83,7 +84,8 @@ const getIncomeAnalytics = async (req, res) => {
             from_date,
             to_date,
             income_type,
-            category_limit
+            category_limit,
+            category_sort
         });
 
         return res.status(200).json({

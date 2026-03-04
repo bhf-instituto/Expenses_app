@@ -72,6 +72,33 @@ export const getIncomeTotalByRange = async (setId, fromDate, toDate, incomeType 
     return row;
 };
 
+export const getMonthlyIncomeTotals = async (setId, fromDate, toDate, incomeType = undefined) => {
+    let query = `
+        SELECT
+            YEAR(income_date) AS year,
+            MONTH(income_date) AS month,
+            COALESCE(SUM(amount), 0) AS total
+        FROM incomes
+        WHERE set_id = ?
+          AND income_date BETWEEN ? AND ?
+    `;
+
+    const params = [setId, fromDate, toDate];
+
+    if (incomeType !== undefined) {
+        query += ' AND income_type = ?';
+        params.push(incomeType);
+    }
+
+    query += `
+        GROUP BY YEAR(income_date), MONTH(income_date)
+        ORDER BY YEAR(income_date), MONTH(income_date)
+    `;
+
+    const [rows] = await conn.query(query, params);
+    return rows;
+};
+
 export const getExpenseTotalByRange = async (setId, fromDate, toDate) => {
     const [[row]] = await conn.query(`
         SELECT COALESCE(SUM(amount), 0) AS total
@@ -81,6 +108,22 @@ export const getExpenseTotalByRange = async (setId, fromDate, toDate) => {
     `, [setId, fromDate, toDate]);
 
     return row;
+};
+
+export const getMonthlyExpenseTotals = async (setId, fromDate, toDate) => {
+    const [rows] = await conn.query(`
+        SELECT
+            YEAR(expense_date) AS year,
+            MONTH(expense_date) AS month,
+            COALESCE(SUM(amount), 0) AS total
+        FROM expenses
+        WHERE set_id = ?
+          AND expense_date BETWEEN ? AND ?
+        GROUP BY YEAR(expense_date), MONTH(expense_date)
+        ORDER BY YEAR(expense_date), MONTH(expense_date)
+    `, [setId, fromDate, toDate]);
+
+    return rows;
 };
 
 export const getExpenseTotalsByTypeInRange = async (setId, fromDate, toDate) => {
@@ -93,6 +136,23 @@ export const getExpenseTotalsByTypeInRange = async (setId, fromDate, toDate) => 
           AND expense_date BETWEEN ? AND ?
         GROUP BY expense_type
         ORDER BY total DESC
+    `, [setId, fromDate, toDate]);
+
+    return rows;
+};
+
+export const getMonthlyExpenseTotalsByType = async (setId, fromDate, toDate) => {
+    const [rows] = await conn.query(`
+        SELECT
+            YEAR(expense_date) AS year,
+            MONTH(expense_date) AS month,
+            expense_type,
+            COALESCE(SUM(amount), 0) AS total
+        FROM expenses
+        WHERE set_id = ?
+          AND expense_date BETWEEN ? AND ?
+        GROUP BY YEAR(expense_date), MONTH(expense_date), expense_type
+        ORDER BY YEAR(expense_date), MONTH(expense_date), expense_type
     `, [setId, fromDate, toDate]);
 
     return rows;
@@ -113,6 +173,24 @@ export const getExpenseTotalsByCategoryInRange = async (setId, fromDate, toDate,
         ORDER BY total DESC
         LIMIT ?
     `, [setId, fromDate, toDate, limit]);
+
+    return rows;
+};
+
+export const getExpenseCategoryTotalsByRange = async (setId, fromDate, toDate) => {
+    const [rows] = await conn.query(`
+        SELECT
+            c.id AS category_id,
+            c.name AS category_name,
+            c.expense_type,
+            COALESCE(SUM(e.amount), 0) AS total
+        FROM expenses e
+        JOIN categories c ON c.id = e.category_id
+        WHERE e.set_id = ?
+          AND e.expense_date BETWEEN ? AND ?
+        GROUP BY c.id, c.name, c.expense_type
+        ORDER BY total DESC
+    `, [setId, fromDate, toDate]);
 
     return rows;
 };

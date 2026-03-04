@@ -74,6 +74,7 @@ export default function AuthPage() {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   className="mt-1 app-input"
@@ -87,6 +88,7 @@ export default function AuthPage() {
                   type="password"
                   required
                   minLength={8}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   className="mt-1 app-input"
