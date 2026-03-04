@@ -68,6 +68,13 @@ const ANALYTICS_CATEGORY_SORT_OPTIONS = [
   { value: 'total', label: 'Mayor total actual' },
   { value: 'growth', label: 'Mayor crecimiento' },
 ];
+const ANALYTICS_QUICK_RANGE_OPTIONS = [
+  { key: 'week', label: 'Ultima semana' },
+  { key: 'month', label: 'Ultimo mes' },
+  { key: 'quarter', label: 'Ultimos 3 meses' },
+  { key: 'semester', label: 'Ultimo semestre' },
+  { key: 'year', label: 'Ultimo año' },
+];
 const INCOME_TYPE_OPTIONS = [
   { value: '1', label: 'Efectivo' },
   { value: '3', label: 'Debito' },
@@ -102,6 +109,52 @@ const getTodayYmd = () => formatLocalYmd(new Date());
 const getMonthsAgoMonthStartYmd = (monthsAgo) => {
   const date = new Date();
   return formatLocalYmd(new Date(date.getFullYear(), date.getMonth() - monthsAgo, 1));
+};
+const getDaysAgoYmd = (daysAgo) => {
+  const date = new Date();
+  date.setDate(date.getDate() - Number(daysAgo || 0));
+  return formatLocalYmd(date);
+};
+const resolveAnalyticsQuickRange = (rangeKey) => {
+  const normalizedKey = String(rangeKey || '').trim().toLowerCase();
+  const today = getTodayYmd();
+
+  if (normalizedKey === 'week') {
+    return {
+      from_date: getDaysAgoYmd(6),
+      to_date: today,
+    };
+  }
+
+  if (normalizedKey === 'month') {
+    return {
+      from_date: getMonthsAgoMonthStartYmd(0),
+      to_date: today,
+    };
+  }
+
+  if (normalizedKey === 'quarter') {
+    return {
+      from_date: getMonthsAgoMonthStartYmd(2),
+      to_date: today,
+    };
+  }
+
+  if (normalizedKey === 'semester') {
+    return {
+      from_date: getMonthsAgoMonthStartYmd(5),
+      to_date: today,
+    };
+  }
+
+  if (normalizedKey === 'year') {
+    return {
+      from_date: getMonthsAgoMonthStartYmd(11),
+      to_date: today,
+    };
+  }
+
+  return null;
 };
 const getIncomeTypeLabel = (incomeType) =>
   INCOME_TYPE_OPTIONS.find((item) => Number(item.value) === Number(incomeType))?.label || 'Desconocido';
@@ -287,6 +340,7 @@ export default function DesktopDashboardPage() {
   const [categorySort, setCategorySort] = useState({ key: null, direction: 'asc' });
   const [analyticsFilters, setAnalyticsFilters] = useState(defaultAnalyticsFilters);
   const [analyticsAppliedFilters, setAnalyticsAppliedFilters] = useState(defaultAnalyticsFilters);
+  const [analyticsFiltersExpanded, setAnalyticsFiltersExpanded] = useState(false);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
@@ -1831,6 +1885,33 @@ export default function DesktopDashboardPage() {
     });
   };
 
+  const clearAnalyticsFilters = () => {
+    setAnalyticsError('');
+    setAnalyticsFilters(defaultAnalyticsFilters);
+    setAnalyticsAppliedFilters(defaultAnalyticsFilters);
+  };
+
+  const applyAnalyticsQuickRange = (rangeKey) => {
+    const range = resolveAnalyticsQuickRange(rangeKey);
+    if (!range) return;
+
+    const normalizedFromDate = String(range.from_date || '').trim();
+    const normalizedToDate = String(range.to_date || '').trim();
+    if (!normalizedFromDate || !normalizedToDate || normalizedFromDate > normalizedToDate) return;
+
+    setAnalyticsError('');
+    setAnalyticsFilters((prev) => ({
+      ...prev,
+      from_date: normalizedFromDate,
+      to_date: normalizedToDate,
+    }));
+    setAnalyticsAppliedFilters((prev) => ({
+      ...prev,
+      from_date: normalizedFromDate,
+      to_date: normalizedToDate,
+    }));
+  };
+
   const toggleDraftExpenseTypes = (nextExpenseTypeIds) => {
     setFiltersDraft((prev) => {
       const allowedCategoryIds = categories
@@ -2360,99 +2441,144 @@ export default function DesktopDashboardPage() {
             {tab === TAB.ANALYTICS ? (
               <div className="no-scrollbar min-h-0 min-w-0 flex-1 overflow-auto">
                 <article className="min-w-0 rounded-xl bg-app-bg/25 p-4">
-                  <div className="grid gap-3 xl:grid-cols-6">
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Desde</span>
-                      <input
-                        className="app-input mt-2"
-                        type="date"
-                        value={analyticsFilters.from_date}
-                        onChange={(event) =>
-                          setAnalyticsFilters((prev) => ({
-                            ...prev,
-                            from_date: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Hasta</span>
-                      <input
-                        className="app-input mt-2"
-                        type="date"
-                        value={analyticsFilters.to_date}
-                        onChange={(event) =>
-                          setAnalyticsFilters((prev) => ({
-                            ...prev,
-                            to_date: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo ingreso</span>
-                      <select
-                        className="app-select mt-2"
-                        value={analyticsFilters.income_type}
-                        onChange={(event) =>
-                          setAnalyticsFilters((prev) => ({
-                            ...prev,
-                            income_type: event.target.value,
-                          }))
-                        }
-                      >
-                        {ANALYTICS_INCOME_TYPE_OPTIONS.map((option) => (
-                          <option key={option.value || 'all'} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Top categorias</span>
-                      <select
-                        className="app-select mt-2"
-                        value={analyticsFilters.category_limit}
-                        onChange={(event) =>
-                          setAnalyticsFilters((prev) => ({
-                            ...prev,
-                            category_limit: event.target.value,
-                          }))
-                        }
-                      >
-                        {ANALYTICS_CATEGORY_LIMIT_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Orden ranking</span>
-                      <select
-                        className="app-select mt-2"
-                        value={analyticsFilters.category_sort}
-                        onChange={(event) =>
-                          setAnalyticsFilters((prev) => ({
-                            ...prev,
-                            category_sort: event.target.value,
-                          }))
-                        }
-                      >
-                        {ANALYTICS_CATEGORY_SORT_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="flex items-end">
+                  <div className="flex flex-col">
+                    <div
+                      className={`order-2 grid overflow-hidden transition-all duration-300 ease-out ${analyticsFiltersExpanded ? 'mt-3 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0'} ${analyticsFiltersExpanded ? '' : 'pointer-events-none'}`}
+                      aria-hidden={!analyticsFiltersExpanded}
+                    >
+                      <div className="min-h-0 overflow-hidden">
+                        <div className="grid gap-3 xl:grid-cols-6">
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Desde</span>
+                            <input
+                              className="app-input mt-2"
+                              type="date"
+                              value={analyticsFilters.from_date}
+                              onChange={(event) =>
+                                setAnalyticsFilters((prev) => ({
+                                  ...prev,
+                                  from_date: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Hasta</span>
+                            <input
+                              className="app-input mt-2"
+                              type="date"
+                              value={analyticsFilters.to_date}
+                              onChange={(event) =>
+                                setAnalyticsFilters((prev) => ({
+                                  ...prev,
+                                  to_date: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo ingreso</span>
+                            <select
+                              className="app-select mt-2"
+                              value={analyticsFilters.income_type}
+                              onChange={(event) =>
+                                setAnalyticsFilters((prev) => ({
+                                  ...prev,
+                                  income_type: event.target.value,
+                                }))
+                              }
+                            >
+                              {ANALYTICS_INCOME_TYPE_OPTIONS.map((option) => (
+                                <option key={option.value || 'all'} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Top categorias</span>
+                            <select
+                              className="app-select mt-2"
+                              value={analyticsFilters.category_limit}
+                              onChange={(event) =>
+                                setAnalyticsFilters((prev) => ({
+                                  ...prev,
+                                  category_limit: event.target.value,
+                                }))
+                              }
+                            >
+                              {ANALYTICS_CATEGORY_LIMIT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Orden ranking</span>
+                            <select
+                              className="app-select mt-2"
+                              value={analyticsFilters.category_sort}
+                              onChange={(event) =>
+                                setAnalyticsFilters((prev) => ({
+                                  ...prev,
+                                  category_sort: event.target.value,
+                                }))
+                              }
+                            >
+                              {ANALYTICS_CATEGORY_SORT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className="flex items-end gap-2">
+                            <button
+                              type="button"
+                              onClick={clearAnalyticsFilters}
+                              className="w-full rounded-lg bg-app-panel px-3 py-2 text-xs font-extrabold uppercase text-app-ink"
+                            >
+                              Limpiar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={applyAnalyticsFilters}
+                              className="w-full rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg"
+                            >
+                              Aplicar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="order-1 mt-0 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {ANALYTICS_QUICK_RANGE_OPTIONS.map((option) => {
+                          const quickRange = resolveAnalyticsQuickRange(option.key);
+                          const isActive =
+                            quickRange
+                            && analyticsFilters.from_date === quickRange.from_date
+                            && analyticsFilters.to_date === quickRange.to_date;
+
+                          return (
+                            <button
+                              key={option.key}
+                              type="button"
+                              onClick={() => applyAnalyticsQuickRange(option.key)}
+                              className={`rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide ${isActive ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                       <button
                         type="button"
-                        onClick={applyAnalyticsFilters}
-                        className="w-full rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg"
+                        onClick={() => setAnalyticsFiltersExpanded((prev) => !prev)}
+                        className="rounded-lg bg-app-panel px-3 py-2 text-xs font-extrabold uppercase text-app-ink"
                       >
-                        Aplicar
+                        {analyticsFiltersExpanded ? 'Ocultar filtros' : 'Mostrar filtros'}
                       </button>
                     </div>
                   </div>
