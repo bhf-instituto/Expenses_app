@@ -1,5 +1,8 @@
 import {
     createIncome,
+    getIncomeById,
+    updateIncomeById,
+    deleteIncomeById,
     getIncomesByFilters,
     getIncomeTotalByRange,
     getExpenseTotalByRange,
@@ -231,6 +234,79 @@ export const getAll = async ({
     filters.offset = (pageNumber - 1) * limitNumber;
 
     return await getIncomesByFilters(filters);
+};
+
+export const update = async ({
+    setId,
+    incomeId,
+    income_type,
+    amount,
+    income_date
+}) => {
+    const normalizedSetId = Number(setId);
+    if (!Number.isInteger(normalizedSetId) || normalizedSetId <= 0) {
+        throw new AppError('invalid set id', 400);
+    }
+
+    const normalizedIncomeId = Number(incomeId);
+    if (!Number.isInteger(normalizedIncomeId) || normalizedIncomeId <= 0) {
+        throw new AppError('invalid income id', 400);
+    }
+
+    const current = await getIncomeById(normalizedIncomeId);
+    if (!current || Number(current.set_id) !== normalizedSetId) {
+        throw new AppError('income not found', 404);
+    }
+
+    const patchFields = {};
+
+    if (income_type !== undefined) {
+        const normalizedIncomeType = Number(income_type);
+        if (!Object.values(INCOME_TYPE).includes(normalizedIncomeType)) {
+            throw new AppError('invalid income type', 400);
+        }
+        patchFields.income_type = normalizedIncomeType;
+    }
+
+    if (amount !== undefined) {
+        const normalizedAmount = Number(amount);
+        if (!Number.isInteger(normalizedAmount) || normalizedAmount <= 0) {
+            throw new AppError('invalid amount', 400);
+        }
+        patchFields.amount = normalizedAmount;
+    }
+
+    if (income_date !== undefined) {
+        if (!income_date || isNaN(Date.parse(income_date))) {
+            throw new AppError('invalid income_date', 400);
+        }
+        patchFields.income_date = String(income_date).slice(0, 10);
+    }
+
+    if (Object.keys(patchFields).length === 0) {
+        throw new AppError('nothing to update', 400);
+    }
+
+    await updateIncomeById(normalizedIncomeId, patchFields);
+};
+
+export const remove = async ({ setId, incomeId }) => {
+    const normalizedSetId = Number(setId);
+    if (!Number.isInteger(normalizedSetId) || normalizedSetId <= 0) {
+        throw new AppError('invalid set id', 400);
+    }
+
+    const normalizedIncomeId = Number(incomeId);
+    if (!Number.isInteger(normalizedIncomeId) || normalizedIncomeId <= 0) {
+        throw new AppError('invalid income id', 400);
+    }
+
+    const current = await getIncomeById(normalizedIncomeId);
+    if (!current || Number(current.set_id) !== normalizedSetId) {
+        throw new AppError('income not found', 404);
+    }
+
+    await deleteIncomeById(normalizedIncomeId);
 };
 
 export const getAnalytics = async ({

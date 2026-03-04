@@ -100,4 +100,52 @@ const getIncomeAnalytics = async (req, res) => {
     }
 };
 
-export { createIncome, getIncomes, getIncomeAnalytics };
+const updateIncome = async (req, res) => {
+    try {
+        const setId = req.set.id;
+        const incomeId = req.params.id_income;
+        const { income_type, amount, income_date } = req.body;
+
+        await incomeService.update({
+            setId,
+            incomeId,
+            income_type,
+            amount,
+            income_date
+        });
+
+        return res.status(200).json({
+            ok: true,
+            data: { message: 'income updated correctly' }
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+
+const deleteIncome = async (req, res) => {
+    try {
+        const setId = req.set.id;
+        const incomeId = req.params.id_income;
+
+        await incomeService.remove({
+            setId,
+            incomeId
+        });
+
+        return res.status(200).json({
+            ok: true,
+            data: { message: 'income deleted correctly' }
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            ok: false,
+            data: { message: error.message || 'internal service error' }
+        });
+    }
+};
+
+export { createIncome, getIncomes, getIncomeAnalytics, updateIncome, deleteIncome };

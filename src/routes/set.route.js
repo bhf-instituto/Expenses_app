@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { createSet, getAllSets, getSetUsers, editSetName, deleteSet, getSet, removeSetUser } from '../controllers/set.controller.js';
 import { createCategory, getAllCategoriesFromSet } from '../controllers/category.controller.js';
 import { createExpense, getExpenses, getDeletedExpenses, getExpenseTotals, getExpenseTotalsFiltered } from '../controllers/expenses.controller.js';
-import { createIncome, getIncomes, getIncomeAnalytics } from '../controllers/income.controller.js';
+import { createIncome, getIncomes, getIncomeAnalytics, updateIncome, deleteIncome } from '../controllers/income.controller.js';
 import { requireUser } from '../middlewares/requireUser.middleware.js';
 import { checkSetAccess } from '../middlewares/checkSetAccess.middleware.js';
 
@@ -34,5 +34,7 @@ router.get('/:id_set/expenses/totalsFiltered', checkSetAccess(), getExpenseTotal
 router.post('/:id_set/incomes', checkSetAccess(true), createIncome);
 router.get('/:id_set/incomes', checkSetAccess(), getIncomes);
 router.get('/:id_set/incomes/analytics', checkSetAccess(), getIncomeAnalytics);
+router.put('/:id_set/incomes/:id_income', checkSetAccess(true), updateIncome);
+router.delete('/:id_set/incomes/:id_income', checkSetAccess(true), deleteIncome);
 
 export default router;

@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 import { getCachedSetUsers, setCachedSetUsers } from '../lib/localCache.js';
 import { resolveSessionScope } from '../lib/sessionScope.js';
+import { formatAmountInput, parseAmountInput } from '../lib/amountFormat.js';
 
 const todayDate = new Date().toISOString().slice(0, 10);
 const getEmailAlias = (email) => String(email || '').split('@')[0] || email;
@@ -41,7 +42,7 @@ export default function CreateExpensePage() {
     () => ({
       category_id: Number(categoryId),
       user_id: Number(selectedCreatorId || user?.id),
-      amount: Number(amount),
+      amount: parseAmountInput(amount),
       payment_method: Number(paymentMethod),
       description: description.trim() || null,
       expense_date: expenseDate,
@@ -137,7 +138,7 @@ export default function CreateExpensePage() {
   const submitExpense = async () => {
     if (submitting) return;
 
-    const numericAmount = Number(amount);
+    const numericAmount = parseAmountInput(amount);
     if (!Number.isInteger(numericAmount) || numericAmount <= 0) {
       setError('El monto debe ser un entero positivo.');
       return;
@@ -202,14 +203,13 @@ export default function CreateExpensePage() {
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Monto</span>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min="1"
-                  step="1"
+                  pattern="[0-9.]*"
                   value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
+                  onChange={(event) => setAmount(formatAmountInput(event.target.value))}
                   className="mt-1 app-input"
-                  placeholder="10000"
+                  placeholder="10.000"
                 />
               </label>
 

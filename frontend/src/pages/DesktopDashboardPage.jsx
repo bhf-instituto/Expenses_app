@@ -32,11 +32,13 @@ import { resolveSessionScope } from '../lib/sessionScope.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 import useFlipListAnimation from '../hooks/useFlipListAnimation.js';
+import { formatAmountInput, parseAmountInput } from '../lib/amountFormat.js';
 
 const LazyDesktopTopCategoryChart = lazy(() => import('../components/DesktopTopCategoryChart.jsx'));
 
 const TAB = {
   EXPENSES: 'expenses',
+  INCOMES: 'incomes',
   CATEGORIES: 'categories',
   USERS: 'users',
   ANALYTICS: 'analytics',
@@ -66,6 +68,26 @@ const ANALYTICS_CATEGORY_SORT_OPTIONS = [
   { value: 'total', label: 'Mayor total actual' },
   { value: 'growth', label: 'Mayor crecimiento' },
 ];
+const INCOME_TYPE_OPTIONS = [
+  { value: '1', label: 'Efectivo' },
+  { value: '3', label: 'Debito' },
+];
+
+const buildPaginationItems = (currentPage, totalPages) => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, '...', totalPages];
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+};
 
 const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
 const formatDateOnly = (value) => String(value || '').slice(0, 10);
@@ -81,6 +103,8 @@ const getMonthsAgoMonthStartYmd = (monthsAgo) => {
   const date = new Date();
   return formatLocalYmd(new Date(date.getFullYear(), date.getMonth() - monthsAgo, 1));
 };
+const getIncomeTypeLabel = (incomeType) =>
+  INCOME_TYPE_OPTIONS.find((item) => Number(item.value) === Number(incomeType))?.label || 'Desconocido';
 const formatMonthLabel = (year, month) => `${String(month).padStart(2, '0')}/${year}`;
 const formatMoney = (value) => `$${Number(value || 0).toLocaleString('es-AR')}`;
 const formatPercentFromDecimal = (value, digits = 2) =>
@@ -156,6 +180,11 @@ const defaultExpenseForm = {
   expense_date: new Date().toISOString().slice(0, 10),
   description: '',
 };
+const defaultIncomeForm = {
+  income_type: '1',
+  amount: '',
+  income_date: getTodayYmd(),
+};
 const EXPENSE_SORT_DEFAULT_DIRECTION = {
   category: 'asc',
   amount: 'desc',
@@ -214,6 +243,7 @@ export default function DesktopDashboardPage() {
   const [categories, setCategories] = useState([]);
   const [users, setUsers] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [incomes, setIncomes] = useState([]);
   const [filters, setFilters] = useState(defaultFilters);
   const [filtersDraft, setFiltersDraft] = useState(defaultFilters);
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
@@ -236,6 +266,9 @@ export default function DesktopDashboardPage() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState(defaultExpenseForm);
+  const [incomeModalOpen, setIncomeModalOpen] = useState(false);
+  const [incomeForm, setIncomeForm] = useState(defaultIncomeForm);
+  const [editingIncomeId, setEditingIncomeId] = useState(null);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
@@ -257,8 +290,10 @@ export default function DesktopDashboardPage() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
-  const expensesScrollRef = useRef(null);
-  const [expensesScrollProgress, setExpensesScrollProgress] = useState(0);
+  const expensesViewportRef = useRef(null);
+  const firstExpenseRowRef = useRef(null);
+  const [expenseRowsPerPage, setExpenseRowsPerPage] = useState(10);
+  const [expensePage, setExpensePage] = useState(1);
 
   const selectedGroup = useMemo(
     () => groups.find((group) => Number(group.id) === Number(selectedSetId)) || null,
@@ -313,11 +348,30 @@ export default function DesktopDashboardPage() {
     return allExpenses;
   }, []);
 
+  const fetchAllIncomesForSet = useCallback(async (setId) => {
+    const pageSize = 100;
+    const maxPages = 1000;
+    const allIncomes = [];
+
+    for (let page = 1; page <= maxPages; page += 1) {
+      const batch = await incomesApi.getAll(setId, { page, limit: pageSize });
+      const rows = Array.isArray(batch) ? batch : [];
+      allIncomes.push(...rows);
+
+      if (rows.length < pageSize) {
+        break;
+      }
+    }
+
+    return allIncomes;
+  }, []);
+
   const loadSetData = useCallback(async (setId) => {
     if (!setId || Number(setId) <= 0) {
       setCategories([]);
       setUsers([]);
       setExpenses([]);
+      setIncomes([]);
       return;
     }
     setLoading(true);
@@ -326,6 +380,7 @@ export default function DesktopDashboardPage() {
     setCategories(getCachedCategories(setId, undefined, scope));
     setUsers(getCachedSetUsers(setId, scope));
     setExpenses(getCachedExpenses(setId, scope));
+    setIncomes([]);
 
     if (!isOnline) {
       setLoading(false);
@@ -333,17 +388,20 @@ export default function DesktopDashboardPage() {
     }
 
     try {
-      const [cats, groupUsers, exps] = await Promise.all([
+      const [cats, groupUsers, exps, incomeRows] = await Promise.all([
         categoriesApi.getAll(setId, undefined),
         setsApi.getUsers(setId),
         fetchAllExpensesForSet(setId),
+        fetchAllIncomesForSet(setId),
       ]);
       const nextCategories = cats?.categories || [];
       const nextUsers = groupUsers?.users || [];
       const nextExpenses = Array.isArray(exps) ? exps : [];
+      const nextIncomes = Array.isArray(incomeRows) ? incomeRows : [];
       setCategories(nextCategories);
       setUsers(nextUsers);
       setExpenses(nextExpenses);
+      setIncomes(nextIncomes);
       setCachedCategories(setId, undefined, nextCategories, scope);
       setCachedSetUsers(setId, nextUsers, scope);
       setCachedExpenses(setId, nextExpenses, scope);
@@ -352,7 +410,7 @@ export default function DesktopDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [fetchAllExpensesForSet, isOnline, scope]);
+  }, [fetchAllExpensesForSet, fetchAllIncomesForSet, isOnline, scope]);
 
   useEffect(() => {
     loadGroups();
@@ -513,6 +571,37 @@ export default function DesktopDashboardPage() {
       .map((item) => item.expense);
   }, [expenseSort, filteredExpenses]);
 
+  const totalExpensePages = useMemo(
+    () => Math.max(1, Math.ceil(sortedFilteredExpenses.length / Math.max(1, expenseRowsPerPage))),
+    [expenseRowsPerPage, sortedFilteredExpenses.length]
+  );
+
+  const paginatedExpenses = useMemo(() => {
+    const startIndex = (expensePage - 1) * expenseRowsPerPage;
+    const endIndex = startIndex + expenseRowsPerPage;
+    return sortedFilteredExpenses.slice(startIndex, endIndex);
+  }, [expensePage, expenseRowsPerPage, sortedFilteredExpenses]);
+
+  const expensePaginationItems = useMemo(
+    () => buildPaginationItems(expensePage, totalExpensePages),
+    [expensePage, totalExpensePages]
+  );
+
+  const expensePageRange = useMemo(() => {
+    if (sortedFilteredExpenses.length === 0) {
+      return { from: 0, to: 0, total: 0 };
+    }
+
+    const from = (expensePage - 1) * expenseRowsPerPage + 1;
+    const to = Math.min(expensePage * expenseRowsPerPage, sortedFilteredExpenses.length);
+    return { from, to, total: sortedFilteredExpenses.length };
+  }, [expensePage, expenseRowsPerPage, sortedFilteredExpenses.length]);
+
+  const expensePageProgress = useMemo(() => {
+    if (totalExpensePages <= 1) return 1;
+    return (expensePage - 1) / (totalExpensePages - 1);
+  }, [expensePage, totalExpensePages]);
+
   const sortedCategories = useMemo(() => {
     if (!categorySort.key) return categories;
 
@@ -548,6 +637,15 @@ export default function DesktopDashboardPage() {
       })
       .map((item) => item.category);
   }, [categories, categorySort]);
+
+  const sortedIncomes = useMemo(() => {
+    const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
+    return [...incomes].sort((a, b) => {
+      const dateCompare = collator.compare(formatDateOnly(b.income_date), formatDateOnly(a.income_date));
+      if (dateCompare !== 0) return dateCompare;
+      return Number(b.id || 0) - Number(a.id || 0);
+    });
+  }, [incomes]);
 
   const toggleExpenseSort = (key) => {
     setExpenseSort((prev) => {
@@ -597,6 +695,61 @@ export default function DesktopDashboardPage() {
       )
     );
   }, [filteredExpenses]);
+
+  useEffect(() => {
+    setExpensePage(1);
+  }, [selectedSetId, filters, expenseSort]);
+
+  useEffect(() => {
+    setExpensePage((prev) => Math.min(prev, totalExpensePages));
+  }, [totalExpensePages]);
+
+  const recalculateExpenseRowsPerPage = useCallback(() => {
+    const viewportNode = expensesViewportRef.current;
+    if (!viewportNode) return;
+
+    const viewportHeight = viewportNode.clientHeight;
+    if (!viewportHeight || viewportHeight <= 0) return;
+
+    const sampleRowHeight = firstExpenseRowRef.current?.getBoundingClientRect?.().height;
+    const estimatedRowHeight = Number.isFinite(sampleRowHeight) && sampleRowHeight > 0
+      ? sampleRowHeight
+      : 52;
+
+    const nextRowsPerPage = Math.max(1, Math.floor(viewportHeight / estimatedRowHeight));
+    setExpenseRowsPerPage((prev) => (prev === nextRowsPerPage ? prev : nextRowsPerPage));
+  }, []);
+
+  useEffect(() => {
+    if (tab !== TAB.EXPENSES) return undefined;
+
+    const raf = requestAnimationFrame(recalculateExpenseRowsPerPage);
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => cancelAnimationFrame(raf);
+    }
+
+    const viewportNode = expensesViewportRef.current;
+    if (!viewportNode) {
+      return () => cancelAnimationFrame(raf);
+    }
+
+    const observer = new ResizeObserver(() => {
+      recalculateExpenseRowsPerPage();
+    });
+    observer.observe(viewportNode);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
+  }, [recalculateExpenseRowsPerPage, tab]);
+
+  useEffect(() => {
+    if (tab !== TAB.EXPENSES) return undefined;
+    const raf = requestAnimationFrame(recalculateExpenseRowsPerPage);
+    return () => cancelAnimationFrame(raf);
+  }, [tab, expensePage, paginatedExpenses.length, expandedExpenseIds.length, recalculateExpenseRowsPerPage]);
 
   const totalAmount = useMemo(
     () => filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
@@ -963,6 +1116,14 @@ export default function DesktopDashboardPage() {
     setCachedExpenses(selectedSetId, next, scope);
   };
 
+  const upsertIncomeLocal = (nextIncome) => {
+    setIncomes((prev) => [nextIncome, ...prev.filter((item) => Number(item.id) !== Number(nextIncome.id))]);
+  };
+
+  const removeIncomeLocal = (incomeId) => {
+    setIncomes((prev) => prev.filter((item) => Number(item.id) !== Number(incomeId)));
+  };
+
   const openConfirmModal = ({ type, payload, title, description, confirmLabel = 'Confirmar' }) => {
     setConfirmModal({
       open: true,
@@ -1271,7 +1432,7 @@ export default function DesktopDashboardPage() {
     setExpenseForm({
       expense_type: String(expense.expense_type || '1'),
       category_id: String(expense.category_id || ''),
-      amount: String(expense.amount || ''),
+      amount: formatAmountInput(String(expense.amount || '')),
       payment_method: String(expense.payment_method || '1'),
       user_id: String(expense.user_id || ''),
       expense_date: formatDateOnly(expense.expense_date),
@@ -1286,9 +1447,117 @@ export default function DesktopDashboardPage() {
     setExpenseModalOpen(false);
   };
 
+  const openCreateIncomeModal = () => {
+    if (!isAdmin) {
+      setError('Solo administradores pueden cargar ingresos.');
+      return;
+    }
+    setEditingIncomeId(null);
+    setIncomeForm({
+      ...defaultIncomeForm,
+      amount: '',
+      income_date: getTodayYmd(),
+    });
+    setIncomeModalOpen(true);
+  };
+
+  const resetIncomeForm = () => {
+    setEditingIncomeId(null);
+    setIncomeForm(defaultIncomeForm);
+    setIncomeModalOpen(false);
+  };
+
+  const startIncomeEdit = (income) => {
+    setEditingIncomeId(Number(income.id));
+    setIncomeForm({
+      income_type: String(income.income_type || '1'),
+      amount: formatAmountInput(String(income.amount || '')),
+      income_date: formatDateOnly(income.income_date),
+    });
+    setIncomeModalOpen(true);
+  };
+
+  const requestDeleteIncome = (income) => {
+    openConfirmModal({
+      type: 'delete-income',
+      payload: { incomeId: Number(income.id), amount: Number(income.amount || 0) },
+      title: 'Eliminar ingreso',
+      description: `Se eliminara el ingreso por ${formatMoney(income.amount)} del ${formatDateOnly(income.income_date)}.`,
+      confirmLabel: 'Eliminar',
+    });
+  };
+
+  const saveIncome = async () => {
+    if (!selectedSetId) return;
+    if (!isAdmin) {
+      setError('Solo administradores pueden cargar ingresos.');
+      return;
+    }
+    if (!isOnline) {
+      setError('La carga de ingresos esta disponible solo online.');
+      return;
+    }
+
+    const incomeType = Number(incomeForm.income_type);
+    const amount = parseAmountInput(incomeForm.amount);
+    const incomeDate = String(incomeForm.income_date || '').trim();
+
+    if (![1, 3].includes(incomeType)) {
+      setError('Tipo de ingreso invalido.');
+      return;
+    }
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setError('Monto invalido.');
+      return;
+    }
+    if (!incomeDate) {
+      setError('Fecha requerida.');
+      return;
+    }
+
+    if (!editingIncomeId) {
+      const payload = {
+        income_type: incomeType,
+        amount,
+        income_date: incomeDate,
+      };
+      const data = await incomesApi.create(selectedSetId, payload);
+      upsertIncomeLocal({
+        id: Number(data?.id),
+        ...payload,
+      });
+      resetIncomeForm();
+      setMessage('Ingreso cargado.');
+      if (tab === TAB.ANALYTICS) {
+        await loadAnalytics();
+      }
+      return;
+    }
+
+    const incomeId = Number(editingIncomeId);
+    const patchPayload = {
+      income_type: incomeType,
+      amount,
+      income_date: incomeDate,
+    };
+
+    await incomesApi.update(selectedSetId, incomeId, patchPayload);
+    upsertIncomeLocal({
+      id: incomeId,
+      ...patchPayload,
+    });
+
+    resetIncomeForm();
+    setMessage('Ingreso editado.');
+
+    if (tab === TAB.ANALYTICS) {
+      await loadAnalytics();
+    }
+  };
+
   const saveExpense = async () => {
     if (!selectedSetId) return;
-    const amount = Number(expenseForm.amount);
+    const amount = parseAmountInput(expenseForm.amount);
     const paymentMethod = Number(expenseForm.payment_method);
     const expenseDate = String(expenseForm.expense_date || '').trim();
     const description = String(expenseForm.description || '').trim() || null;
@@ -1454,6 +1723,21 @@ export default function DesktopDashboardPage() {
       return;
     }
 
+    if (action.type === 'delete-income') {
+      const incomeId = Number(action.payload?.incomeId);
+      if (!isOnline) {
+        setError('La eliminacion de ingresos esta disponible solo online.');
+        return;
+      }
+      removeIncomeLocal(incomeId);
+      await incomesApi.delete(selectedSetId, incomeId);
+      setMessage('Ingreso eliminado.');
+      if (tab === TAB.ANALYTICS) {
+        await loadAnalytics();
+      }
+      return;
+    }
+
     if (action.type === 'remove-user') {
       const groupUser = action.payload?.groupUser;
       if (!groupUser) return;
@@ -1489,20 +1773,15 @@ export default function DesktopDashboardPage() {
     }
   };
 
-  const updateExpensesScrollProgress = useCallback(() => {
-    const node = expensesScrollRef.current;
-    if (!node) {
-      setExpensesScrollProgress(0);
-      return;
-    }
-    const maxScroll = node.scrollHeight - node.clientHeight;
-    if (maxScroll <= 0) {
-      setExpensesScrollProgress(0);
-      return;
-    }
-    const nextProgress = Math.min(1, Math.max(0, node.scrollTop / maxScroll));
-    setExpensesScrollProgress(nextProgress);
-  }, []);
+  const goToExpensePage = useCallback((nextPage) => {
+    setExpensePage((prev) => {
+      const target = Number(nextPage);
+      if (!Number.isInteger(target)) return prev;
+      if (target < 1) return 1;
+      if (target > totalExpensePages) return totalExpensePages;
+      return target;
+    });
+  }, [totalExpensePages]);
 
   const openFiltersModal = () => {
     setFiltersDraft(filters);
@@ -1586,12 +1865,6 @@ export default function DesktopDashboardPage() {
     const next = toggleFavoriteGroup(targetGroupId, scope);
     setFavoriteGroupId(next);
   };
-
-  useEffect(() => {
-    if (tab !== TAB.EXPENSES) return;
-    const raf = requestAnimationFrame(updateExpensesScrollProgress);
-    return () => cancelAnimationFrame(raf);
-  }, [tab, filteredExpenses.length, updateExpensesScrollProgress]);
 
   return (
     <main className="hidden h-[100dvh] overflow-hidden bg-app-bg text-app-ink lg:flex">
@@ -1726,6 +1999,13 @@ export default function DesktopDashboardPage() {
               </button>
               <button
                 type="button"
+                onClick={() => setTab(TAB.INCOMES)}
+                className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase ${tab === TAB.INCOMES ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+              >
+                Ingresos
+              </button>
+              <button
+                type="button"
                 onClick={() => setTab(TAB.CATEGORIES)}
                 className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase ${tab === TAB.CATEGORIES ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
               >
@@ -1763,7 +2043,7 @@ export default function DesktopDashboardPage() {
                   >
                     <div
                       className="absolute left-0 top-0 h-full bg-app-ink transition-[width] duration-150"
-                      style={{ width: `${Math.round(expensesScrollProgress * 100)}%` }}
+                      style={{ width: `${Math.round(expensePageProgress * 100)}%` }}
                     />
                   </div>
                   <button
@@ -1784,6 +2064,18 @@ export default function DesktopDashboardPage() {
                     className="rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     Crear
+                  </button>
+                </div>
+              ) : null}
+              {tab === TAB.INCOMES ? (
+                <div className="ml-auto flex items-center">
+                  <button
+                    type="button"
+                    onClick={openCreateIncomeModal}
+                    disabled={!isAdmin || !selectedSetId || !isOnline}
+                    className="rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    Cargar ingreso
                   </button>
                 </div>
               ) : null}
@@ -1867,11 +2159,7 @@ export default function DesktopDashboardPage() {
                     </tr>
                   </thead>
                 </table>
-                <div
-                  ref={expensesScrollRef}
-                  onScroll={updateExpensesScrollProgress}
-                  className="no-scrollbar min-h-0 flex-1 overflow-auto"
-                >
+                <div ref={expensesViewportRef} className="min-h-0 flex-1 overflow-hidden">
                   <table className="w-full table-fixed text-left">
                     <colgroup>
                       <col className="w-[15%]" />
@@ -1883,12 +2171,13 @@ export default function DesktopDashboardPage() {
                       <col className="w-[20%]" />
                     </colgroup>
                     <tbody>
-                      {sortedFilteredExpenses.map((expense) => {
+                      {paginatedExpenses.map((expense, expenseIndex) => {
                         const expenseId = Number(expense.id);
                         const isExpanded = expandedExpenseIds.includes(expenseId);
                         return (
                           <Fragment key={expense.id}>
                             <tr
+                              ref={expenseIndex === 0 ? firstExpenseRowRef : null}
                               className="cursor-pointer border-t border-app-ink/10 text-base hover:bg-app-bg/25"
                               onClick={() =>
                                 setExpandedExpenseIds((prev) =>
@@ -1949,6 +2238,122 @@ export default function DesktopDashboardPage() {
                     </tbody>
                   </table>
                 </div>
+                <div className="mt-2 shrink-0 border-t border-app-ink/10 pt-2">
+                  <p className="mb-2 text-xs font-semibold text-app-muted">
+                    Mostrando {expensePageRange.from}-{expensePageRange.to} de {expensePageRange.total}
+                  </p>
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(1)}
+                      disabled={expensePage <= 1}
+                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      &laquo;
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(expensePage - 1)}
+                      disabled={expensePage <= 1}
+                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      &lsaquo;
+                    </button>
+                    {expensePaginationItems.map((item, index) => (
+                      item === '...'
+                        ? (
+                          <span key={`expense-page-ellipsis-${index}`} className="px-1 text-xs font-bold text-app-muted">
+                            ...
+                          </span>
+                        )
+                        : (
+                          <button
+                            key={`expense-page-${item}`}
+                            type="button"
+                            onClick={() => goToExpensePage(item)}
+                            className={`min-w-7 rounded-md px-2 py-1 text-xs font-extrabold ${expensePage === item ? 'bg-app-ink text-app-bg' : 'bg-app-panel text-app-ink'}`}
+                          >
+                            {item}
+                          </button>
+                        )
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(expensePage + 1)}
+                      disabled={expensePage >= totalExpensePages}
+                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      &rsaquo;
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(totalExpensePages)}
+                      disabled={expensePage >= totalExpensePages}
+                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      &raquo;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {tab === TAB.INCOMES ? (
+              <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
+                <table className="w-full max-w-[68rem] table-fixed text-left">
+                  <colgroup>
+                    <col className="w-[28%]" />
+                    <col className="w-[28%]" />
+                    <col className="w-[24%]" />
+                    <col className="w-[20%]" />
+                  </colgroup>
+                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
+                    <tr>
+                      <th className="px-2 py-2 text-left">Tipo</th>
+                      <th className="px-2 py-2 text-left">Monto</th>
+                      <th className="px-2 py-2 text-left">Fecha</th>
+                      <th className="px-2 py-2 text-left">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedIncomes.map((income) => (
+                      <tr key={income.id} className="border-t border-app-ink/10 text-base">
+                        <td className="px-2 py-2 font-semibold">{getIncomeTypeLabel(income.income_type)}</td>
+                        <td className="px-2 py-2 font-extrabold">{formatMoney(income.amount)}</td>
+                        <td className="px-2 py-2">{formatDateOnly(income.income_date)}</td>
+                        <td className="px-2 py-2">
+                          <div className="flex items-center justify-start gap-1">
+                            <button
+                              type="button"
+                              title="Editar ingreso"
+                              disabled={!isAdmin || !isOnline}
+                              onClick={() => startIncomeEdit(income)}
+                              className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Eliminar ingreso"
+                              disabled={!isAdmin || !isOnline}
+                              onClick={() => requestDeleteIncome(income)}
+                              className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {sortedIncomes.length === 0 ? (
+                      <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
+                        <td colSpan={4} className="px-2 py-4">
+                          No hay ingresos cargados.
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
               </div>
             ) : null}
 
@@ -2578,12 +2983,14 @@ export default function DesktopDashboardPage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Monto</span>
             <input
               className="app-input mt-2"
-              type="number"
-              min="1"
-              step="1"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9.]*"
               placeholder="0"
               value={expenseForm.amount}
-              onChange={(event) => setExpenseForm((prev) => ({ ...prev, amount: event.target.value }))}
+              onChange={(event) =>
+                setExpenseForm((prev) => ({ ...prev, amount: formatAmountInput(event.target.value) }))
+              }
             />
           </label>
 
@@ -2628,6 +3035,75 @@ export default function DesktopDashboardPage() {
             className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
           >
             {editingExpenseId ? 'Guardar cambios' : 'Guardar gasto'}
+          </button>
+        </div>
+      </DesktopModal>
+
+      <DesktopModal
+        open={incomeModalOpen}
+        onClose={resetIncomeForm}
+        title={editingIncomeId ? 'Editar ingreso' : 'Cargar ingreso'}
+      >
+        <div className="space-y-3">
+          <div className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo ingreso</span>
+            <div className="mt-2">
+              <WrappedChoiceGroup
+                options={INCOME_TYPE_OPTIONS}
+                value={incomeForm.income_type}
+                onChange={(value) =>
+                  setIncomeForm((prev) => ({
+                    ...prev,
+                    income_type: String(value),
+                  }))
+                }
+                itemMinWidth={132}
+              />
+            </div>
+          </div>
+
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Monto</span>
+            <input
+              className="app-input mt-2"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9.]*"
+              placeholder="10.000"
+              value={incomeForm.amount}
+              onChange={(event) =>
+                setIncomeForm((prev) => ({ ...prev, amount: formatAmountInput(event.target.value) }))
+              }
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
+            <input
+              className="app-input mt-2"
+              type="date"
+              value={incomeForm.income_date}
+              onChange={(event) =>
+                setIncomeForm((prev) => ({ ...prev, income_date: event.target.value }))
+              }
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={resetIncomeForm}
+            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => onAction(saveIncome)}
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+          >
+            {editingIncomeId ? 'Guardar cambios' : 'Guardar ingreso'}
           </button>
         </div>
       </DesktopModal>

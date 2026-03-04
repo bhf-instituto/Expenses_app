@@ -9,6 +9,48 @@ export const createIncome = async (setId, incomeType, amount, incomeDate) => {
     return result.insertId;
 };
 
+export const getIncomeById = async (incomeId) => {
+    const [rows] = await conn.query(`
+        SELECT
+            id,
+            set_id,
+            income_type,
+            amount,
+            income_date,
+            updated_at
+        FROM incomes
+        WHERE id = ?
+        LIMIT 1
+    `, [incomeId]);
+
+    return rows[0] || null;
+};
+
+export const updateIncomeById = async (incomeId, fields) => {
+    const keys = Object.keys(fields);
+    if (keys.length === 0) return 0;
+
+    const setClause = keys.map((key) => `${key} = ?`).join(', ');
+    const values = keys.map((key) => fields[key]);
+
+    const [result] = await conn.query(`
+        UPDATE incomes
+        SET ${setClause}
+        WHERE id = ?
+    `, [...values, incomeId]);
+
+    return result.affectedRows;
+};
+
+export const deleteIncomeById = async (incomeId) => {
+    const [result] = await conn.query(`
+        DELETE FROM incomes
+        WHERE id = ?
+    `, [incomeId]);
+
+    return result.affectedRows;
+};
+
 export const getIncomesByFilters = async (filters) => {
     let query = `
         SELECT

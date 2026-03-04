@@ -111,6 +111,9 @@ export const incomesApi = {
   create: (setId, payload) => request(`/sets/${setId}/incomes`, { method: 'POST', body: payload }),
   getAll: (setId, query) => request(`/sets/${setId}/incomes`, { query }),
   getAnalytics: (setId, query) => request(`/sets/${setId}/incomes/analytics`, { query }),
+  update: (setId, incomeId, payload) =>
+    request(`/sets/${setId}/incomes/${incomeId}`, { method: 'PUT', body: payload }),
+  delete: (setId, incomeId) => request(`/sets/${setId}/incomes/${incomeId}`, { method: 'DELETE' }),
 };
 
 export const inviteApi = {
