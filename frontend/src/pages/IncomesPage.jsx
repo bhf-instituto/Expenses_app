@@ -206,11 +206,11 @@ export default function IncomesPage() {
       <MobileHeader title={`Ingresos: ${setName}`} backTo="/groups" />
       <section className="min-h-0 flex-1 overflow-hidden px-4 pb-2 pt-3">
         <div className="flex h-full min-h-0 flex-col gap-3">
-          {!isOnline ? (
+          {/* {!isOnline ? (
             <p className="rounded-xl bg-app-warning px-3 py-2 text-sm font-semibold text-app-ink">
               Modo offline: se muestran ingresos cacheados.
             </p>
-          ) : null}
+          ) : null} */}
           {flashMessage ? (
             <p className="rounded-xl bg-app-success-bg px-3 py-2 text-sm font-semibold text-app-success-text">
               {flashMessage}

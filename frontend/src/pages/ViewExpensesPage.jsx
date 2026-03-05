@@ -53,6 +53,41 @@ const applyLocalExpenseFilters = (rows, currentFilters) =>
 
 const MOBILE_ITEMS_PER_PAGE = 30;
 
+const parseTimestamp = (value) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return Number.NaN;
+  const parsed = Date.parse(normalized.replace(' ', 'T'));
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const getLatestUpdatedAt = (rows) =>
+  rows.reduce((latest, row) => {
+    const candidate = String(row?.updated_at || '').trim();
+    if (!candidate) return latest;
+    if (!latest) return candidate;
+    return parseTimestamp(candidate) > parseTimestamp(latest) ? candidate : latest;
+  }, '');
+
+const sortExpenses = (rows) =>
+  [...rows].sort((a, b) => {
+    const updatedA = parseTimestamp(a?.updated_at);
+    const updatedB = parseTimestamp(b?.updated_at);
+    if (Number.isFinite(updatedA) && Number.isFinite(updatedB) && updatedA !== updatedB) {
+      return updatedB - updatedA;
+    }
+    return Number(b?.id || 0) - Number(a?.id || 0);
+  });
+
+const mergeExpenses = (baseRows, patchRows) => {
+  const map = new Map(baseRows.map((row) => [Number(row.id), row]));
+  patchRows.forEach((row) => {
+    const rowId = Number(row.id);
+    if (!Number.isInteger(rowId) || rowId <= 0) return;
+    map.set(rowId, row);
+  });
+  return sortExpenses([...map.values()]);
+};
+
 export default function ViewExpensesPage() {
   const location = useLocation();
   const { isOnline, user } = useAuth();
@@ -142,9 +177,16 @@ export default function ViewExpensesPage() {
 
   const loadExpenses = useCallback(
     async (currentFilters) => {
-      setLoading(true);
-      setError('');
+      const hasActiveFilters = Object.values(currentFilters).some((value) => String(value || '').trim() !== '');
       const cachedRows = getCachedExpenses(setId, sessionScope);
+      const hasCachedRows = cachedRows.length > 0;
+      const latestCachedUpdatedAt = getLatestUpdatedAt(cachedRows);
+
+      if (hasCachedRows) {
+        setExpenses(applyLocalExpenseFilters(cachedRows, currentFilters));
+      }
+      setLoading(!hasCachedRows);
+      setError('');
 
       if (!isOnline) {
         setExpenses(applyLocalExpenseFilters(cachedRows, currentFilters));
@@ -153,12 +195,28 @@ export default function ViewExpensesPage() {
       }
 
       try {
-        const rows = await fetchAllExpensesForSet(setId, currentFilters);
-        setExpenses(rows);
-        const hasActiveFilters = Object.values(currentFilters).some((value) => String(value || '').trim() !== '');
-        if (!hasActiveFilters) {
-          setCachedExpenses(setId, rows, sessionScope);
+        if (!hasCachedRows) {
+          const rows = await fetchAllExpensesForSet(setId, currentFilters);
+          setExpenses(rows);
+          if (!hasActiveFilters) {
+            setCachedExpenses(setId, rows, sessionScope);
+          }
+          return;
         }
+
+        const updatedRows = latestCachedUpdatedAt
+          ? await fetchAllExpensesForSet(setId, { updated_after: latestCachedUpdatedAt })
+          : [];
+
+        const nextBaseRows = updatedRows.length > 0
+          ? mergeExpenses(cachedRows, updatedRows)
+          : cachedRows;
+
+        if (updatedRows.length > 0 || !hasActiveFilters) {
+          setCachedExpenses(setId, nextBaseRows, sessionScope);
+        }
+
+        setExpenses(applyLocalExpenseFilters(nextBaseRows, currentFilters));
       } catch {
         setError('No se pudieron cargar los gastos');
         setExpenses(applyLocalExpenseFilters(cachedRows, currentFilters));
@@ -332,11 +390,11 @@ export default function ViewExpensesPage() {
       <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
       <section className="min-h-0 flex-1 overflow-hidden px-4 pb-2 pt-3">
         <div className="flex h-full min-h-0 flex-col gap-3">
-          {!isOnline ? (
+          {/* {!isOnline ? (
             <p className="rounded-xl bg-app-warning px-3 py-2 text-sm font-semibold text-app-ink">
               Modo offline: se muestran gastos cacheados.
             </p>
-          ) : null}
+          ) : null} */}
           <div className="rounded-2xl border-0 bg-app-panel p-4">
             <button
               type="button"
