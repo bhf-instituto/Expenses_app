@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
-import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
 import { ApiError, incomesApi, setsApi } from '../lib/apiClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { resolveSessionScope } from '../lib/sessionScope.js';
-import { formatAmountInput, parseAmountInput } from '../lib/amountFormat.js';
-import {
-  getCachedIncomes,
-  getCachedSetUsers,
-  setCachedIncomes,
-  setCachedSetUsers,
-} from '../lib/localCache.js';
+import { getCachedIncomes, getCachedSetUsers, setCachedIncomes, setCachedSetUsers } from '../lib/localCache.js';
 import { getPaymentMethodBgVarName } from '../lib/uiColorSettings.js';
 
 const INCOME_TYPE_OPTIONS = [
@@ -20,7 +13,6 @@ const INCOME_TYPE_OPTIONS = [
   { id: 3, label: 'Debito' },
 ];
 
-const todayDate = new Date().toISOString().slice(0, 10);
 const MOBILE_ITEMS_PER_PAGE = 30;
 
 const formatDateOnly = (value) => {
@@ -35,13 +27,8 @@ const formatMoney = (value) => `$ ${Number(value || 0).toLocaleString('es-AR')}`
 const getIncomeTypeLabel = (incomeType) =>
   INCOME_TYPE_OPTIONS.find((item) => Number(item.id) === Number(incomeType))?.label || 'Desconocido';
 
-const defaultIncomeForm = {
-  income_type: '1',
-  amount: '',
-  income_date: todayDate,
-};
-
 export default function IncomesPage() {
+  const navigate = useNavigate();
   const location = useLocation();
   const { setId } = useParams();
   const { isOnline, user } = useAuth();
@@ -50,9 +37,6 @@ export default function IncomesPage() {
   const [incomes, setIncomes] = useState(() => getCachedIncomes(setId, sessionScope));
   const [loading, setLoading] = useState(() => getCachedIncomes(setId, sessionScope).length === 0);
   const [error, setError] = useState('');
-  const [formOpen, setFormOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [incomeForm, setIncomeForm] = useState(defaultIncomeForm);
   const [resolvedRole, setResolvedRole] = useState(() => {
     const incomingRole = Number(location.state?.role);
     return Number.isInteger(incomingRole) ? incomingRole : null;
@@ -61,6 +45,7 @@ export default function IncomesPage() {
   const incomeRowsPerPage = MOBILE_ITEMS_PER_PAGE;
 
   const setName = location.state?.setName || `Grupo ${setId}`;
+  const flashMessage = String(location.state?.flash || '').trim();
 
   const sortedIncomes = useMemo(() => {
     const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
@@ -72,17 +57,6 @@ export default function IncomesPage() {
   }, [incomes]);
 
   const isAdmin = Number(resolvedRole) === 1;
-  const canManageIncomes = isOnline && isAdmin;
-
-  const incomeTypeChoiceOptions = useMemo(
-    () =>
-      INCOME_TYPE_OPTIONS.map((item) => ({
-        value: String(item.id),
-        label: item.label,
-        bgColorVar: getPaymentMethodBgVarName(item.id),
-      })),
-    []
-  );
 
   const totalIncomePages = useMemo(
     () => Math.max(1, Math.ceil(sortedIncomes.length / Math.max(1, incomeRowsPerPage))),
@@ -136,6 +110,7 @@ export default function IncomesPage() {
     const cachedIncomes = getCachedIncomes(setId, sessionScope);
     if (!cancelled) {
       if (cachedIncomes.length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIncomes(cachedIncomes);
       }
       setLoading(cachedIncomes.length === 0);
@@ -182,6 +157,7 @@ export default function IncomesPage() {
     const cachedUsers = getCachedSetUsers(setId, sessionScope);
     const cachedCurrentUser = cachedUsers.find((item) => Number(item.id) === Number(user?.id));
     if (cachedCurrentUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResolvedRole(Number(cachedCurrentUser.role));
       return;
     }
@@ -213,97 +189,17 @@ export default function IncomesPage() {
   }, [isOnline, resolvedRole, sessionScope, setId, user?.id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIncomePage((prev) => Math.min(prev, totalIncomePages));
   }, [totalIncomePages]);
 
-  const openCreateForm = () => {
-    if (!canManageIncomes) {
-      setError(!isOnline ? 'La carga de ingresos esta disponible solo online.' : 'Solo administradores pueden cargar ingresos.');
-      return;
-    }
-
-    setIncomeForm({
-      ...defaultIncomeForm,
-      income_date: todayDate,
-    });
-    setError('');
-    setFormOpen(true);
-  };
-
-  const closeIncomeForm = () => {
-    setFormOpen(false);
-    setIncomeForm({
-      ...defaultIncomeForm,
-      income_date: todayDate,
-    });
-    setError('');
-  };
-
-  const upsertIncomeLocal = (nextIncome) => {
-    setIncomes((prev) => {
-      const next = [nextIncome, ...prev.filter((item) => Number(item.id) !== Number(nextIncome.id))];
-      setCachedIncomes(setId, next, sessionScope);
-      return next;
-    });
-  };
-
-  const submitIncome = async () => {
-    if (submitting) return;
-    if (!canManageIncomes) {
-      setError(!isOnline ? 'La carga de ingresos esta disponible solo online.' : 'Solo administradores pueden cargar ingresos.');
-      return;
-    }
-
-    const incomeType = Number(incomeForm.income_type);
-    const amount = parseAmountInput(incomeForm.amount);
-    const incomeDate = String(incomeForm.income_date || '').trim();
-
-    if (![1, 3].includes(incomeType)) {
-      setError('Tipo de ingreso invalido.');
-      return;
-    }
-    if (!Number.isInteger(amount) || amount <= 0) {
-      setError('El monto debe ser un entero positivo.');
-      return;
-    }
-    if (!incomeDate) {
-      setError('Debes seleccionar una fecha.');
-      return;
-    }
-
-    setSubmitting(true);
-    setError('');
-
-    try {
-      const payload = {
-        income_type: incomeType,
-        amount,
-        income_date: incomeDate,
-      };
-
-      const data = await incomesApi.create(setId, payload);
-      upsertIncomeLocal(data);
-
-      setIncomePage(1);
-      closeIncomeForm();
-    } catch (requestError) {
-      const message =
-        requestError instanceof ApiError ? requestError.message : 'No se pudo guardar el ingreso';
-      setError(message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const actionLabel = !isOnline
-    ? 'Ingresos solo online'
-    : resolvedRole === null
+  const actionLabel = resolvedRole === null
     ? 'Cargando permisos...'
     : !isAdmin
     ? 'Solo admin puede crear ingresos'
-    : formOpen
-    ? 'Cerrar formulario'
-    : 'Crear ingreso';
+    : isOnline
+    ? 'Crear ingreso'
+    : 'Crear ingreso (offline)';
 
   return (
     <main className="app-shell">
@@ -315,79 +211,13 @@ export default function IncomesPage() {
               Modo offline: se muestran ingresos cacheados.
             </p>
           ) : null}
-
-          {formOpen ? (
-            <div className="rounded-2xl border-0 bg-app-panel p-4">
-              <div className="space-y-3">
-                <div className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo ingreso</span>
-                  <div className="mt-2">
-                    <SingleChoiceButtons
-                      value={incomeForm.income_type}
-                      onChange={(value) =>
-                        setIncomeForm((prev) => ({
-                          ...prev,
-                          income_type: String(value),
-                        }))
-                      }
-                      options={incomeTypeChoiceOptions}
-                      columns={2}
-                    />
-                  </div>
-                </div>
-
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Monto</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9.]*"
-                    value={incomeForm.amount}
-                    onChange={(event) =>
-                      setIncomeForm((prev) => ({
-                        ...prev,
-                        amount: formatAmountInput(event.target.value),
-                      }))
-                    }
-                    className="mt-1 app-input"
-                    placeholder="10.000"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
-                  <input
-                    type="date"
-                    value={incomeForm.income_date}
-                    onChange={(event) =>
-                      setIncomeForm((prev) => ({
-                        ...prev,
-                        income_date: event.target.value,
-                      }))
-                    }
-                    className="mt-1 app-input"
-                  />
-                </label>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={closeIncomeForm}
-                    className="rounded-lg bg-app-panel px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-muted"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={submitIncome}
-                    disabled={submitting}
-                    className="rounded-lg bg-app-sky px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    {submitting ? 'Guardando...' : 'Guardar ingreso'}
-                  </button>
-                </div>
-              </div>
-            </div>
+          {flashMessage ? (
+            <p className="rounded-xl bg-app-success-bg px-3 py-2 text-sm font-semibold text-app-success-text">
+              {flashMessage}
+            </p>
+          ) : null}
+          {error ? (
+            <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
           ) : null}
 
           <div className="min-h-0 flex flex-1 flex-col rounded-2xl border-0 bg-app-panel/70 p-3">
@@ -466,29 +296,22 @@ export default function IncomesPage() {
               </div>
             ) : null}
           </div>
-
-          {error ? (
-            <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
-          ) : null}
         </div>
       </section>
 
       <BottomActionBar
         label={actionLabel}
-        disabled={!isOnline || !isAdmin || resolvedRole === null}
+        disabled={!isAdmin || resolvedRole === null}
         borderless
-        onClick={() => {
-          if (formOpen) {
-            closeIncomeForm();
-            return;
-          }
-          openCreateForm();
-        }}
+        onClick={() =>
+          navigate(`/sets/${setId}/incomes/new`, {
+            state: {
+              setName,
+              role: resolvedRole,
+            },
+          })
+        }
       />
     </main>
   );
 }
-
-
-
-

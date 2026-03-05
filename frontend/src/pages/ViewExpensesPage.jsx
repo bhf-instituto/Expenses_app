@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
-import BottomActionBar from '../components/BottomActionBar.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
 import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
 import { ApiError, categoriesApi, expensesApi, setsApi } from '../lib/apiClient.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
 import {
   getCachedCategories,
+  getCachedExpenses,
   getCachedSetUsers,
   setCachedCategories,
+  setCachedExpenses,
   setCachedSetUsers,
 } from '../lib/localCache.js';
 import { resolveSessionScope } from '../lib/sessionScope.js';
@@ -25,10 +26,34 @@ const formatDateOnly = (value) => {
   return dateMatch ? dateMatch[0] : rawValue;
 };
 
+const applyLocalExpenseFilters = (rows, currentFilters) =>
+  rows.filter((expense) => {
+    if (currentFilters.expense_type && String(expense.expense_type) !== String(currentFilters.expense_type)) {
+      return false;
+    }
+    if (currentFilters.category_id && String(expense.category_id) !== String(currentFilters.category_id)) {
+      return false;
+    }
+    if (currentFilters.payment_method && String(expense.payment_method) !== String(currentFilters.payment_method)) {
+      return false;
+    }
+    if (currentFilters.user_id && String(expense.user_id) !== String(currentFilters.user_id)) {
+      return false;
+    }
+
+    const expenseDate = formatDateOnly(expense.expense_date);
+    if (currentFilters.from_date && expenseDate < currentFilters.from_date) {
+      return false;
+    }
+    if (currentFilters.to_date && expenseDate > currentFilters.to_date) {
+      return false;
+    }
+    return true;
+  });
+
 const MOBILE_ITEMS_PER_PAGE = 30;
 
 export default function ViewExpensesPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { isOnline, user } = useAuth();
   const { setId } = useParams();
@@ -119,16 +144,29 @@ export default function ViewExpensesPage() {
     async (currentFilters) => {
       setLoading(true);
       setError('');
+      const cachedRows = getCachedExpenses(setId, sessionScope);
+
+      if (!isOnline) {
+        setExpenses(applyLocalExpenseFilters(cachedRows, currentFilters));
+        setLoading(false);
+        return;
+      }
+
       try {
         const rows = await fetchAllExpensesForSet(setId, currentFilters);
         setExpenses(rows);
+        const hasActiveFilters = Object.values(currentFilters).some((value) => String(value || '').trim() !== '');
+        if (!hasActiveFilters) {
+          setCachedExpenses(setId, rows, sessionScope);
+        }
       } catch {
         setError('No se pudieron cargar los gastos');
+        setExpenses(applyLocalExpenseFilters(cachedRows, currentFilters));
       } finally {
         setLoading(false);
       }
     },
-    [fetchAllExpensesForSet, setId]
+    [fetchAllExpensesForSet, isOnline, sessionScope, setId]
   );
 
   const groupedCategoriesByType = useMemo(
@@ -250,7 +288,12 @@ export default function ViewExpensesPage() {
       setCategories(cachedCategories);
     }
 
-    if (!isOnline) return () => { cancelled = true; };
+    if (!isOnline) {
+      loadExpenses(filters);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const loadCategories = async () => {
       try {
@@ -284,25 +327,16 @@ export default function ViewExpensesPage() {
     setExpensePage((prev) => Math.min(prev, totalExpensePages));
   }, [totalExpensePages]);
 
-  if (!isOnline) {
-    return (
-      <main className="app-shell">
-        <MobileHeader title="Ver gastos" backTo="/groups" />
-        <section className="scroll-pane">
-          <div className="rounded-2xl border-0 bg-app-warning p-4 text-sm font-semibold text-app-ink">
-            El modo VER esta deshabilitado offline.
-          </div>
-        </section>
-        <BottomActionBar label="Volver a grupos" borderless tone="logout" onClick={() => navigate('/groups')} />
-      </main>
-    );
-  }
-
   return (
     <main className="app-shell">
       <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
       <section className="min-h-0 flex-1 overflow-hidden px-4 pb-2 pt-3">
         <div className="flex h-full min-h-0 flex-col gap-3">
+          {!isOnline ? (
+            <p className="rounded-xl bg-app-warning px-3 py-2 text-sm font-semibold text-app-ink">
+              Modo offline: se muestran gastos cacheados.
+            </p>
+          ) : null}
           <div className="rounded-2xl border-0 bg-app-panel p-4">
             <button
               type="button"

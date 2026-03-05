@@ -31,7 +31,7 @@ export default function HomePage() {
   const { pendingCount } = useExpenseSync();
   const sessionScope = resolveSessionScope(user);
   const [mode, setMode] = useState('create');
-  const effectiveMode = !isOnline ? 'create' : mode;
+  const effectiveMode = mode;
   const [groups, setGroups] = useState(() => getCachedSets(sessionScope));
   const [favoriteGroupId, setFavoriteGroupId] = useState(() => getFavoriteGroupId(sessionScope));
   const [startupGroupId, setStartupGroupIdState] = useState(() => getStartupGroupId(sessionScope));
@@ -147,13 +147,11 @@ export default function HomePage() {
     };
 
     if (effectiveMode === 'view') {
-      if (!isOnline) return;
       navigate(`/sets/${group.id}/view`, { state: navigationState });
       return;
     }
 
     if (effectiveMode === 'incomes') {
-      if (!isOnline) return;
       navigate(`/sets/${group.id}/incomes`, { state: navigationState });
       return;
     }
@@ -205,14 +203,16 @@ export default function HomePage() {
               </div>
             )}
             {pendingCount > 0 ? (
-              <div
+              <button
+                type="button"
+                onClick={() => navigate('/pending-actions')}
                 className="flex h-8 shrink-0 items-center gap-0.5 rounded-full border-0 bg-transparent border-app-status-pending-border bg-app-status-pending-bg px-2"
-                title={`Gastos pendientes: ${pendingCount}`}
-                aria-label={`Gastos pendientes: ${pendingCount}`}
+                title={`Acciones pendientes: ${pendingCount}`}
+                aria-label={`Acciones pendientes: ${pendingCount}`}
               >
                 <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
                 <span className="text-xs font-extrabold leading-none text-app-ink">{pendingCount}</span>
-              </div>
+              </button>
             ) : null}
             {showNetDebug ? (
               <div
@@ -244,14 +244,9 @@ export default function HomePage() {
           <ModeToggle
             mode={effectiveMode}
             onChange={setMode}
-            viewDisabled={!isOnline}
-            incomeDisabled={!isOnline}
+            viewDisabled={false}
+            incomeDisabled={false}
           />
-          {(effectiveMode === 'view' || effectiveMode === 'incomes') && !isOnline ? (
-            <p className="rounded-xl border border-app-ink/15 bg-app-panel px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
-              Los modos VER e INGRESOS estan deshabilitados sin conexion.
-            </p>
-          ) : null}
 
           <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border-0 border-app-ink/20 bg-app-mint/35 p-3">
             <div className="no-scrollbar h-full overflow-y-auto">
@@ -278,7 +273,6 @@ export default function HomePage() {
                         }
                         accent="bg-app-mint"
                         onClick={() => openGroup(group)}
-                        disabled={(effectiveMode === 'view' || effectiveMode === 'incomes') && !isOnline}
                         showFavorite
                         isFavorite={Number(group.id) === Number(favoriteGroupId)}
                         onToggleFavorite={() => handleToggleGroupFavorite(group.id)}

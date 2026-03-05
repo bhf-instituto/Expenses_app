@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiError, categoriesApi, expensesApi, setsApi } from '../lib/apiClient.js';
+import { ApiError, categoriesApi, expensesApi, incomesApi, setsApi } from '../lib/apiClient.js';
 import { enqueueAction, getPendingActions, replaceActionQueue } from '../lib/offlineActionQueue.js';
 import { useAuth } from './AuthContext.jsx';
 
@@ -115,6 +115,10 @@ const processAction = async (entry) => {
       };
     }
 
+    case 'income.create':
+      await incomesApi.create(payload.setId, payload.payload);
+      return null;
+
     case 'expense.update':
       await expensesApi.update(payload.expenseId, payload.payload);
       return null;
@@ -136,14 +140,14 @@ const processAction = async (entry) => {
 
 export const ExpenseSyncProvider = ({ children }) => {
   const { user, isOnline } = useAuth();
-  const [pendingCount, setPendingCount] = useState(() => getPendingActions().length);
+  const [pendingActions, setPendingActions] = useState(() => getPendingActions());
   const syncingRef = useRef(false);
 
   const queueAction = useCallback(({ type, payload }) => {
     enqueueAction({ type, payload });
-    const nextCount = getPendingActions().length;
-    setPendingCount(nextCount);
-    return nextCount;
+    const nextQueue = getPendingActions();
+    setPendingActions(nextQueue);
+    return nextQueue.length;
   }, []);
 
   const queueExpense = useCallback(
@@ -159,11 +163,50 @@ export const ExpenseSyncProvider = ({ children }) => {
     [queueAction]
   );
 
+  const removePendingAction = useCallback((actionId) => {
+    const normalizedId = String(actionId || '').trim();
+    if (!normalizedId) return;
+    const queue = getPendingActions();
+    const nextQueue = queue.filter((entry) => String(entry.id) !== normalizedId);
+    replaceActionQueue(nextQueue);
+    setPendingActions(nextQueue);
+  }, []);
+
+  const updatePendingAction = useCallback((actionId, nextAction) => {
+    const normalizedId = String(actionId || '').trim();
+    if (!normalizedId) return null;
+
+    const queue = getPendingActions();
+    let updatedEntry = null;
+
+    const nextQueue = queue.map((entry) => {
+      if (String(entry.id) !== normalizedId) return entry;
+
+      const nextType = String(nextAction?.type || entry.type || '').trim();
+      const nextPayload =
+        nextAction && typeof nextAction.payload === 'object' && nextAction.payload
+          ? nextAction.payload
+          : entry.payload;
+
+      updatedEntry = {
+        ...entry,
+        type: nextType || entry.type,
+        payload: nextPayload,
+      };
+
+      return updatedEntry;
+    });
+
+    replaceActionQueue(nextQueue);
+    setPendingActions(nextQueue);
+    return updatedEntry;
+  }, []);
+
   const syncPendingExpenses = useCallback(async () => {
     if (!user || !isOnline || syncingRef.current) return;
 
     const queue = getPendingActions();
-    setPendingCount(queue.length);
+    setPendingActions(queue);
 
     if (queue.length === 0) return;
 
@@ -201,12 +244,12 @@ export const ExpenseSyncProvider = ({ children }) => {
         }
 
         replaceActionQueue(queue);
-        setPendingCount(queue.length);
+        setPendingActions([...queue]);
       } catch (error) {
         if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
           queue.splice(cursor, 1);
           replaceActionQueue(queue);
-          setPendingCount(queue.length);
+          setPendingActions([...queue]);
         } else {
           cursor += 1;
         }
@@ -214,7 +257,7 @@ export const ExpenseSyncProvider = ({ children }) => {
     }
 
     replaceActionQueue(queue);
-    setPendingCount(queue.length);
+    setPendingActions([...queue]);
     syncingRef.current = false;
   }, [user, isOnline]);
 
@@ -228,12 +271,15 @@ export const ExpenseSyncProvider = ({ children }) => {
 
   const value = useMemo(
     () => ({
-      pendingCount,
+      pendingCount: pendingActions.length,
+      pendingActions,
       queueAction,
       queueExpense,
+      removePendingAction,
+      updatePendingAction,
       syncPendingExpenses,
     }),
-    [pendingCount, queueAction, queueExpense, syncPendingExpenses]
+    [pendingActions, queueAction, queueExpense, removePendingAction, updatePendingAction, syncPendingExpenses]
   );
 
   return <ExpenseSyncContext.Provider value={value}>{children}</ExpenseSyncContext.Provider>;

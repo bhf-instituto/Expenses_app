@@ -16,10 +16,12 @@ import { ApiError, categoriesApi, expensesApi, incomesApi, setsApi } from '../li
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
 import {
   getCachedCategories,
+  getCachedIncomes,
   getCachedExpenses,
   getCachedSets,
   getCachedSetUsers,
   setCachedCategories,
+  setCachedIncomes,
   setCachedExpenses,
   setCachedSets,
   setCachedSetUsers,
@@ -167,8 +169,36 @@ const getGlobalTimePresetLabel = (presetKey) =>
   GLOBAL_TIME_PRESET_OPTIONS.find((option) => option.key === String(presetKey || '').toLowerCase())?.label || 'Personalizado';
 const getIncomeTypeLabel = (incomeType) =>
   INCOME_TYPE_OPTIONS.find((item) => Number(item.value) === Number(incomeType))?.label || 'Desconocido';
+const getPendingActionLabel = (type) => {
+  const normalized = String(type || '').trim().toLowerCase();
+  const labels = {
+    'set.create': 'Crear grupo',
+    'set.update': 'Editar grupo',
+    'set.delete': 'Eliminar grupo',
+    'category.create': 'Crear categoria',
+    'category.update': 'Editar categoria',
+    'category.delete': 'Eliminar categoria',
+    'expense.create': 'Crear gasto',
+    'expense.update': 'Editar gasto',
+    'expense.delete': 'Eliminar gasto',
+    'income.create': 'Crear ingreso',
+    'set.user.remove': 'Quitar usuario',
+  };
+  return labels[normalized] || type || 'Accion';
+};
 const formatMonthLabel = (year, month) => `${String(month).padStart(2, '0')}/${year}`;
 const formatMoney = (value) => `$${Number(value || 0).toLocaleString('es-AR')}`;
+const formatQueuedAt = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('es-AR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 const formatPercentFromDecimal = (value, digits = 2) =>
   value === null || value === undefined
     ? '-'
@@ -295,7 +325,14 @@ function DesktopModal({ open, title, children, onClose, maxWidthClass = 'max-w-l
 export default function DesktopDashboardPage() {
   const navigate = useNavigate();
   const { user, logout, isOnline } = useAuth();
-  const { pendingCount, queueAction, queueExpense } = useExpenseSync();
+  const {
+    pendingCount,
+    pendingActions,
+    queueAction,
+    queueExpense,
+    removePendingAction,
+    updatePendingAction,
+  } = useExpenseSync();
   const scope = resolveSessionScope(user);
   const persistedFavoriteGroupId = getFavoriteGroupId(scope);
 
@@ -361,6 +398,10 @@ export default function DesktopDashboardPage() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
+  const [pendingActionsModalOpen, setPendingActionsModalOpen] = useState(false);
+  const [pendingEditingActionId, setPendingEditingActionId] = useState(null);
+  const [pendingEditType, setPendingEditType] = useState('');
+  const [pendingEditPayload, setPendingEditPayload] = useState('');
   const expensesViewportRef = useRef(null);
   const firstExpenseRowRef = useRef(null);
   const [expenseRowsPerPage, setExpenseRowsPerPage] = useState(10);
@@ -507,7 +548,7 @@ export default function DesktopDashboardPage() {
     setCategories(getCachedCategories(setId, undefined, scope));
     setUsers(getCachedSetUsers(setId, scope));
     setExpenses(getCachedExpenses(setId, scope));
-    setIncomes([]);
+    setIncomes(getCachedIncomes(setId, scope));
 
     if (!isOnline) {
       setLoading(false);
@@ -532,6 +573,7 @@ export default function DesktopDashboardPage() {
       setCachedCategories(setId, undefined, nextCategories, scope);
       setCachedSetUsers(setId, nextUsers, scope);
       setCachedExpenses(setId, nextExpenses, scope);
+      setCachedIncomes(setId, nextIncomes, scope);
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError.message : 'No se pudieron cargar datos del grupo');
     } finally {
@@ -823,6 +865,14 @@ export default function DesktopDashboardPage() {
       return Number(b.id || 0) - Number(a.id || 0);
     });
   }, [filteredIncomes]);
+
+  const orderedPendingActions = useMemo(
+    () =>
+      [...pendingActions].sort((a, b) =>
+        String(a.queuedAt || '').localeCompare(String(b.queuedAt || ''))
+      ),
+    [pendingActions]
+  );
 
   const categoriesTopChartData = useMemo(() => {
     const topLimit = Math.max(1, Number(categoryTopLimit || 5));
@@ -1661,6 +1711,10 @@ export default function DesktopDashboardPage() {
   };
 
   const startExpenseEdit = (expense) => {
+    if (!isOnline) {
+      setError('La edicion de gastos esta disponible solo online.');
+      return;
+    }
     setEditingExpenseId(Number(expense.id));
     setExpenseForm({
       expense_type: String(expense.expense_type || '1'),
@@ -1701,6 +1755,10 @@ export default function DesktopDashboardPage() {
   };
 
   const startIncomeEdit = (income) => {
+    if (!isOnline) {
+      setError('La edicion de ingresos esta disponible solo online.');
+      return;
+    }
     setEditingIncomeId(Number(income.id));
     setIncomeForm({
       income_type: String(income.income_type || '1'),
@@ -1711,6 +1769,10 @@ export default function DesktopDashboardPage() {
   };
 
   const requestDeleteIncome = (income) => {
+    if (!isOnline) {
+      setError('La eliminacion de ingresos esta disponible solo online.');
+      return;
+    }
     openConfirmModal({
       type: 'delete-income',
       payload: { incomeId: Number(income.id), amount: Number(income.amount || 0) },
@@ -1726,8 +1788,8 @@ export default function DesktopDashboardPage() {
       setError('Solo administradores pueden cargar ingresos.');
       return;
     }
-    if (!isOnline) {
-      setError('La carga de ingresos esta disponible solo online.');
+    if (!isOnline && editingIncomeId) {
+      setError('La edicion de ingresos esta disponible solo online.');
       return;
     }
 
@@ -1754,6 +1816,30 @@ export default function DesktopDashboardPage() {
         amount,
         income_date: incomeDate,
       };
+
+      if (!isOnline) {
+        const tempIncomeId = createTempId();
+        upsertIncomeLocal({
+          id: tempIncomeId,
+          ...payload,
+          pending_sync: true,
+        });
+        queueAction({
+          type: 'income.create',
+          payload: {
+            setId: Number(selectedSetId),
+            payload,
+            tempIncomeId,
+          },
+        });
+        resetIncomeForm();
+        setMessage('Ingreso encolado offline.');
+        if (tab === TAB.ANALYTICS) {
+          await loadAnalytics();
+        }
+        return;
+      }
+
       const data = await incomesApi.create(selectedSetId, payload);
       upsertIncomeLocal({
         id: Number(data?.id),
@@ -1886,12 +1972,10 @@ export default function DesktopDashboardPage() {
       expense_type: Number(category?.expense_type || 1),
       category_name: category?.name || 'Categoria',
       user_email: creator?.email || user?.email || '',
-      pending_sync: !isOnline,
+      pending_sync: false,
     });
     if (!isOnline) {
-      queueAction({ type: 'expense.update', payload: { expenseId, payload: patchPayload } });
-      resetExpenseForm();
-      setMessage('Edicion de gasto encolada offline.');
+      setError('La edicion de gastos esta disponible solo online.');
       return;
     }
     await expensesApi.update(expenseId, patchPayload);
@@ -1945,12 +2029,11 @@ export default function DesktopDashboardPage() {
 
     if (action.type === 'delete-expense') {
       const expenseId = Number(action.payload?.expenseId);
-      removeExpenseLocal(expenseId);
       if (!isOnline) {
-        queueAction({ type: 'expense.delete', payload: { expenseId } });
-        setMessage('Eliminacion de gasto encolada offline.');
+        setError('La eliminacion de gastos esta disponible solo online.');
         return;
       }
+      removeExpenseLocal(expenseId);
       await expensesApi.delete(expenseId);
       setMessage('Gasto eliminado.');
       return;
@@ -2079,6 +2162,63 @@ export default function DesktopDashboardPage() {
       to_date: prev.to_date,
     }));
     setCategoryFilterPaneIndex(0);
+  };
+
+  const openPendingActionsModal = () => {
+    setPendingEditingActionId(null);
+    setPendingEditType('');
+    setPendingEditPayload('');
+    setPendingActionsModalOpen(true);
+  };
+
+  const closePendingActionsModal = () => {
+    setPendingActionsModalOpen(false);
+    setPendingEditingActionId(null);
+    setPendingEditType('');
+    setPendingEditPayload('');
+  };
+
+  const startPendingActionEdit = (action) => {
+    setPendingEditingActionId(action.id);
+    setPendingEditType(String(action.type || ''));
+    setPendingEditPayload(JSON.stringify(action.payload || {}, null, 2));
+  };
+
+  const cancelPendingActionEdit = () => {
+    setPendingEditingActionId(null);
+    setPendingEditType('');
+    setPendingEditPayload('');
+  };
+
+  const savePendingActionEdit = () => {
+    const actionId = pendingEditingActionId;
+    if (!actionId) return;
+
+    const nextType = String(pendingEditType || '').trim();
+    if (!nextType) {
+      setError('El tipo de accion no puede estar vacio.');
+      return;
+    }
+
+    let parsedPayload;
+    try {
+      parsedPayload = JSON.parse(String(pendingEditPayload || '{}'));
+    } catch {
+      setError('El payload de la accion debe ser JSON valido.');
+      return;
+    }
+
+    if (!parsedPayload || typeof parsedPayload !== 'object' || Array.isArray(parsedPayload)) {
+      setError('El payload de la accion debe ser un objeto JSON.');
+      return;
+    }
+
+    updatePendingAction(actionId, {
+      type: nextType,
+      payload: parsedPayload,
+    });
+    setMessage('Accion pendiente actualizada.');
+    cancelPendingActionEdit();
   };
 
   const applyAnalyticsFilters = () => {
@@ -2236,7 +2376,17 @@ export default function DesktopDashboardPage() {
                 <MonoIcon src={isOnline ? connectionIcon : offlineIcon} colorVar={isOnline ? '--app-icon-connection' : '--app-icon-offline'} className="h-7 w-7" />
                 {isOnline ? 'Online' : 'Offline'}
               </div>
-              {pendingCount > 0 ? <div className="flex items-center gap-1 text-xs font-bold uppercase"><MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />{pendingCount} pendientes</div> : null}
+              {pendingCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={openPendingActionsModal}
+                  className="flex items-center gap-1 text-xs font-bold uppercase"
+                  title="Ver acciones pendientes"
+                >
+                  <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
+                  {pendingCount} pendientes
+                </button>
+              ) : null}
               <button type="button" onClick={() => navigate('/profile')} className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase">{getEmailAlias(user?.email)}</button>
               <button type="button" onClick={async () => { await logout(); navigate('/auth', { replace: true }); }} className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase">Logout</button>
             </div>
@@ -2516,22 +2666,24 @@ export default function DesktopDashboardPage() {
                                   <button
                                     type="button"
                                     title="Editar gasto"
+                                    disabled={!isOnline}
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       startExpenseEdit(expense);
                                     }}
-                                    className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                                    className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
                                   >
                                     <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
                                   </button>
                                   <button
                                     type="button"
                                     title="Eliminar gasto"
+                                    disabled={!isOnline}
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       requestDeleteExpense(expense);
                                     }}
-                                    className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                                    className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
                                   >
                                     <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
                                   </button>
@@ -3866,6 +4018,113 @@ export default function DesktopDashboardPage() {
           >
             Aplicar filtros
           </button>
+        </div>
+      </DesktopModal>
+
+      <DesktopModal
+        open={pendingActionsModalOpen}
+        onClose={closePendingActionsModal}
+        title="Acciones pendientes"
+        maxWidthClass="max-w-5xl"
+      >
+        <div className="max-h-[65vh] overflow-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="uppercase tracking-wide text-app-muted">
+              <tr>
+                <th className="px-2 py-2">Tipo</th>
+                <th className="px-2 py-2">Encolada</th>
+                <th className="px-2 py-2">Payload</th>
+                <th className="px-2 py-2 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orderedPendingActions.map((action) => {
+                const isEditing = String(pendingEditingActionId) === String(action.id);
+                return (
+                  <tr key={action.id} className="border-t border-app-ink/10 align-top">
+                    <td className="px-2 py-2 font-semibold">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={pendingEditType}
+                          onChange={(event) => setPendingEditType(event.target.value)}
+                          className="app-input max-w-xs"
+                        />
+                      ) : (
+                        getPendingActionLabel(action.type)
+                      )}
+                    </td>
+                    <td className="px-2 py-2 text-app-muted">{formatQueuedAt(action.queuedAt)}</td>
+                    <td className="px-2 py-2">
+                      {isEditing ? (
+                        <textarea
+                          value={pendingEditPayload}
+                          onChange={(event) => setPendingEditPayload(event.target.value)}
+                          className="app-textarea min-h-[120px]"
+                        />
+                      ) : (
+                        <pre className="max-w-[32rem] overflow-x-auto rounded-lg bg-app-bg/30 px-2 py-2 text-[11px] font-semibold text-app-muted">
+                          {JSON.stringify(action.payload || {}, null, 2)}
+                        </pre>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center justify-end gap-2">
+                        {isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={cancelPendingActionEdit}
+                              className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={savePendingActionEdit}
+                              className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                            >
+                              Guardar
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startPendingActionEdit(action)}
+                              className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                removePendingAction(action.id);
+                                if (String(pendingEditingActionId) === String(action.id)) {
+                                  cancelPendingActionEdit();
+                                }
+                                setMessage('Accion pendiente eliminada.');
+                              }}
+                              className="rounded-lg bg-app-error-bg px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-error-text"
+                            >
+                              Eliminar
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {orderedPendingActions.length === 0 ? (
+                <tr className="border-t border-app-ink/10">
+                  <td colSpan={4} className="px-2 py-4 text-sm font-semibold text-app-muted">
+                    No hay acciones pendientes.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       </DesktopModal>
 

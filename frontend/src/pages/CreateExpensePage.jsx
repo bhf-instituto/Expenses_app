@@ -15,7 +15,6 @@ import { getPaymentMethodBgVarName } from '../lib/uiColorSettings.js';
 
 const todayDate = new Date().toISOString().slice(0, 10);
 const getEmailAlias = (email) => String(email || '').split('@')[0] || email;
-
 export default function CreateExpensePage() {
   const navigate = useNavigate();
   const location = useLocation();

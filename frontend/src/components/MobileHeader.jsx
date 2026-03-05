@@ -68,14 +68,16 @@ export default function MobileHeader({
             </div>
           )}
           {pendingCount > 0 ? (
-            <div
+            <button
+              type="button"
+              onClick={() => navigate('/pending-actions')}
               className="flex h-8 shrink-0 items-center gap-0.5 rounded-full border-0 bg-transparent border-app-status-pending-border bg-app-status-pending-bg px-2"
-              title={`Gastos pendientes: ${pendingCount}`}
-              aria-label={`Gastos pendientes: ${pendingCount}`}
+              title={`Acciones pendientes: ${pendingCount}`}
+              aria-label={`Acciones pendientes: ${pendingCount}`}
             >
               <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
               <span className="text-xs font-extrabold leading-none text-app-ink">{pendingCount}</span>
-            </div>
+            </button>
           ) : null}
           {showNetDebug ? (
             <div
