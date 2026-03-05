@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Area,
   AreaChart,
@@ -26,12 +26,62 @@ const formatPercent = (value) =>
 
 const PIE_COLORS = [
   'rgb(var(--app-accent-main))',
-  'rgb(var(--app-text-primary))',
-  'rgb(var(--app-text-muted))',
-  'rgb(var(--app-input-border))',
   'rgb(var(--app-accent-soft))',
-  'rgb(var(--app-status-online-text))',
+  'rgb(var(--app-payment-method-1-bg))',
+  'rgb(var(--app-payment-method-2-bg))',
+  'rgb(var(--app-payment-method-3-bg))',
+  'rgb(var(--app-input-border))',
 ];
+const RADIAN = Math.PI / 180;
+const PIE_LABEL_FILL = 'rgb(var(--app-text-primary))';
+
+const getPieFillByName = (name, fallbackIndex) => {
+  const normalizedName = String(name || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (normalizedName.includes('efectivo')) {
+    return 'rgb(var(--app-payment-method-1-bg))';
+  }
+  if (normalizedName.includes('debito')) {
+    return 'rgb(var(--app-payment-method-3-bg))';
+  }
+  if (normalizedName.includes('credito')) {
+    return 'rgb(var(--app-payment-method-2-bg))';
+  }
+  return PIE_COLORS[Number(fallbackIndex || 0) % PIE_COLORS.length];
+};
+
+const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+  if (cx == null || cy == null || innerRadius == null || outerRadius == null) return null;
+  const safeCx = Number(cx);
+  const safeCy = Number(cy);
+  const radius = Number(innerRadius) + (Number(outerRadius) - Number(innerRadius)) * 0.52;
+  const x = safeCx + radius * Math.cos(-Number(midAngle || 0) * RADIAN);
+  const y = safeCy + radius * Math.sin(-Number(midAngle || 0) * RADIAN);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill={PIE_LABEL_FILL}
+      textAnchor={x > safeCx ? 'start' : 'end'}
+      dominantBaseline="central"
+      className="text-[11px] font-extrabold"
+    >
+      {`${(Number(percent || 0) * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
+const renderPieSlice = (props) => (
+  <Sector
+    {...props}
+    fill={props?.payload?.fill || PIE_COLORS[Number(props?.index || 0) % PIE_COLORS.length]}
+    stroke="none"
+  />
+);
 
 export default function DesktopTopCategoryChart({
   type = 'verticalBar',
@@ -44,7 +94,6 @@ export default function DesktopTopCategoryChart({
   lineConnectNulls = false,
 }) {
   const resolvedSeries = useMemo(() => (Array.isArray(series) ? series : []), [series]);
-  const [activePieIndex, setActivePieIndex] = useState(0);
 
   const formatValue = useMemo(() => {
     if (typeof valueFormat === 'function') return valueFormat;
@@ -83,110 +132,54 @@ export default function DesktopTopCategoryChart({
       .map((item, index) => ({
         name: String(item?.[xKey] || item?.name || `Categoria ${index + 1}`),
         value: Number(item?.[valueKey] || 0),
-        fill: PIE_COLORS[index % PIE_COLORS.length],
+        fill: getPieFillByName(item?.[xKey] || item?.name, index),
       }))
       .filter((item) => item.value > 0);
   }, [data, resolvedSeries, type, xKey]);
 
-  if (resolvedSeries.length === 0) return null;
+  const renderActivePieTooltip = ({ active, payload }) => {
+    if (!active || !Array.isArray(payload) || payload.length === 0) return null;
 
-  const renderActivePieShape = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    startAngle,
-    endAngle,
-    fill,
-    payload,
-    percent,
-    value,
-  }) => {
-    const RADIAN = Math.PI / 180;
-    const safeMidAngle = Number(midAngle || 0);
-    const safeOuterRadius = Number(outerRadius || 0);
-    const safeCx = Number(cx || 0);
-    const safeCy = Number(cy || 0);
-    const sin = Math.sin(-RADIAN * safeMidAngle);
-    const cos = Math.cos(-RADIAN * safeMidAngle);
-    const sx = safeCx + (safeOuterRadius + 10) * cos;
-    const sy = safeCy + (safeOuterRadius + 10) * sin;
-    const mx = safeCx + (safeOuterRadius + 30) * cos;
-    const my = safeCy + (safeOuterRadius + 30) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 22;
-    const ey = my;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
+    const point = payload[0];
+    const labelColor = point?.payload?.fill || 'rgb(var(--app-text-primary))';
 
     return (
-      <g>
-        <text x={safeCx} y={safeCy} dy={8} textAnchor="middle" fill={fill} className="text-xs font-semibold">
-          {payload?.name || '-'}
-        </text>
-        <Sector
-          cx={safeCx}
-          cy={safeCy}
-          innerRadius={innerRadius}
-          outerRadius={outerRadius}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          fill={fill}
-        />
-        <Sector
-          cx={safeCx}
-          cy={safeCy}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          innerRadius={safeOuterRadius + 6}
-          outerRadius={safeOuterRadius + 10}
-          fill={fill}
-        />
-        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-        <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-        <text
-          x={ex + (cos >= 0 ? 1 : -1) * 12}
-          y={ey}
-          textAnchor={textAnchor}
-          fill="rgb(var(--app-text-primary))"
-          className="text-xs font-semibold"
+      <div style={{ ...tooltipStyle, padding: '0.55rem 0.65rem' }}>
+        <p
+          className="text-[11px] font-extrabold uppercase tracking-wide"
+          style={{ color: labelColor }}
         >
-          {`Valor ${formatValue(value)}`}
-        </text>
-        <text
-          x={ex + (cos >= 0 ? 1 : -1) * 12}
-          y={ey}
-          dy={16}
-          textAnchor={textAnchor}
-          fill="rgb(var(--app-text-muted))"
-          className="text-xs"
-        >
-          {`(${(Number(percent || 0) * 100).toFixed(2)}%)`}
-        </text>
-      </g>
+          {point?.name || '-'}
+        </p>
+        <p className="mt-1 text-xs font-semibold" style={{ color: 'rgb(var(--app-text-primary))' }}>
+          {formatValue(point?.value)}
+        </p>
+      </div>
     );
   };
+
+  if (resolvedSeries.length === 0) return null;
 
   if (type === 'activePie') {
     return (
       <ResponsiveContainer {...responsiveProps}>
-        <PieChart margin={{ top: 20, right: 120, bottom: 8, left: 120 }}>
+        <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
           <Pie
-            activeIndex={Math.min(activePieIndex, Math.max(pieData.length - 1, 0))}
-            activeShape={renderActivePieShape}
             data={pieData}
             cx="50%"
             cy="50%"
-            innerRadius="60%"
             outerRadius="80%"
+            labelLine={false}
+            label={renderPieLabel}
+            shape={renderPieSlice}
             dataKey="value"
-            onMouseEnter={(_, index) => setActivePieIndex(Number(index))}
             isAnimationActive
           >
             {pieData.map((entry) => (
               <Cell key={entry.name} fill={entry.fill} />
             ))}
           </Pie>
-          <Tooltip content={() => null} />
+          <Tooltip content={renderActivePieTooltip} />
         </PieChart>
       </ResponsiveContainer>
     );

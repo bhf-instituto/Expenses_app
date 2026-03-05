@@ -7,6 +7,8 @@ import pencilIcon from '../assets/icons/pencil-icon.svg';
 import closeLineIcon from '../assets/icons/close-line-icon.svg';
 import starEmptyIcon from '../assets/icons/star-empty-icon.svg';
 import starFullIcon from '../assets/icons/star-full-icon.svg';
+import triangleDownIcon from '../assets/icons/triangle-down-icon.svg';
+import triangleUpIcon from '../assets/icons/triangle-up-icon.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import WrappedChoiceGroup from '../components/WrappedChoiceGroup.jsx';
 import WrappedMultiChoiceGroup from '../components/WrappedMultiChoiceGroup.jsx';
@@ -71,10 +73,10 @@ const ANALYTICS_CATEGORY_SORT_OPTIONS = [
   { value: 'total', label: 'Mayor total actual' },
   { value: 'growth', label: 'Mayor crecimiento' },
 ];
-const ANALYTICS_QUICK_RANGE_OPTIONS = [
-  { key: 'week', label: 'Ultima semana' },
+const GLOBAL_TIME_PRESET_OPTIONS = [
+  { key: 'historic', label: 'Historico' },
   { key: 'month', label: 'Ultimo mes' },
-  { key: 'quarter', label: 'Ultimos 3 meses' },
+  { key: 'quarter', label: 'Ultimo trimestre' },
   { key: 'semester', label: 'Ultimo semestre' },
   { key: 'year', label: 'Ultimo año' },
 ];
@@ -111,56 +113,58 @@ const formatLocalYmd = (date) => {
   return `${year}-${month}-${day}`;
 };
 const getTodayYmd = () => formatLocalYmd(new Date());
-const getMonthsAgoMonthStartYmd = (monthsAgo) => {
-  const date = new Date();
-  return formatLocalYmd(new Date(date.getFullYear(), date.getMonth() - monthsAgo, 1));
-};
 const getDaysAgoYmd = (daysAgo) => {
   const date = new Date();
   date.setDate(date.getDate() - Number(daysAgo || 0));
   return formatLocalYmd(date);
 };
-const resolveAnalyticsQuickRange = (rangeKey) => {
-  const normalizedKey = String(rangeKey || '').trim().toLowerCase();
+const resolveGlobalTimePresetRange = (presetKey, historicalFromDate = '') => {
+  const normalizedKey = String(presetKey || '').trim().toLowerCase();
   const today = getTodayYmd();
+  const normalizedHistoricalFromDate = formatDateOnly(historicalFromDate);
 
-  if (normalizedKey === 'week') {
+  if (normalizedKey === 'historic') {
     return {
-      from_date: getDaysAgoYmd(6),
+      from_date: normalizedHistoricalFromDate || today,
       to_date: today,
     };
   }
 
   if (normalizedKey === 'month') {
     return {
-      from_date: getMonthsAgoMonthStartYmd(0),
+      from_date: getDaysAgoYmd(29),
       to_date: today,
     };
   }
 
   if (normalizedKey === 'quarter') {
     return {
-      from_date: getMonthsAgoMonthStartYmd(2),
+      from_date: getDaysAgoYmd(89),
       to_date: today,
     };
   }
 
   if (normalizedKey === 'semester') {
     return {
-      from_date: getMonthsAgoMonthStartYmd(5),
+      from_date: getDaysAgoYmd(179),
       to_date: today,
     };
   }
 
   if (normalizedKey === 'year') {
     return {
-      from_date: getMonthsAgoMonthStartYmd(11),
+      from_date: getDaysAgoYmd(364),
       to_date: today,
     };
   }
 
-  return null;
+  return {
+    from_date: normalizedHistoricalFromDate || today,
+    to_date: today,
+  };
 };
+const getGlobalTimePresetLabel = (presetKey) =>
+  GLOBAL_TIME_PRESET_OPTIONS.find((option) => option.key === String(presetKey || '').toLowerCase())?.label || 'Personalizado';
 const getIncomeTypeLabel = (incomeType) =>
   INCOME_TYPE_OPTIONS.find((item) => Number(item.value) === Number(incomeType))?.label || 'Desconocido';
 const formatMonthLabel = (year, month) => `${String(month).padStart(2, '0')}/${year}`;
@@ -254,10 +258,14 @@ const EXPENSE_SORT_DEFAULT_DIRECTION = {
 const CATEGORY_SORT_DEFAULT_DIRECTION = {
   name: 'asc',
   type: 'asc',
+  total: 'desc',
+};
+const defaultGlobalTimeFilter = {
+  preset: 'historic',
+  from_date: getTodayYmd(),
+  to_date: getTodayYmd(),
 };
 const defaultAnalyticsFilters = {
-  from_date: getMonthsAgoMonthStartYmd(11),
-  to_date: getTodayYmd(),
   income_type: '',
   category_limit: '5',
   category_sort: 'total',
@@ -302,6 +310,9 @@ export default function DesktopDashboardPage() {
   const [users, setUsers] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [incomes, setIncomes] = useState([]);
+  const [globalTimeFilter, setGlobalTimeFilter] = useState(defaultGlobalTimeFilter);
+  const [globalTimeDraft, setGlobalTimeDraft] = useState(defaultGlobalTimeFilter);
+  const [globalTimeModalOpen, setGlobalTimeModalOpen] = useState(false);
   const [filters, setFilters] = useState(defaultFilters);
   const [filtersDraft, setFiltersDraft] = useState(defaultFilters);
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
@@ -343,6 +354,7 @@ export default function DesktopDashboardPage() {
   const [expandedExpenseIds, setExpandedExpenseIds] = useState([]);
   const [expenseSort, setExpenseSort] = useState({ key: null, direction: 'asc' });
   const [categorySort, setCategorySort] = useState({ key: null, direction: 'asc' });
+  const [categoryTopLimit, setCategoryTopLimit] = useState('5');
   const [analyticsFilters, setAnalyticsFilters] = useState(defaultAnalyticsFilters);
   const [analyticsAppliedFilters, setAnalyticsAppliedFilters] = useState(defaultAnalyticsFilters);
   const [analyticsFiltersExpanded, setAnalyticsFiltersExpanded] = useState(false);
@@ -370,6 +382,58 @@ export default function DesktopDashboardPage() {
   const isSelectedGroupFavorite = Number(selectedGroup?.id) === Number(favoriteGroupId);
   const isAdmin = Number(selectedGroup?.role) === 1;
   const setAnimatedGroupRef = useFlipListAnimation(sortedGroupIds);
+  const historicalStartDate = useMemo(() => {
+    const allDates = [
+      ...expenses.map((expense) => formatDateOnly(expense.expense_date)).filter(Boolean),
+      ...incomes.map((income) => formatDateOnly(income.income_date)).filter(Boolean),
+    ].sort();
+    return allDates[0] || getTodayYmd();
+  }, [expenses, incomes]);
+  const globalTimeRangeLabel = useMemo(
+    () => getGlobalTimePresetLabel(globalTimeFilter.preset),
+    [globalTimeFilter.preset]
+  );
+
+  useEffect(() => {
+    const nextRange = resolveGlobalTimePresetRange('historic');
+    const nextValue = { preset: 'historic', ...nextRange };
+    setGlobalTimeFilter(nextValue);
+    setGlobalTimeDraft(nextValue);
+  }, [selectedSetId]);
+
+  useEffect(() => {
+    if (globalTimeFilter.preset !== 'historic') return;
+    const nextRange = resolveGlobalTimePresetRange('historic', historicalStartDate);
+    setGlobalTimeFilter((prev) =>
+      prev.from_date === nextRange.from_date && prev.to_date === nextRange.to_date
+        ? prev
+        : { ...prev, ...nextRange }
+    );
+  }, [globalTimeFilter.preset, historicalStartDate]);
+
+  useEffect(() => {
+    const { from_date: fromDate, to_date: toDate } = globalTimeFilter;
+    setFilters((prev) => (
+      prev.from_date === fromDate && prev.to_date === toDate
+        ? prev
+        : { ...prev, from_date: fromDate, to_date: toDate }
+    ));
+    setFiltersDraft((prev) => (
+      prev.from_date === fromDate && prev.to_date === toDate
+        ? prev
+        : { ...prev, from_date: fromDate, to_date: toDate }
+    ));
+    setAnalyticsFilters((prev) => (
+      prev.from_date === fromDate && prev.to_date === toDate
+        ? prev
+        : { ...prev, from_date: fromDate, to_date: toDate }
+    ));
+    setAnalyticsAppliedFilters((prev) => (
+      prev.from_date === fromDate && prev.to_date === toDate
+        ? prev
+        : { ...prev, from_date: fromDate, to_date: toDate }
+    ));
+  }, [globalTimeFilter]);
 
   const commitGroups = useCallback((next) => {
     setGroups(next);
@@ -531,14 +595,28 @@ export default function DesktopDashboardPage() {
     });
   }, [categories, editingExpenseId, expenseModalOpen, user?.id]);
 
-  const filteredExpenses = useMemo(
+  const expensesInGlobalRange = useMemo(
     () =>
       expenses.filter((expense) => {
+        const expenseDate = formatDateOnly(expense.expense_date);
+        if (globalTimeFilter.from_date && expenseDate < globalTimeFilter.from_date) {
+          return false;
+        }
+        if (globalTimeFilter.to_date && expenseDate > globalTimeFilter.to_date) {
+          return false;
+        }
+        return true;
+      }),
+    [expenses, globalTimeFilter.from_date, globalTimeFilter.to_date]
+  );
+
+  const filteredExpenses = useMemo(
+    () =>
+      expensesInGlobalRange.filter((expense) => {
         const expenseType = String(expense.expense_type || '');
         const paymentMethod = String(expense.payment_method || '');
         const expenseUserId = String(expense.user_id || '');
         const expenseCategoryId = String(expense.category_id || '');
-        const expenseDate = formatDateOnly(expense.expense_date);
 
         if (
           filters.expense_type_ids.length > 0
@@ -558,15 +636,9 @@ export default function DesktopDashboardPage() {
         if (filters.category_ids.length > 0 && !filters.category_ids.includes(expenseCategoryId)) {
           return false;
         }
-        if (filters.from_date && expenseDate < filters.from_date) {
-          return false;
-        }
-        if (filters.to_date && expenseDate > filters.to_date) {
-          return false;
-        }
         return true;
       }),
-    [expenses, filters]
+    [expensesInGlobalRange, filters]
   );
 
   const sortedFilteredExpenses = useMemo(() => {
@@ -665,15 +737,34 @@ export default function DesktopDashboardPage() {
     return (expensePage - 1) / (totalExpensePages - 1);
   }, [expensePage, totalExpensePages]);
 
+  const categoryTotalsById = useMemo(() => {
+    const totals = new Map();
+    expensesInGlobalRange.forEach((expense) => {
+      const categoryId = Number(expense.category_id);
+      const amount = Number(expense.amount || 0);
+      totals.set(categoryId, (totals.get(categoryId) || 0) + amount);
+    });
+    return totals;
+  }, [expensesInGlobalRange]);
+
+  const categoriesWithTotals = useMemo(
+    () =>
+      categories.map((category) => ({
+        ...category,
+        total_amount: Number(categoryTotalsById.get(Number(category.id)) || 0),
+      })),
+    [categories, categoryTotalsById]
+  );
+
   const sortedCategories = useMemo(() => {
-    if (!categorySort.key) return categories;
+    if (!categorySort.key) return categoriesWithTotals;
 
     const direction = categorySort.direction === 'desc' ? 'desc' : 'asc';
     const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
     const typeOrder = direction === 'asc' ? [1, 2, 3] : [3, 2, 1];
     const typeRank = new Map(typeOrder.map((value, index) => [value, index]));
 
-    return categories
+    return categoriesWithTotals
       .map((category, index) => ({ category, index }))
       .sort((left, right) => {
         const a = left.category;
@@ -696,19 +787,78 @@ export default function DesktopDashboardPage() {
           return left.index - right.index;
         }
 
+        if (categorySort.key === 'total') {
+          result = Number(a.total_amount || 0) - Number(b.total_amount || 0);
+          if (result !== 0) {
+            return direction === 'desc' ? result * -1 : result;
+          }
+          return left.index - right.index;
+        }
+
         return left.index - right.index;
       })
       .map((item) => item.category);
-  }, [categories, categorySort]);
+  }, [categoriesWithTotals, categorySort]);
+
+  const filteredIncomes = useMemo(
+    () =>
+      incomes.filter((income) => {
+        const incomeDate = formatDateOnly(income.income_date);
+        if (globalTimeFilter.from_date && incomeDate < globalTimeFilter.from_date) {
+          return false;
+        }
+        if (globalTimeFilter.to_date && incomeDate > globalTimeFilter.to_date) {
+          return false;
+        }
+        return true;
+      }),
+    [globalTimeFilter.from_date, globalTimeFilter.to_date, incomes]
+  );
 
   const sortedIncomes = useMemo(() => {
     const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
-    return [...incomes].sort((a, b) => {
+    return [...filteredIncomes].sort((a, b) => {
       const dateCompare = collator.compare(formatDateOnly(b.income_date), formatDateOnly(a.income_date));
       if (dateCompare !== 0) return dateCompare;
       return Number(b.id || 0) - Number(a.id || 0);
     });
-  }, [incomes]);
+  }, [filteredIncomes]);
+
+  const categoriesTopChartData = useMemo(() => {
+    const topLimit = Math.max(1, Number(categoryTopLimit || 5));
+    return [...categoriesWithTotals]
+      .filter((category) => Number(category.total_amount || 0) > 0)
+      .sort((a, b) => Number(b.total_amount || 0) - Number(a.total_amount || 0))
+      .slice(0, topLimit)
+      .map((category) => ({
+        name: category.name,
+        total: Number(category.total_amount || 0),
+      }));
+  }, [categoriesWithTotals, categoryTopLimit]);
+
+  const categoryTotalSeries = useMemo(
+    () => [{ key: 'total', label: 'Total gastado', color: CHART_COLOR_EXPENSE }],
+    []
+  );
+
+  const incomeTypeSplitData = useMemo(() => {
+    const totals = { '1': 0, '3': 0 };
+    filteredIncomes.forEach((income) => {
+      const key = String(income.income_type || '');
+      if (Object.prototype.hasOwnProperty.call(totals, key)) {
+        totals[key] += Number(income.amount || 0);
+      }
+    });
+    return [
+      { name: 'Efectivo', total: totals['1'] },
+      { name: 'Debito', total: totals['3'] },
+    ].filter((item) => Number(item.total || 0) > 0);
+  }, [filteredIncomes]);
+
+  const incomeSplitTotal = useMemo(
+    () => incomeTypeSplitData.reduce((sum, item) => sum + Number(item.total || 0), 0),
+    [incomeTypeSplitData]
+  );
 
   const toggleExpenseSort = (key) => {
     setExpenseSort((prev) => {
@@ -815,28 +965,13 @@ export default function DesktopDashboardPage() {
   }, [tab, expensePage, paginatedExpenses.length, expandedExpenseIds.length, recalculateExpenseRowsPerPage]);
 
   const totalAmount = useMemo(
-    () => filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
-    [filteredExpenses]
-  );
-
-  const incomesInExpenseDateRange = useMemo(
-    () =>
-      incomes.filter((income) => {
-        const incomeDate = formatDateOnly(income.income_date);
-        if (filters.from_date && incomeDate < filters.from_date) {
-          return false;
-        }
-        if (filters.to_date && incomeDate > filters.to_date) {
-          return false;
-        }
-        return true;
-      }),
-    [filters.from_date, filters.to_date, incomes]
+    () => expensesInGlobalRange.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
+    [expensesInGlobalRange]
   );
 
   const totalIncomeAmount = useMemo(
-    () => incomesInExpenseDateRange.reduce((sum, income) => sum + Number(income.amount || 0), 0),
-    [incomesInExpenseDateRange]
+    () => filteredIncomes.reduce((sum, income) => sum + Number(income.amount || 0), 0),
+    [filteredIncomes]
   );
 
   const incomeExpenseDiffPercent = useMemo(() => {
@@ -862,8 +997,8 @@ export default function DesktopDashboardPage() {
       return;
     }
 
-    const fromDate = String(analyticsAppliedFilters.from_date || '').trim();
-    const toDate = String(analyticsAppliedFilters.to_date || '').trim();
+    const fromDate = String(globalTimeFilter.from_date || '').trim();
+    const toDate = String(globalTimeFilter.to_date || '').trim();
 
     if (!fromDate || !toDate) {
       setAnalyticsData(null);
@@ -894,7 +1029,7 @@ export default function DesktopDashboardPage() {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, [analyticsAppliedFilters, isOnline, selectedSetId]);
+  }, [analyticsAppliedFilters, globalTimeFilter.from_date, globalTimeFilter.to_date, isOnline, selectedSetId]);
 
   useEffect(() => {
     if (tab !== TAB.ANALYTICS) return;
@@ -1166,9 +1301,7 @@ export default function DesktopDashboardPage() {
       filters.expense_type_ids.length
       + filters.payment_method_ids.length
       + filters.user_ids.length
-      + filters.category_ids.length
-      + (filters.from_date ? 1 : 0)
-      + (filters.to_date ? 1 : 0),
+      + filters.category_ids.length,
     [filters]
   );
 
@@ -1889,42 +2022,68 @@ export default function DesktopDashboardPage() {
     setFiltersModalOpen(true);
   };
 
+  const openGlobalTimeModal = () => {
+    setGlobalTimeDraft(globalTimeFilter);
+    setGlobalTimeModalOpen(true);
+  };
+
+  const closeGlobalTimeModal = () => {
+    setGlobalTimeModalOpen(false);
+  };
+
+  const applyGlobalTimePreset = (presetKey) => {
+    const nextRange = resolveGlobalTimePresetRange(presetKey, historicalStartDate);
+    setGlobalTimeDraft({
+      preset: presetKey,
+      from_date: nextRange.from_date,
+      to_date: nextRange.to_date,
+    });
+  };
+
+  const applyGlobalTimeFilter = () => {
+    const normalizedFromDate = String(globalTimeDraft.from_date || '').trim();
+    const normalizedToDate = String(globalTimeDraft.to_date || '').trim();
+    if (!normalizedFromDate || !normalizedToDate) {
+      setError('Debes indicar desde y hasta en el rango general.');
+      return;
+    }
+    if (normalizedFromDate > normalizedToDate) {
+      setError('Rango general invalido.');
+      return;
+    }
+    setGlobalTimeFilter({
+      preset: String(globalTimeDraft.preset || 'custom').toLowerCase(),
+      from_date: normalizedFromDate,
+      to_date: normalizedToDate,
+    });
+    setGlobalTimeModalOpen(false);
+  };
+
   const closeFiltersModal = () => {
     setFiltersModalOpen(false);
   };
 
   const applyFilters = () => {
-    if (
-      filtersDraft.from_date
-      && filtersDraft.to_date
-      && filtersDraft.from_date > filtersDraft.to_date
-    ) {
-      setError('Rango de fechas invalido.');
-      return;
-    }
-    setFilters(filtersDraft);
+    setFilters((prev) => ({
+      ...filtersDraft,
+      from_date: prev.from_date,
+      to_date: prev.to_date,
+    }));
     setFiltersModalOpen(false);
   };
 
   const clearFilters = () => {
-    setFiltersDraft(defaultFilters);
+    setFiltersDraft((prev) => ({
+      ...defaultFilters,
+      from_date: prev.from_date,
+      to_date: prev.to_date,
+    }));
     setCategoryFilterPaneIndex(0);
   };
 
   const applyAnalyticsFilters = () => {
-    const fromDate = String(analyticsFilters.from_date || '').trim();
-    const toDate = String(analyticsFilters.to_date || '').trim();
-    if (!fromDate || !toDate) {
-      setAnalyticsError('Debes seleccionar desde y hasta.');
-      return;
-    }
-    if (fromDate > toDate) {
-      setAnalyticsError('Rango de fechas invalido.');
-      return;
-    }
+    setAnalyticsError('');
     setAnalyticsAppliedFilters({
-      from_date: fromDate,
-      to_date: toDate,
       income_type: String(analyticsFilters.income_type || ''),
       category_limit: String(analyticsFilters.category_limit || '5'),
       category_sort: String(analyticsFilters.category_sort || 'total'),
@@ -1935,27 +2094,6 @@ export default function DesktopDashboardPage() {
     setAnalyticsError('');
     setAnalyticsFilters(defaultAnalyticsFilters);
     setAnalyticsAppliedFilters(defaultAnalyticsFilters);
-  };
-
-  const applyAnalyticsQuickRange = (rangeKey) => {
-    const range = resolveAnalyticsQuickRange(rangeKey);
-    if (!range) return;
-
-    const normalizedFromDate = String(range.from_date || '').trim();
-    const normalizedToDate = String(range.to_date || '').trim();
-    if (!normalizedFromDate || !normalizedToDate || normalizedFromDate > normalizedToDate) return;
-
-    setAnalyticsError('');
-    setAnalyticsFilters((prev) => ({
-      ...prev,
-      from_date: normalizedFromDate,
-      to_date: normalizedToDate,
-    }));
-    setAnalyticsAppliedFilters((prev) => ({
-      ...prev,
-      from_date: normalizedFromDate,
-      to_date: normalizedToDate,
-    }));
   };
 
   const toggleDraftExpenseTypes = (nextExpenseTypeIds) => {
@@ -2106,23 +2244,52 @@ export default function DesktopDashboardPage() {
         </header>
 
         <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6">
-          <div className="grid grid-cols-[repeat(5,minmax(0,1fr))_minmax(0,0.7fr)] gap-3">
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Total Gastos</p><p className="mt-1 font-heading text-xl font-bold">${totalAmount.toLocaleString('es-AR')}</p></article>
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Total Ingresos</p><p className="mt-1 font-heading text-xl font-bold">${totalIncomeAmount.toLocaleString('es-AR')}</p></article>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.9fr)] gap-3">
             <article className="rounded-xl bg-app-panel/70 p-3">
-              <p className="text-xs uppercase text-app-muted">Saldo</p>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <p className={`font-heading text-xl font-bold ${totalBalanceAmount === 0 ? 'text-app-muted' : totalBalanceAmount > 0 ? 'text-[rgb(var(--app-status-online-text))]' : 'text-[rgb(var(--app-status-offline-text))]'}`}>
-                  ${totalBalanceAmount.toLocaleString('es-AR')}
-                </p>
-                <p className={`font-heading text-lg font-bold ${incomeExpenseDiffPercent === null ? 'text-app-muted' : incomeExpenseDiffPercent >= 0 ? 'text-[rgb(var(--app-status-online-text))]' : 'text-[rgb(var(--app-status-offline-text))]'}`}>
-                  {formatSignedPercentFromDecimal(incomeExpenseDiffPercent)}
-                </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs uppercase text-app-muted">Total Gastos</p>
+                <MonoIcon src={triangleDownIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
               </div>
+              <p className="mt-1 font-heading text-xl font-bold">$ {totalAmount.toLocaleString('es-AR')}</p>
             </article>
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Cant. gastos</p><p className="mt-1 font-heading text-xl font-bold">{filteredExpenses.length}</p></article>
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Cant. ingresos</p><p className="mt-1 font-heading text-xl font-bold">{sortedIncomes.length}</p></article>
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Filtros</p><p className="mt-1 font-heading text-xl font-bold">{activeFiltersCount}</p></article>
+            <article className="rounded-xl bg-app-panel/70 p-3">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs uppercase text-app-muted">Total Ingresos</p>
+                <MonoIcon src={triangleUpIcon} colorVar="--app-icon-connection" className="h-3 w-3" />
+              </div>
+              <p className="mt-1 font-heading text-xl font-bold">$ {totalIncomeAmount.toLocaleString('es-AR')}</p>
+            </article>
+            <article className="rounded-xl bg-app-panel/70 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs uppercase text-app-muted">Saldo</p>
+                <div className={`flex items-center gap-1 text-xs font-extrabold ${incomeExpenseDiffPercent === null ? 'text-app-muted' : incomeExpenseDiffPercent >= 0 ? 'text-[rgb(var(--app-status-online-text))]' : 'text-[rgb(var(--app-status-offline-text))]'}`}>
+                  {incomeExpenseDiffPercent !== null ? (
+                    <MonoIcon
+                      src={incomeExpenseDiffPercent >= 0 ? triangleUpIcon : triangleDownIcon}
+                      colorVar={incomeExpenseDiffPercent >= 0 ? '--app-icon-connection' : '--app-icon-offline'}
+                      className="h-3 w-3"
+                    />
+                  ) : null}
+                  <span>
+                    {incomeExpenseDiffPercent === null ? '-' : formatPercentFromDecimal(Math.abs(incomeExpenseDiffPercent))}
+                  </span>
+                </div>
+              </div>
+              <p className={`mt-1 font-heading text-xl font-bold`}>
+                $ {totalBalanceAmount.toLocaleString('es-AR')}
+              </p>
+            </article>
+            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Gastos</p><p className="mt-1 font-heading text-xl font-bold">{expensesInGlobalRange.length}</p></article>
+            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Ingresos</p><p className="mt-1 font-heading text-xl font-bold">{sortedIncomes.length}</p></article>
+            <article className="rounded-xl bg-app-panel/70 p-3">
+              <button type="button" onClick={openGlobalTimeModal} className="w-full text-left">
+                {/* <p className="text-xs uppercase text-app-muted">Rango general</p> */}
+                <p className=" font-heading text-lg font-bold">{globalTimeRangeLabel}</p>
+                <p className="text-[11px] font-semibold text-app-muted">
+                  {globalTimeFilter.from_date} a {globalTimeFilter.to_date}
+                </p>
+              </button>
+            </article>
           </div>
 
           <article className="flex h-[calc(100dvh-13rem)] min-h-[26rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-app-panel/70 p-4">
@@ -2228,7 +2395,7 @@ export default function DesktopDashboardPage() {
                     <col className="w-[13%]" />
                     <col className="w-[13%]" />
                     <col className="w-[11%]" />
-                    <col className="w-[20%]" />
+                    <col className="w-[10%]" />
                   </colgroup>
                   <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
                     <tr>
@@ -2292,7 +2459,7 @@ export default function DesktopDashboardPage() {
                           <span className="w-3 text-left">{getSortIndicator('date')}</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2 text-left">Acciones</th>
+                      <th className="px-1 py-2 pr-0 text-right">Acciones</th>
                     </tr>
                   </thead>
                 </table>
@@ -2305,7 +2472,7 @@ export default function DesktopDashboardPage() {
                       <col className="w-[13%]" />
                       <col className="w-[13%]" />
                       <col className="w-[11%]" />
-                      <col className="w-[20%]" />
+                      <col className="w-[10%]" />
                     </colgroup>
                     <tbody>
                       {paginatedExpenses.map((expense, expenseIndex) => {
@@ -2344,8 +2511,8 @@ export default function DesktopDashboardPage() {
                               </td>
                               <td className="px-2 py-2">{getEmailAlias(expense.user_email)}</td>
                               <td className="px-2 py-2">{formatDateOnly(expense.expense_date)}</td>
-                              <td className="px-2 py-2">
-                                <div className="flex items-center justify-start gap-1">
+                              <td className="px-1 py-2 pr-0">
+                                <div className="flex items-center justify-end gap-1">
                                   <button
                                     type="button"
                                     title="Editar gasto"
@@ -2450,68 +2617,101 @@ export default function DesktopDashboardPage() {
             ) : null}
 
             {tab === TAB.INCOMES ? (
-              <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
-                <table className="w-full max-w-[68rem] table-fixed text-left">
-                  <colgroup>
-                    <col className="w-[28%]" />
-                    <col className="w-[28%]" />
-                    <col className="w-[24%]" />
-                    <col className="w-[20%]" />
-                  </colgroup>
-                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
-                    <tr>
-                      <th className="px-2 py-2 text-left">Tipo</th>
-                      <th className="px-2 py-2 text-left">Monto</th>
-                      <th className="px-2 py-2 text-left">Fecha</th>
-                      <th className="px-2 py-2 text-left">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedIncomes.map((income) => (
-                      <tr key={income.id} className="border-t border-app-ink/10 text-base">
-                        <td className="px-2 py-2">
-                          <span
-                            className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
-                            style={getCssVarBadgeStyle(getPaymentMethodBgVarName(income.income_type))}
-                          >
-                            {getIncomeTypeLabel(income.income_type)}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2 font-extrabold">{formatMoney(income.amount)}</td>
-                        <td className="px-2 py-2">{formatDateOnly(income.income_date)}</td>
-                        <td className="px-2 py-2">
-                          <div className="flex items-center justify-start gap-1">
-                            <button
-                              type="button"
-                              title="Editar ingreso"
-                              disabled={!isAdmin || !isOnline}
-                              onClick={() => startIncomeEdit(income)}
-                              className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="no-scrollbar min-h-0 overflow-auto">
+                  <table className="w-full max-w-[68rem] table-fixed text-left">
+                    <colgroup>
+                      <col className="w-[28%]" />
+                      <col className="w-[28%]" />
+                      <col className="w-[24%]" />
+                      <col className="w-[20%]" />
+                    </colgroup>
+                    <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
+                      <tr>
+                        <th className="px-2 py-2 text-left">Tipo</th>
+                        <th className="px-2 py-2 text-left">Monto</th>
+                        <th className="px-2 py-2 text-left">Fecha</th>
+                        <th className="px-2 py-2 text-left">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedIncomes.map((income) => (
+                        <tr key={income.id} className="border-t border-app-ink/10 text-base">
+                          <td className="px-2 py-2">
+                            <span
+                              className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                              style={getCssVarBadgeStyle(getPaymentMethodBgVarName(income.income_type))}
                             >
-                              <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              title="Eliminar ingreso"
-                              disabled={!isAdmin || !isOnline}
-                              onClick={() => requestDeleteIncome(income)}
-                              className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
-                            >
-                              <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
-                            </button>
+                              {getIncomeTypeLabel(income.income_type)}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 font-extrabold">{formatMoney(income.amount)}</td>
+                          <td className="px-2 py-2">{formatDateOnly(income.income_date)}</td>
+                          <td className="px-2 py-2">
+                            <div className="flex items-center justify-start gap-1">
+                              <button
+                                type="button"
+                                title="Editar ingreso"
+                                disabled={!isAdmin || !isOnline}
+                                onClick={() => startIncomeEdit(income)}
+                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+                              >
+                                <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Eliminar ingreso"
+                                disabled={!isAdmin || !isOnline}
+                                onClick={() => requestDeleteIncome(income)}
+                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+                              >
+                                <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {sortedIncomes.length === 0 ? (
+                        <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
+                          <td colSpan={4} className="px-2 py-4">
+                            No hay ingresos cargados.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+                <aside className="rounded-xl border-0 border-app-ink/10 bg-app-bg/20 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Ingreso por medio de cobro</p>
+                  {incomeTypeSplitData.length > 0 ? (
+                    <>
+                      <div className="mt-2 h-52">
+                        <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-app-muted">Cargando grafico...</div>}>
+                          <LazyDesktopTopCategoryChart
+                            type="activePie"
+                            data={incomeTypeSplitData}
+                            xKey="name"
+                            series={[{ key: 'total', label: 'Ingresos', color: CHART_COLOR_INCOME }]}
+                          />
+                        </Suspense>
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        {incomeTypeSplitData.map((item) => (
+                          <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-app-muted">{item.name}</span>
+                            <span>
+                              {formatPercentFromDecimal(incomeSplitTotal > 0 ? item.total / incomeSplitTotal : 0, 1)}
+                            </span>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {sortedIncomes.length === 0 ? (
-                      <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
-                        <td colSpan={4} className="px-2 py-4">
-                          No hay ingresos cargados.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="mt-3 rounded-lg bg-app-panel/60 px-3 py-3 text-xs font-semibold text-app-muted">
+                      Sin ingresos en el rango seleccionado.
+                    </div>
+                  )}
+                </aside>
               </div>
             ) : null}
 
@@ -2523,35 +2723,7 @@ export default function DesktopDashboardPage() {
                     aria-hidden={!analyticsFiltersExpanded}
                   >
                     <div className="min-h-0 overflow-hidden">
-                      <div className="grid gap-3 xl:grid-cols-6">
-                        <label className="block">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Desde</span>
-                          <input
-                            className="app-input mt-2"
-                            type="date"
-                            value={analyticsFilters.from_date}
-                            onChange={(event) =>
-                              setAnalyticsFilters((prev) => ({
-                                ...prev,
-                                from_date: event.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Hasta</span>
-                          <input
-                            className="app-input mt-2"
-                            type="date"
-                            value={analyticsFilters.to_date}
-                            onChange={(event) =>
-                              setAnalyticsFilters((prev) => ({
-                                ...prev,
-                                to_date: event.target.value,
-                              }))
-                            }
-                          />
-                        </label>
+                      <div className="grid gap-3 xl:grid-cols-4">
                         <label className="block">
                           <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo ingreso</span>
                           <select
@@ -2629,26 +2801,9 @@ export default function DesktopDashboardPage() {
                     </div>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {ANALYTICS_QUICK_RANGE_OPTIONS.map((option) => {
-                        const quickRange = resolveAnalyticsQuickRange(option.key);
-                        const isActive =
-                          quickRange
-                          && analyticsFilters.from_date === quickRange.from_date
-                          && analyticsFilters.to_date === quickRange.to_date;
-
-                        return (
-                          <button
-                            key={option.key}
-                            type="button"
-                            onClick={() => applyAnalyticsQuickRange(option.key)}
-                            className={`rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide ${isActive ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <p className="rounded-lg bg-app-panel px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-app-muted">
+                      Rango global: {globalTimeFilter.from_date} a {globalTimeFilter.to_date}
+                    </p>
                     <button
                       type="button"
                       onClick={() => setAnalyticsFiltersExpanded((prev) => !prev)}
@@ -2741,7 +2896,7 @@ export default function DesktopDashboardPage() {
                                 }
                               >
                                 <LazyDesktopTopCategoryChart
-                                  key={`analytics-monthly-core-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsMonthlyCoreChartData.length}`}
+                                  key={`analytics-monthly-core-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsMonthlyCoreChartData.length}`}
                                   type="line"
                                   data={analyticsMonthlyCoreChartData}
                                   xKey="period"
@@ -2773,7 +2928,7 @@ export default function DesktopDashboardPage() {
                                 }
                               >
                                 <LazyDesktopTopCategoryChart
-                                  key={`analytics-execution-ratio-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsExecutionRatioChartData.length}`}
+                                  key={`analytics-execution-ratio-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsExecutionRatioChartData.length}`}
                                   type="line"
                                   data={analyticsExecutionRatioChartData}
                                   xKey="period"
@@ -2808,7 +2963,7 @@ export default function DesktopDashboardPage() {
                                 }
                               >
                                 <LazyDesktopTopCategoryChart
-                                  key={`analytics-growth-rates-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsGrowthRatesChartData.length}`}
+                                  key={`analytics-growth-rates-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsGrowthRatesChartData.length}`}
                                   type="line"
                                   data={analyticsGrowthRatesChartData}
                                   xKey="period"
@@ -2842,7 +2997,7 @@ export default function DesktopDashboardPage() {
                                 }
                               >
                                 <LazyDesktopTopCategoryChart
-                                  key={`analytics-monthly-margin-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsMonthlyMarginChartData.length}`}
+                                  key={`analytics-monthly-margin-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsMonthlyMarginChartData.length}`}
                                   type="line"
                                   data={analyticsMonthlyMarginChartData}
                                   xKey="period"
@@ -2877,7 +3032,7 @@ export default function DesktopDashboardPage() {
                                 }
                               >
                                 <LazyDesktopTopCategoryChart
-                                  key={`analytics-type-trend-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsTypeTrendChartData.length}`}
+                                  key={`analytics-type-trend-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsTypeTrendChartData.length}`}
                                   type="stackedArea"
                                   data={analyticsTypeTrendChartData}
                                   xKey="period"
@@ -2909,7 +3064,7 @@ export default function DesktopDashboardPage() {
                                 }
                               >
                                 <LazyDesktopTopCategoryChart
-                                  key={`analytics-structure-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsStructureChartData.length}`}
+                                  key={`analytics-structure-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsStructureChartData.length}`}
                                   type="stackedBar"
                                   data={analyticsStructureChartData}
                                   xKey="period"
@@ -2996,7 +3151,7 @@ export default function DesktopDashboardPage() {
                                 }
                               >
                                 <LazyDesktopTopCategoryChart
-                                  key={`analytics-categories-${analyticsAppliedFilters.from_date}-${analyticsAppliedFilters.to_date}-${analyticsCategoryRankingChartData.length}-${analyticsAppliedFilters.category_limit}-${analyticsAppliedFilters.category_sort}`}
+                                  key={`analytics-categories-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsCategoryRankingChartData.length}-${analyticsAppliedFilters.category_limit}-${analyticsAppliedFilters.category_sort}`}
                                   type="horizontalBar"
                                   data={analyticsCategoryRankingChartData}
                                   xKey="name"
@@ -3051,63 +3206,171 @@ export default function DesktopDashboardPage() {
             ) : null}
 
             {tab === TAB.CATEGORIES ? (
-              <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
-                <table className="w-full max-w-[68rem] table-fixed text-left">
-                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
-                    <tr>
-                      <th className="px-2 py-2 text-left">
-                        <button
-                          type="button"
-                          onClick={() => toggleCategorySort('name')}
-                          className="flex w-full items-center justify-start gap-1 uppercase"
-                        >
-                          Nombre
-                          <span className="w-3 text-left">{getCategorySortIndicator('name')}</span>
-                        </button>
-                      </th>
-                      <th className="px-2 py-2 text-left">
-                        <button
-                          type="button"
-                          onClick={() => toggleCategorySort('type')}
-                          className="flex w-full items-center justify-start gap-1 uppercase"
-                        >
-                          Tipo
-                          <span className="w-3 text-left">{getCategorySortIndicator('type')}</span>
-                        </button>
-                      </th>
-                      <th className="px-2 py-2 text-left">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedCategories.map((category) => (
-                      <tr key={category.id} className="border-t border-app-ink/10 text-base">
-                        <td className="px-2 py-2 font-semibold">{category.name}</td>
-                        <td className="px-2 py-2">
-                          <span
-                            className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
-                            style={getCssVarBadgeStyle(getExpenseTypeBgVarName(category.expense_type))}
+              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.56fr)_minmax(0,0.44fr)]">
+                <div className="no-scrollbar min-h-0 overflow-auto rounded-xl bg-app-bg/20 p-2">
+                  <table className="w-full max-w-[42rem] table-fixed text-left">
+                    <colgroup>
+                      <col className="w-[34%]" />
+                      <col className="w-[24%]" />
+                      <col className="w-[30%]" />
+                      <col className="w-[12%]" />
+                    </colgroup>
+                    <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
+                      <tr>
+                        <th className="px-2 py-2 text-left">
+                          <button
+                            type="button"
+                            onClick={() => toggleCategorySort('name')}
+                            className="flex w-full items-center justify-start gap-1 uppercase"
                           >
-                            {getExpenseTypeById(category.expense_type)?.label || '-'}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex items-center justify-start gap-2">
-                            <button type="button" onClick={() => startCategoryEdit(category)} className="rounded-md bg-app-panel px-2 py-1 text-[11px] font-bold uppercase">Editar</button>
-                            <button type="button" onClick={() => requestDeleteCategory(category)} className="rounded-md bg-app-error-bg px-2 py-1 text-[11px] font-bold uppercase text-app-error-text">Eliminar</button>
-                          </div>
-                        </td>
+                            Nombre
+                            <span className="w-3 text-left">{getCategorySortIndicator('name')}</span>
+                          </button>
+                        </th>
+                        <th className="px-2 py-2 text-left">
+                          <button
+                            type="button"
+                            onClick={() => toggleCategorySort('type')}
+                            className="flex w-full items-center justify-start gap-1 uppercase"
+                          >
+                            Tipo
+                            <span className="w-3 text-left">{getCategorySortIndicator('type')}</span>
+                          </button>
+                        </th>
+                        <th className="px-2 py-2 text-left">
+                          <button
+                            type="button"
+                            onClick={() => toggleCategorySort('total')}
+                            className="flex w-full items-center justify-start gap-1 uppercase"
+                          >
+                            Total gastado
+                            <span className="w-3 text-left">{getCategorySortIndicator('total')}</span>
+                          </button>
+                        </th>
+                        <th className="px-1 py-2 pr-0 text-right">Acciones</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {sortedCategories.map((category) => (
+                        <tr key={category.id} className="border-t border-app-ink/10 text-base">
+                          <td className="px-2 py-2 font-semibold">{category.name}</td>
+                          <td className="px-2 py-2">
+                            <span
+                              className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                              style={getCssVarBadgeStyle(getExpenseTypeBgVarName(category.expense_type))}
+                            >
+                              {getExpenseTypeById(category.expense_type)?.label || '-'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 font-extrabold">{formatMoney(category.total_amount)}</td>
+                          <td className="px-1 py-2 pr-0">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                title="Editar categoria"
+                                onClick={() => startCategoryEdit(category)}
+                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                              >
+                                <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Eliminar categoria"
+                                onClick={() => requestDeleteCategory(category)}
+                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                              >
+                                <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {sortedCategories.length === 0 ? (
+                        <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
+                          <td colSpan={4} className="px-2 py-4">
+                            No hay categorias cargadas.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+                <aside className="flex min-h-0 flex-col rounded-xl bg-app-bg/20 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Top categorias por gasto</p>
+                    <div className="flex items-center gap-1">
+                      {[5, 10].map((limit) => (
+                        <button
+                          key={limit}
+                          type="button"
+                          onClick={() => setCategoryTopLimit(String(limit))}
+                          className={`rounded-md px-2 py-1 text-[11px] font-extrabold uppercase ${Number(categoryTopLimit) === limit ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+                        >
+                          Top {limit}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 grid min-h-0 flex-1 grid-rows-2 gap-3">
+                    <div className="min-h-0">
+                      {categoriesTopChartData.length > 0 ? (
+                        <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-app-muted">Cargando grafico...</div>}>
+                          <LazyDesktopTopCategoryChart
+                            key={`categories-top-${categoryTopLimit}-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${categoriesTopChartData.length}`}
+                            type="verticalBar"
+                            data={categoriesTopChartData}
+                            xKey="name"
+                            series={categoryTotalSeries}
+                          />
+                        </Suspense>
+                      ) : (
+                        <div className="flex h-full items-center justify-center rounded-lg bg-app-panel/60 px-3 text-xs font-semibold text-app-muted">
+                          Sin gastos por categoria en el rango seleccionado.
+                        </div>
+                      )}
+                    </div>
+                    <div className="rounded-lg border border-dashed border-app-ink/15 bg-app-panel/20" aria-hidden="true" />
+                  </div>
+                </aside>
               </div>
             ) : null}
 
             {tab === TAB.USERS ? (
               <div className="no-scrollbar min-h-0 flex-1 overflow-auto">
                 <table className="w-full max-w-[68rem] table-fixed text-left">
-                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted"><tr><th className="px-2 py-2 text-left">Usuario</th><th className="px-2 py-2 text-left">Rol</th><th className="px-2 py-2 text-left">Acciones</th></tr></thead>
-                  <tbody>{users.map((groupUser) => <tr key={groupUser.id} className="border-t border-app-ink/10 text-base"><td className="px-2 py-2 font-semibold">{groupUser.email}</td><td className="px-2 py-2">{Number(groupUser.role) === 1 ? 'Admin' : 'Participante'}</td><td className="px-2 py-2"><button type="button" onClick={() => requestRemoveUser(groupUser)} disabled={!isAdmin || Number(groupUser.role) === 1 || Number(groupUser.id) === Number(user?.id)} className="rounded-md bg-app-error-bg px-2 py-1 text-[11px] font-bold uppercase text-app-error-text disabled:cursor-not-allowed disabled:opacity-45">Quitar</button></td></tr>)}</tbody>
+                  <colgroup>
+                    <col className="w-[62%]" />
+                    <col className="w-[24%]" />
+                    <col className="w-[14%]" />
+                  </colgroup>
+                  <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
+                    <tr>
+                      <th className="px-2 py-2 text-left">Usuario</th>
+                      <th className="px-2 py-2 text-left">Rol</th>
+                      <th className="px-1 py-2 pr-0 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((groupUser) => (
+                      <tr key={groupUser.id} className="border-t border-app-ink/10 text-base">
+                        <td className="px-2 py-2 font-semibold">{groupUser.email}</td>
+                        <td className="px-2 py-2">{Number(groupUser.role) === 1 ? 'Admin' : 'Participante'}</td>
+                        <td className="px-1 py-2 pr-0">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              title="Quitar usuario"
+                              onClick={() => requestRemoveUser(groupUser)}
+                              disabled={!isAdmin || Number(groupUser.role) === 1 || Number(groupUser.id) === Number(user?.id)}
+                              className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             ) : null}
@@ -3383,6 +3646,81 @@ export default function DesktopDashboardPage() {
       </DesktopModal>
 
       <DesktopModal
+        open={globalTimeModalOpen}
+        onClose={closeGlobalTimeModal}
+        title="Rango general de tiempo"
+        maxWidthClass="max-w-3xl"
+      >
+        <div className="space-y-4">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Presets</span>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {GLOBAL_TIME_PRESET_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => applyGlobalTimePreset(option.key)}
+                  className={`rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide ${globalTimeDraft.preset === option.key ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Desde</span>
+              <input
+                className="app-input mt-2"
+                type="date"
+                value={globalTimeDraft.from_date}
+                onChange={(event) =>
+                  setGlobalTimeDraft((prev) => ({
+                    ...prev,
+                    preset: 'custom',
+                    from_date: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Hasta</span>
+              <input
+                className="app-input mt-2"
+                type="date"
+                value={globalTimeDraft.to_date}
+                onChange={(event) =>
+                  setGlobalTimeDraft((prev) => ({
+                    ...prev,
+                    preset: 'custom',
+                    to_date: event.target.value,
+                  }))
+                }
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={closeGlobalTimeModal}
+            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={applyGlobalTimeFilter}
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+          >
+            Aplicar rango
+          </button>
+        </div>
+      </DesktopModal>
+
+      <DesktopModal
         open={filtersModalOpen}
         onClose={closeFiltersModal}
         title="Filtros de gastos"
@@ -3504,29 +3842,6 @@ export default function DesktopDashboardPage() {
             </div>
           </div>
 
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Desde</span>
-            <input
-              className="app-input mt-2"
-              type="date"
-              value={filtersDraft.from_date}
-              onChange={(event) =>
-                setFiltersDraft((prev) => ({ ...prev, from_date: event.target.value }))
-              }
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Hasta</span>
-            <input
-              className="app-input mt-2"
-              type="date"
-              value={filtersDraft.to_date}
-              onChange={(event) =>
-                setFiltersDraft((prev) => ({ ...prev, to_date: event.target.value }))
-              }
-            />
-          </label>
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">

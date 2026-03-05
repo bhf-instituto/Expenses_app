@@ -1,5 +1,7 @@
 # Documento Funcional v2 - Aplicacion de Registro de Gastos
 
+Fecha de actualizacion: 2026-03-05
+
 ## 1. Proposito
 
 La aplicacion permite registrar gastos estructurados para analisis posterior.
@@ -55,7 +57,7 @@ Permisos:
   - Elegir si al quitar participante se eliminan tambien sus gastos
   - Crear invitaciones
   - Eliminar gastos de cualquier usuario del grupo
-  - Cargar ingresos del grupo
+  - Crear/editar/eliminar ingresos del grupo
 - `PARTICIPANT`:
   - Crear gastos
   - Ver gastos/categorias/totales
@@ -123,13 +125,30 @@ Tipos permitidos:
 - `3 = TARJETA_DEBITO`
 
 Reglas de acceso:
-- Solo `ADMIN` puede crear ingresos.
+- Solo `ADMIN` puede crear, editar y eliminar ingresos.
 - `ADMIN` y `PARTICIPANT` pueden listar ingresos y consultar analitica.
 
 Operaciones:
 - Crear ingreso
 - Listar ingresos (con filtros y paginacion)
+- Editar ingreso
+- Eliminar ingreso
 - Consultar analitica `ingresos vs gastos` por rango
+
+## 8.2 Perfil de color por usuario
+
+El sistema permite persistir un perfil de colores por usuario autenticado.
+
+Alcance:
+- colores de tipos de gasto (`FIJO`, `VARIABLE`, `PROVEEDOR`)
+- colores de formas de pago (`EFECTIVO`, `TARJETA_CREDITO`, `TARJETA_DEBITO`)
+- colores de series de analitica (`gasto`, `ingreso`, `saldo`)
+
+Caracteristicas:
+- se guarda por usuario, no por grupo
+- se cachea localmente para mejorar carga
+- desktop puede editarlo
+- mobile lo consume para renderizar UI consistente
 
 ## 9. Totales y analitica
 
@@ -139,11 +158,11 @@ El sistema expone:
 - Totales por "proveedor".
 - Total acumulado filtrado
 - Analitica de ingresos vs gastos:
-  - total de ingresos en rango
-  - total de gastos en rango
-  - saldo restante
-  - porcentaje ejecutado (`gastos / ingresos`)
-  - desglose por tipo y categoria con porcentajes
+  - resumen (`summary`): ingresos, gastos, saldo, margen y crecimientos
+  - tendencia mensual (`monthly_trend`) con crecimiento y ejecucion
+  - estructura (`structure`) por tipo de gasto
+  - evolucion mensual por tipo (`type_trend`)
+  - ranking dinamico de categorias (`category_ranking`)
 
 Filtros disponibles (segun endpoint):
 - categoria
@@ -208,9 +227,17 @@ Modulos vigentes:
   - Body: `{ "income_type": 1|3, "amount": 1000, "income_date": "YYYY-MM-DD" }`
 - Listar ingresos: `GET /sets/:id_set/incomes`
   - Query opcional: `income_type`, `from_date`, `to_date`, `updated_after`, `page`, `limit`
+- Editar ingreso (solo admin): `PUT /sets/:id_set/incomes/:id_income`
+  - Body (parcial): `{ "income_type"?: 1|3, "amount"?: 1000, "income_date"?: "YYYY-MM-DD" }`
+- Eliminar ingreso (solo admin): `DELETE /sets/:id_set/incomes/:id_income`
 - Analitica ingresos vs gastos: `GET /sets/:id_set/incomes/analytics`
   - Query: `from_date`, `to_date`
-  - Query opcional: `income_type`, `category_limit`
+  - Query opcional: `income_type`, `category_limit`, `category_sort`
+
+### 12.4 Perfil de color de usuario
+- Obtener perfil: `GET /auth/color-profile`
+- Guardar/actualizar perfil: `PUT /auth/color-profile`
+  - Body: `{ "settings": { ... } }`
 
 ### 12.1 Invitaciones (metodos vigentes)
 - Crear invitacion: `POST /invite/:id_set`

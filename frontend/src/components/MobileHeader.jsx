@@ -14,8 +14,13 @@ export default function MobileHeader({
   leftLabel = 'Back',
 }) {
   const navigate = useNavigate();
-  const { isOnline } = useAuth();
+  const { isOnline, connectionDebug } = useAuth();
   const { pendingCount } = useExpenseSync();
+  const showNetDebug = typeof window !== 'undefined'
+    && (
+      new URLSearchParams(window.location.search).get('netdebug') === '1'
+      || window.localStorage.getItem('expenses_net_debug') === '1'
+    );
 
   const handleBack = () => {
     if (onBack) {
@@ -70,6 +75,15 @@ export default function MobileHeader({
             >
               <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
               <span className="text-xs font-extrabold leading-none text-app-ink">{pendingCount}</span>
+            </div>
+          ) : null}
+          {showNetDebug ? (
+            <div
+              className="rounded-md bg-app-bg/70 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-app-muted"
+              title="Debug conectividad: B=browser, P=probe backend"
+              aria-label="Debug conectividad"
+            >
+              B:{connectionDebug?.browserOnline ? 1 : 0} P:{connectionDebug?.backendReachable ? 1 : 0}
             </div>
           ) : null}
           {rightSlot}

@@ -26,7 +26,7 @@ import useFlipListAnimation from '../hooks/useFlipListAnimation.js';
 export default function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, isOnline } = useAuth();
+  const { user, logout, isOnline, connectionDebug } = useAuth();
   // const { user, logout, isOnline } = useAuth();
   const { pendingCount } = useExpenseSync();
   const sessionScope = resolveSessionScope(user);
@@ -38,6 +38,11 @@ export default function HomePage() {
   const [loading, setLoading] = useState(() => getCachedSets(sessionScope).length === 0);
   const [error, setError] = useState('');
   const flashMessage = location.state?.flash || '';
+  const showNetDebug = typeof window !== 'undefined'
+    && (
+      new URLSearchParams(window.location.search).get('netdebug') === '1'
+      || window.localStorage.getItem('expenses_net_debug') === '1'
+    );
   // const profileAlias = user?.email ? String(user.email).split('@')[0] : '-';
 
   useEffect(() => {
@@ -207,6 +212,15 @@ export default function HomePage() {
               >
                 <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
                 <span className="text-xs font-extrabold leading-none text-app-ink">{pendingCount}</span>
+              </div>
+            ) : null}
+            {showNetDebug ? (
+              <div
+                className="rounded-md bg-app-bg/70 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-app-muted"
+                title="Debug conectividad: B=browser, P=probe backend"
+                aria-label="Debug conectividad"
+              >
+                B:{connectionDebug?.browserOnline ? 1 : 0} P:{connectionDebug?.backendReachable ? 1 : 0}
               </div>
             ) : null}
             <button

@@ -1,232 +1,222 @@
-# Frontend Desktop - Dashboard (v3)
+# Frontend Desktop - Dashboard (v4)
 
-Fecha de actualizacion: 2026-03-03
+Fecha de actualizacion: 2026-03-05
 
 ## 1) Objetivo
 
-El modo desktop implementa un dashboard operativo completo sin romper el flujo mobile:
-- Gestion de grupos
-- Gestion de gastos
-- Gestion de categorias/proveedores
-- Gestion de usuarios de grupo (admin)
-- Soporte offline con cola de acciones + cache local
+El modo desktop implementa operacion completa diaria del sistema, sin romper el flujo mobile:
+- gestion de grupos
+- gestion de gastos
+- gestion de ingresos
+- gestion de categorias/proveedores
+- gestion de usuarios de grupo (admin)
+- modulo de analiticas financieras con graficos
+- cache local + soporte offline para datos y cola de sincronizacion de acciones
 
 ## 2) Activacion responsive
 
-- En viewport `>= 1024px` (`lg`), las rutas principales (`/`, `/groups`) renderizan dashboard desktop.
-- En viewport menor, se mantiene el flujo mobile.
-- Ruta explicita desktop disponible: `/dashboard`.
+- En viewport `>= 1024px` (`lg`), `/` y `/groups` renderizan dashboard desktop.
+- En viewport menor se mantiene el flujo mobile.
+- Ruta explicita desktop: `/dashboard`.
 
-Archivos:
+Archivos clave:
 - `frontend/src/App.jsx`
 - `frontend/src/hooks/useDesktopViewport.js`
 - `frontend/src/pages/DesktopDashboardPage.jsx`
 
-## 3) Layout general desktop
+## 3) Layout general
 
 Estructura:
 - `aside` izquierdo con grupos.
-- Header superior con:
-  - estado online/offline
-  - pendientes
-  - acceso a perfil
-  - logout
-- Panel principal con:
-  - KPIs (`Total filtrado`, `Gastos`, `Categorias`, `Usuarios`)
-  - tabs de operacion: `Gastos`, `Categorias`, `Usuarios`
+- header superior con estado online/offline, usuario y logout.
+- panel principal con tarjetas KPI + tabs de operacion.
 
-Contenedor principal de tablas:
-- altura fija en viewport (`h-[calc(100dvh-13rem)]`)
-- no cambia de alto al cambiar entre tabs
-- el contenido interno es el que scrollea
+Tabs operativas:
+- `Gastos`
+- `Ingresos`
+- `Categorias`
+- `Usuarios`
+- `Analiticas`
 
-## 4) Sidebar de grupos
+## 4) KPIs superiores
 
-### 4.1 Alta y seleccion
-- Input `Nuevo grupo` + boton `Crear`.
-- Click en un grupo lo selecciona como grupo activo.
+Las tarjetas resumen muestran:
+- `Total filtrado (gastos)`
+- `Total filtrado (ingresos)` (acotado al rango de fechas activo en filtros de gastos)
+- `Saldo` (diferencia ingresos-gastos) + porcentaje en la misma linea
+- `Cant. gastos`
+- `Cant. ingresos`
+- `Filtros` (cantidad de filtros activos)
 
-### 4.2 Favoritos (solo grupos)
-- Favorito unico por usuario/sesion (no multiple).
-- Persistencia en `favoritesStorage`.
-- El grupo favorito:
-  - sube al tope de la lista
-  - usa fondo `bg-indigo-900`
-- El favorito se selecciona automaticamente al entrar/reingresar/recargar si existe.
+## 5) Sidebar de grupos
 
-### 4.3 Acciones por hover en grupo
-Los botones de accion no se ven por defecto:
-- aparecen solo con hover sobre el item de grupo
-- desaparecen al salir el mouse del item
+### 5.1 Seleccion y acciones
+- input `Nuevo grupo` + boton `Crear`.
+- click en grupo: lo selecciona como grupo activo.
+- acciones por item (`favorito`, `editar`, `eliminar`) visibles solo con hover.
 
-Acciones visibles en hover:
-- Favorito (estrella vacia/llena)
-- Eliminar grupo (si rol admin)
-- Editar grupo (si rol admin)
+### 5.2 Favorito de grupo
+- favorito unico por usuario.
+- el grupo favorito:
+  - sube al tope
+  - usa fondo destacado
+  - se usa como grupo de arranque al reingresar/recargar
+- label `GRUPO ACTIVO` se pinta en amarillo cuando el grupo activo es el favorito.
 
-Iconos usados:
-- `star-empty-icon.svg`
-- `star-full-icon.svg`
-- `close-line-icon.svg`
-- `pencil-icon.svg`
-
-### 4.4 Transicion al reordenar favoritos
-- Se usa animacion FLIP para suavizar el desplazamiento de grupos cuando cambia el favorito.
-- Se corrigio jitter/oscilacion para que solo anime cuando cambia realmente el orden.
-
-Archivo:
-- `frontend/src/hooks/useFlipListAnimation.js`
-
-## 5) Header del panel principal
-
-- Label `GRUPO ACTIVO`:
-  - color normal: `text-app-muted`
-  - color amarillo cuando el grupo activo es favorito
-- Info de estado:
-  - online/offline con icono
-  - contador de pendientes
+### 5.3 Edicion/eliminacion de grupo
+- flujo por pasos en modal:
+  - editar: nombre nuevo -> confirmacion escribiendo `EDITAR`
+  - eliminar: confirmar `SI/NO` -> confirmacion escribiendo `ELIMINAR`
 
 ## 6) Tab Gastos
 
-### 6.1 Tabla de gastos
-- Header (`thead`) fijo.
-- Body (`tbody`) scrolleable.
-- Columna `Descripcion` removida de la tabla principal.
+### 6.1 Tabla + viewport fijo
+- `thead` fijo y `tbody` con scroll interno.
+- area de tabla con altura estable en viewport.
+- paginacion clasica (`<< < 1 2 3 ... > >>`).
+- cantidad por pagina adaptativa segun alto disponible (no fija hardcodeada).
 
-### 6.2 Descripcion expandible por fila
-- Click en fila de gasto abre/cierra descripcion debajo de esa fila.
-- Se pueden abrir multiples descripciones a la vez.
-- Boton `Cerrar descripciones` para cerrar todas.
-- `Cerrar descripciones` solo se muestra en tab `Gastos`.
-- Apertura/cierre con transicion suave (`max-height` + `opacity`).
+### 6.2 Ordenamiento por columnas
+Click en `th` alterna orden:
+- Categoria: `A-Z` / `Z-A`
+- Monto: mayor-menor / menor-mayor
+- Tipo: orden custom (`FIJO`, `VARIABLE`, `PROVEEDOR`)
+- Pago: orden custom (`EFECTIVO`, `DEBITO`, `CREDITO`)
+- Usuario: alfabetico
+- Fecha: antiguos-recientes / inverso
 
-### 6.3 Ordenamiento por click en `th`
-Cada click alterna direccion del orden:
+### 6.3 Descripcion expandible
+- click en fila abre/cierra descripcion debajo de esa fila.
+- se pueden abrir varias descripciones en paralelo.
+- boton `Cerrar descripciones` solo visible en tab `Gastos`.
 
-- `Categoria`: alfabetico `A-Z` / `Z-A`
-- `Monto`: `mayor->menor` / `menor->mayor`
-- `Tipo`: orden personalizado
-  - asc: `Fijo -> Variable -> Proveedor`
-  - desc: `Proveedor -> Variable -> Fijo`
-- `Pago`: orden personalizado
-  - asc: `Efectivo -> Debito -> Credito`
-  - desc: `Credito -> Debito -> Efectivo`
-- `Usuario`: alfabetico por alias de email
-- `Fecha`: `mas antiguos->mas recientes` / inverso
+### 6.4 Filtros (modal)
+- boton `FILTROS` solo visible en tab `Gastos`.
+- modal con:
+  - tipo de gasto (multi)
+  - forma de pago (multi)
+  - usuarios (multi)
+  - categoria/proveedor (multi, por panel de tipo)
+  - rango `desde/hasta`
+- acciones: `Limpiar`, `Cancelar`, `Aplicar filtros`.
 
-Indicador visual:
-- flecha de orden en el header activo (`up/down`).
+### 6.5 Alta/edicion de gasto (modal)
+- boton flotante `+ CREAR GASTO`.
+- layout en 2 columnas:
+  - izquierda: tipo, forma de pago, usuario creador
+  - derecha: categoria/proveedor
+  - abajo: monto, fecha, descripcion
+- acciones de fila: editar/eliminar con iconos, sin borde ni fondo.
 
-### 6.4 Acciones de gasto
-- `Editar` y `Eliminar` con iconos (sin borde ni fondo, estilo consistente con grupos).
+## 7) Tab Ingresos
 
-## 7) Filtros de gastos (modal)
-
-Boton `FILTROS`:
-- solo visible en tab `Gastos`
-- estilo invertido para mayor contraste
-
-Modal de filtros:
-- `Tipo de gasto`: multiseleccion
-- `Forma de pago`: multiseleccion
-- `Usuarios`: multiseleccion
-- `Categoria/Proveedor`: multiseleccion por panel de tipo
-  - no mezcla categorias de todos los tipos en un solo bloque
-  - navegacion por paneles con flechas izquierda/derecha
-- `Desde` / `Hasta` por fecha
-- acciones: `Limpiar`, `Cancelar`, `Aplicar filtros`
-
-## 8) Creacion/edicion de gastos (modal)
-
-Boton `+ Crear gasto`:
-- flotante, esquina inferior derecha
-- respeta grupo activo actual
-
-Modal de gasto:
-- formato horizontal (desktop)
-- usa componentes de botones por filas (`WrappedChoiceGroup` / `WrappedMultiChoiceGroup`)
-- bloques:
-  - tipo de gasto
-  - forma de pago
-  - categoria/proveedor (dependiente del tipo)
-  - usuario creador
+- tabla de ingresos con columnas:
+  - tipo
   - monto
   - fecha
-  - descripcion (opcional)
+  - acciones
+- `ADMIN` puede:
+  - crear ingreso
+  - editar ingreso
+  - eliminar ingreso
+- `PARTICIPANT` solo visualiza.
+- tipos soportados: `EFECTIVO (1)` y `DEBITO (3)`.
 
-Edicion de gasto:
-- restringe campos segun regla actual de negocio del frontend (monto, pago, fecha, descripcion).
+## 8) Tab Categorias y Usuarios
 
-## 9) Tab Categorias y Tab Usuarios
+### 8.1 Categorias/proveedores
+- listado con ordenamiento por `Nombre` y `Tipo`.
+- boton `CREAR` abre modal (nombre + tipo).
+- acciones editar/eliminar por fila.
 
-### 9.1 Categorias / proveedores
-- Crear, editar y eliminar.
-- Incluye tipo (`fijo`, `variable`, `proveedor`).
+### 8.2 Usuarios del grupo
+- remocion de participante (solo admin).
+- opcion para eliminar tambien sus gastos historicos del grupo.
 
-### 9.2 Usuarios del grupo
-- Quitar participante (solo admin y con restricciones).
-- Al quitar, se puede elegir eliminar tambien sus gastos.
+## 9) Tab Analiticas
 
-## 10) Modales de confirmacion y pasos
+Endpoint fuente:
+- `GET /sets/:id_set/incomes/analytics`
 
-### 10.1 Editar grupo
-- Paso 1: nuevo nombre + continuar
-- Paso 2: confirmacion escribiendo `EDITAR`
+### 9.1 Filtros de analitica
+- panel expandible/colapsable (`Mostrar filtros` / `Ocultar filtros`).
+- filtros:
+  - `Desde`
+  - `Hasta`
+  - `Tipo ingreso`
+  - `Top categorias`
+  - `Orden ranking`
+- acciones:
+  - `Aplicar`
+  - `Limpiar`
+- quick ranges:
+  - ultima semana
+  - ultimo mes
+  - ultimos 3 meses
+  - ultimo semestre
+  - ultimo anio
 
-### 10.2 Eliminar grupo
-- Paso 1: confirmacion `Si/No`
-- Paso 2: confirmacion escribiendo `ELIMINAR`
+### 9.2 Visualizaciones
+- KPIs de analitica:
+  - ingresos
+  - gastos
+  - saldo
+  - margen operativo
+  - crecimiento gasto 3m/6m/12m
+  - tendencia margen 3m
+- graficos de series:
+  - evolucion mensual ingreso vs gasto vs saldo
+  - ratio de ejecucion mensual
+  - crecimiento mensual (%)
+  - margen operativo mensual
+  - evolucion mensual por tipo (stacked)
+  - estructura por tipo
+  - ranking de categorias (actual vs periodo anterior)
 
-## 11) Offline + cache desktop
+## 10) Perfil de color compartido
+
+El desktop puede editar perfil de color (persistido por usuario):
+- tipos de gasto
+- formas de pago
+- series de analitica (`gasto`, `ingreso`, `saldo`)
+
+Persistencia:
+- backend: `user_color_profiles` + endpoints:
+  - `GET /auth/color-profile`
+  - `PUT /auth/color-profile`
+- frontend cache local por usuario:
+  - `expenses_mobile_ui_color_settings_v1`
+
+Aplicacion:
+- los colores se aplican en:
+  - botones de seleccion
+  - badges de tablas
+  - series de graficos
+- mobile consume el mismo perfil (lectura), pero la edicion se realiza en desktop.
+
+## 11) Cache local y offline
+
+Cache principal por usuario:
+- grupos
+- categorias
+- usuarios por grupo
+- gastos
+- ingresos
+- perfil de color UI
 
 Cola offline unificada:
-- key: `expenses_mobile_offline_actions_v1`
-- migracion automatica desde cola legacy de gastos
+- `expenses_mobile_offline_actions_v1`
+- sincronizacion automatica al volver online
+- manejo de descarte en errores de validacion (4xx)
 
-Acciones soportadas:
-- `set.create`, `set.update`, `set.delete`
-- `category.create`, `category.update`, `category.delete`
-- `expense.create`, `expense.update`, `expense.delete`
-- `set.user.remove`
+## 12) Notas de mantenimiento
 
-Sincronizacion:
-- auto al volver online
-- 4xx se descartan por validacion
-- 5xx/red quedan pendientes
-
-Cache local:
-- grupos, categorias, usuarios y gastos por grupo
-- cargas iniciales mas rapidas y soporte offline
-
-Archivos:
-- `frontend/src/context/ExpenseSyncContext.jsx`
-- `frontend/src/lib/offlineActionQueue.js`
-- `frontend/src/lib/localCache.js`
-- `frontend/src/lib/favoritesStorage.js`
-
-## 12) Endpoint backend para miembros
-
-Endpoint:
-- `DELETE /sets/:id_set/users/:id_user`
-  - body: `{ "delete_expenses": true|false }`
-
-Reglas:
-- solo admin del grupo
-- no puede quitarse a si mismo
-- no puede quitar otro admin
-- opcion de eliminar gastos del usuario removido
-
-## 13) Ajustes y correcciones aplicadas
-
-- Se corrigio error de carga `invalid limit` usando `limit=100` en listados de gastos.
-- Se unifico estilo de acciones (iconos) entre grupos y gastos.
-- Se establecio tipografia de lista a `16px` (`text-base`) en tablas desktop.
-
-## 14) Estado actual
-
-Desktop v3 funcional para operacion completa diaria.
-
-Pendientes sugeridos (fase siguiente):
-- paginacion real en gastos (backend + frontend)
-- graficos de analitica en dashboard
-- tests e2e de flujos desktop (online/offline/sync)
+- Si se agregan nuevos tipos o metodos de pago, actualizar:
+  - backend (constantes + validaciones)
+  - `catalogs.js`
+  - `uiColorSettings.js`
+  - docs funcionales/reglas
+- Si se cambia contrato de analitica, actualizar:
+  - tab `Analiticas` desktop
+  - `docs/Documento_Funcional_v2.md`
+  - `docs/Reglas_de_Negocio_v2.md`

@@ -16,7 +16,8 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = Boolean(onlineStatus?.isOnline);
 
   const applyCachedUiColors = useCallback((targetUser) => {
     const scope = resolveSessionScope(targetUser);
@@ -41,8 +42,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const restoreSession = async () => {
+      const cachedUser = getCachedUser();
+
       if (!isOnline) {
-        const cachedUser = getCachedUser();
         setUser(cachedUser);
         applyCachedUiColors(cachedUser);
         setBooting(false);
@@ -62,10 +64,15 @@ export const AuthProvider = ({ children }) => {
           applyCachedUiColors(null);
         }
       } catch {
-        setUser(null);
-        clearCachedUser();
-        clearStoredTokens();
-        applyCachedUiColors(null);
+        if (cachedUser) {
+          setUser(cachedUser);
+          applyCachedUiColors(cachedUser);
+        } else {
+          setUser(null);
+          clearCachedUser();
+          clearStoredTokens();
+          applyCachedUiColors(null);
+        }
       } finally {
         setBooting(false);
       }
@@ -142,12 +149,17 @@ export const AuthProvider = ({ children }) => {
     () => ({
       user,
       isOnline,
+      connectionDebug: {
+        browserOnline: Boolean(onlineStatus?.browserOnline),
+        backendReachable: Boolean(onlineStatus?.backendReachable),
+        lastCheckedAt: Number(onlineStatus?.lastCheckedAt || 0) || null,
+      },
       booting,
       login,
       register,
       logout,
     }),
-    [user, isOnline, booting, login, register, logout]
+    [user, isOnline, onlineStatus?.backendReachable, onlineStatus?.browserOnline, onlineStatus?.lastCheckedAt, booting, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

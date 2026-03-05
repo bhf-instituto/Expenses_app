@@ -1,5 +1,7 @@
 # Reglas de Negocio v2 - Aplicacion de Gastos
 
+Fecha de actualizacion: 2026-03-05
+
 ## 1. Reglas de identidad y pertenencia
 
 RN-01. Todo gasto pertenece a un unico grupo (`set_id`).
@@ -136,8 +138,20 @@ RN-48. `income_date` es obligatoria y debe ser fecha valida.
 
 RN-49. `amount` de ingreso debe ser entero positivo.
 
-RN-50. Solo `ADMIN` puede crear ingresos en el grupo.
+RN-50. Solo `ADMIN` puede crear, editar o eliminar ingresos en el grupo.
 
 RN-51. Miembros del grupo (`ADMIN` y `PARTICIPANT`) pueden listar ingresos y consultar analitica de ingresos.
 
-RN-52. La analitica de ingresos vs gastos se calcula por rango de fechas y expone al menos: ingreso total, gasto total, saldo y porcentajes por tipo/categoria.
+RN-52. La analitica de ingresos vs gastos requiere `from_date` y `to_date` validos, con `from_date <= to_date`.
+
+RN-53. La analitica de ingresos vs gastos expone estructura historica (resumen, tendencia mensual, estructura por tipo, tendencia por tipo y ranking de categorias), sin predicciones.
+
+RN-54. En analitica, `category_limit` debe ser entero entre 1 y 100 y `category_sort` admite `total` o `growth`.
+
+## 11. Reglas de perfil de color de usuario
+
+RN-55. El perfil de color es por usuario (no por grupo) y puede persistirse en backend.
+
+RN-56. El perfil de color no modifica reglas contables ni calculos de negocio; solo afecta representacion visual.
+
+RN-57. El perfil de color debe poder aplicarse de forma consistente en desktop y mobile para el mismo usuario.
