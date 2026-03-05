@@ -3,6 +3,12 @@ import { useEffect, useState } from 'react';
 const PROBE_PATH = '/health/db';
 const PROBE_TIMEOUT_MS = 3500;
 const PROBE_INTERVAL_MS = 15000;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim();
+
+const resolveProbeUrl = () => {
+  const baseUrl = API_BASE_URL || window.location.origin;
+  return new URL(PROBE_PATH, baseUrl).toString();
+};
 
 const probeBackendReachability = async () => {
   if (!navigator.onLine) {
@@ -13,10 +19,10 @@ const probeBackendReachability = async () => {
   const timeout = window.setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 
   try {
-    const response = await fetch(PROBE_PATH, {
+    const response = await fetch(resolveProbeUrl(), {
       method: 'GET',
       cache: 'no-store',
-      credentials: 'include',
+      credentials: 'omit',
       signal: controller.signal,
     });
     return response.ok;
