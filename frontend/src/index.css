@@ -73,6 +73,23 @@
     --app-icon-star-full: var(--yellow);
     --app-icon-star-empty: var(--app-text-muted);
 
+    /* Local UI color customization (expense type / payment method) */
+    --app-expense-type-1-text: 223 208 184;
+    --app-expense-type-1-bg: 27 45 66;
+    --app-expense-type-2-text: 223 208 184;
+    --app-expense-type-2-bg: 23 58 84;
+    --app-expense-type-3-text: 223 208 184;
+    --app-expense-type-3-bg: 30 64 128;
+    --app-payment-method-1-text: 223 208 184;
+    --app-payment-method-1-bg: 35 75 51;
+    --app-payment-method-2-text: 223 208 184;
+    --app-payment-method-2-bg: 87 58 45;
+    --app-payment-method-3-text: 223 208 184;
+    --app-payment-method-3-bg: 48 69 93;
+    --app-chart-expense-color: 148 137 121;
+    --app-chart-income-color: 216 249 153;
+    --app-chart-balance-color: 223 208 184;
+
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -85,15 +102,18 @@
     margin: 0;
     width: 100%;
     height: 100%;
+    min-height: 100%;
   }
 
   html {
     -webkit-text-size-adjust: 100%;
+    background-color: rgb(var(--app-bg));
   }
 
   body {
     min-width: 320px;
     overflow: hidden;
+    overscroll-behavior-y: none;
     background: linear-gradient(
       180deg,
       rgb(var(--palette-black)) 0%,
@@ -105,12 +125,40 @@
       rgb(var(--palette-sand)) 77%,
       rgb(var(--palette-sand)) 100%
     );
+    background-color: rgb(var(--app-bg));
     color: rgb(var(--app-text-primary));
     font-family: 'Roboto', sans-serif;
   }
 
   * {
     box-sizing: border-box;
+  }
+
+  button[class] {
+    border: 0 !important;
+  }
+
+  button.bg-transparent:not([class*='h-10']):not([class*='w-10']):not([class*='h-[40px]']):not([class*='rounded-full']) {
+    background-color: rgb(var(--app-bg) / 0.42);
+    color: rgb(var(--app-text-primary));
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: background-color 160ms ease, color 160ms ease, transform 120ms ease;
+  }
+
+  button.bg-transparent:not([class*='h-10']):not([class*='w-10']):not([class*='h-[40px]']):not([class*='rounded-full']):hover {
+    background-color: rgb(0 0 0 / 0.55);
+    color: rgb(var(--app-text-primary));
+  }
+
+  button.bg-transparent:not([class*='h-10']):not([class*='w-10']):not([class*='h-[40px]']):not([class*='rounded-full']):active {
+    background-color: rgb(var(--palette-black) / 0.9);
+    color: rgb(var(--app-text-primary));
+    transform: translateY(1px);
   }
 
   :where(input, textarea, select) {
@@ -129,6 +177,15 @@
 
   /* iOS Safari: avoid automatic zoom on focus by keeping inputs >= 16px */
   @supports (-webkit-touch-callout: none) {
+    html {
+      height: -webkit-fill-available;
+    }
+
+    body,
+    #root {
+      min-height: -webkit-fill-available;
+    }
+
     :where(input, textarea, select) {
       font-size: 16px !important;
     }
@@ -163,6 +220,8 @@
 @layer components {
   .app-shell {
     @apply mx-auto flex h-[100dvh] w-full max-w-md flex-col border-x border-app-ink/10 bg-app-bg shadow-card;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .scroll-pane {
@@ -206,11 +265,42 @@
     mask-size: contain;
   }
 
+  .color-chip-input {
+    width: 1.75rem;
+    height: 1rem;
+    padding: 0;
+    border: 1px solid rgb(var(--app-ink) / 0.25);
+    border-radius: 0.2rem;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    overflow: hidden;
+  }
+
+  .color-chip-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  .color-chip-input::-webkit-color-swatch {
+    border: 0;
+  }
+
+  .color-chip-input::-moz-color-swatch {
+    border: 0;
+  }
+
   .safe-top {
     padding-top: calc(env(safe-area-inset-top) + 0.5rem);
   }
 
   .safe-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .app-shell {
+      min-height: -webkit-fill-available;
+      height: -webkit-fill-available;
+    }
   }
 }

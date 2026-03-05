@@ -5,26 +5,44 @@ export default function WrappedChoiceGroup({
   itemMinWidth = 104,
   borderless = false,
 }) {
+  const resolveOptionStyle = (option) => {
+    if (!option?.bgColorVar) {
+      return { style: undefined, hasCustomStyle: false };
+    }
+
+    return {
+      hasCustomStyle: true,
+      style: {
+        backgroundColor: `rgb(var(${option.bgColorVar}))`,
+      },
+    };
+  };
+
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((option) => {
         const isActive = String(option.value) === String(value);
+        const { style, hasCustomStyle } = resolveOptionStyle(option);
         const baseClasses =
           'rounded-lg px-3 py-2 text-xs font-heading font-semibold uppercase tracking-wide transition';
         const borderClasses = borderless ? 'border-0' : 'border';
-        const activeClasses = borderless
-          ? 'bg-app-mint text-app-ink'
-          : 'border-app-ink/60 bg-app-mint text-app-ink';
-        const inactiveClasses = borderless
-          ? 'bg-app-mint/100 text-app-ink hover:bg-app-bg'
-          : 'border-app-ink/20 bg-app-panel text-app-muted hover:bg-app-bg';
+        const activeClasses = hasCustomStyle
+          ? 'border-app-ink/60 text-app-ink'
+          : borderless
+            ? 'bg-app-ink/25 text-app-ink'
+            : 'bg-app-ink/25 text-app-ink';
+        const inactiveClasses = hasCustomStyle
+          ? 'border-app-ink/20 text-app-muted opacity-80 hover:bg-app-bg hover:opacity-100'
+          : borderless
+            ? 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink'
+            : 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink';
 
         return (
           <button
             key={String(option.value)}
             type="button"
             onClick={() => onChange(option.value)}
-            style={{ minWidth: `${itemMinWidth}px` }}
+            style={{ minWidth: `${itemMinWidth}px`, ...style }}
             className={`${baseClasses} ${borderClasses} ${isActive ? activeClasses : inactiveClasses}`}
           >
             {option.label}

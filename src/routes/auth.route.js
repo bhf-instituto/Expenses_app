@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { requireUser } from '../middlewares/requireUser.middleware.js'
 import { registerUser, loginUser, logoutUser } from '../controllers/auth.controller.js'
+import { getMyColorProfile, upsertMyColorProfile } from '../controllers/userColorProfile.controller.js';
 
 const router = Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser)
 router.post('/logout', requireUser, logoutUser)
+router.get('/color-profile', requireUser, getMyColorProfile);
+router.put('/color-profile', requireUser, upsertMyColorProfile);
 
 export default router;

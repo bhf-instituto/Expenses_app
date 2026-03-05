@@ -11,6 +11,7 @@ import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 import { getCachedSetUsers, setCachedSetUsers } from '../lib/localCache.js';
 import { resolveSessionScope } from '../lib/sessionScope.js';
 import { formatAmountInput, parseAmountInput } from '../lib/amountFormat.js';
+import { getPaymentMethodBgVarName } from '../lib/uiColorSettings.js';
 
 const todayDate = new Date().toISOString().slice(0, 10);
 const getEmailAlias = (email) => String(email || '').split('@')[0] || email;
@@ -55,6 +56,7 @@ export default function CreateExpensePage() {
       PAYMENT_METHODS.map((method) => ({
         value: method.id,
         label: method.shortLabel || method.label,
+        bgColorVar: getPaymentMethodBgVarName(method.id),
       })),
     []
   );

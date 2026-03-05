@@ -1,6 +1,11 @@
-export default function ModeToggle({ mode, onChange, viewDisabled }) {
+export default function ModeToggle({
+  mode,
+  onChange,
+  viewDisabled,
+  incomeDisabled,
+}) {
   return (
-    <div className="grid grid-cols-2 rounded-xl border-0 border-app-ink/20 bg-app-panel p-1">
+    <div className="grid grid-cols-3 rounded-xl border-0 border-app-ink/20 bg-app-panel p-1">
       <button
         type="button"
         onClick={() => onChange('create')}
@@ -25,6 +30,20 @@ export default function ModeToggle({ mode, onChange, viewDisabled }) {
         }`}
       >
         Ver
+      </button>
+      <button
+        type="button"
+        disabled={incomeDisabled}
+        onClick={() => onChange('incomes')}
+        className={`rounded-lg py-2 font-heading text-sm font-semibold uppercase tracking-wide transition ${
+          incomeDisabled
+            ? 'cursor-not-allowed text-app-muted/50'
+            : mode === 'incomes'
+            ? 'bg-app-mint text-app-ink'
+            : 'text-app-muted hover:bg-app-bg'
+        }`}
+      >
+        Ingresos
       </button>
     </div>
   );

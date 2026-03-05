@@ -40,6 +40,8 @@ export default function DesktopTopCategoryChart({
   series = [],
   valueFormat = 'currency',
   showZeroReference = false,
+  lineType = 'monotone',
+  lineConnectNulls = false,
 }) {
   const resolvedSeries = useMemo(() => (Array.isArray(series) ? series : []), [series]);
   const [activePieIndex, setActivePieIndex] = useState(0);
@@ -289,11 +291,12 @@ export default function DesktopTopCategoryChart({
           {resolvedSeries.map((item) => (
             <Line
               key={item.key}
-              type="monotone"
+              type={lineType}
               dataKey={item.key}
               name={item.label}
               stroke={item.color}
               strokeWidth={2}
+              connectNulls={lineConnectNulls}
               dot={{ r: 2 }}
               activeDot={{ r: 4 }}
             />

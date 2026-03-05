@@ -13,6 +13,7 @@ import CategoriesPage from './pages/CategoriesPage.jsx';
 import CreateCategoryPage from './pages/CreateCategoryPage.jsx';
 import CreateExpensePage from './pages/CreateExpensePage.jsx';
 import ViewExpensesPage from './pages/ViewExpensesPage.jsx';
+import IncomesPage from './pages/IncomesPage.jsx';
 import useDesktopViewport from './hooks/useDesktopViewport.js';
 
 function AdaptiveHomePage() {
@@ -111,6 +112,14 @@ function App() {
               element={(
                 <RequireAuth>
                   <ViewExpensesPage />
+                </RequireAuth>
+              )}
+            />
+            <Route
+              path="/sets/:setId/incomes"
+              element={(
+                <RequireAuth>
+                  <IncomesPage />
                 </RequireAuth>
               )}
             />

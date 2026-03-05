@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../lib/apiClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import useDesktopViewport from '../hooks/useDesktopViewport.js';
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const { login, register, isOnline } = useAuth();
+  const isDesktop = useDesktopViewport();
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,9 +33,15 @@ export default function AuthPage() {
   };
 
   return (
-    <main className="app-shell">
-      <section className="no-scrollbar flex min-h-0 flex-1 flex-col justify-center overflow-y-auto p-4">
-        <div className="my-auto space-y-3">
+    <main className={isDesktop ? 'flex min-h-[100dvh] w-full items-center justify-center px-4 py-6' : 'app-shell'}>
+      <section
+        className={
+          isDesktop
+            ? 'w-full max-w-md rounded-2xl bg-app-panel/90 p-4 shadow-card'
+            : 'no-scrollbar flex min-h-0 flex-1 flex-col justify-center overflow-y-auto p-4'
+        }
+      >
+        <div className={isDesktop ? 'space-y-3' : 'my-auto space-y-3'}>
           <header className="flex rounded-xl border-0 bg-app-panel p-1">
             <button
               type="button"
@@ -63,7 +71,7 @@ export default function AuthPage() {
 
           <form
             onSubmit={onSubmit}
-            className="animate-riseIn rounded-2xl border-0 bg-app-panel p-4 shadow-card"
+            className={`animate-riseIn rounded-2xl border-0 bg-app-panel p-4 ${isDesktop ? '' : 'shadow-card'}`}
           >
             {/* <h1 className="font-heading text-lg font-semibold uppercase text-app-ink">
             {mode === 'login' ? 'Acceso' : 'Crear cuenta'}

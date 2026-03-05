@@ -2,6 +2,8 @@ const SETS_CACHE_KEY = 'expenses_mobile_sets_v1';
 const CATEGORIES_CACHE_KEY = 'expenses_mobile_categories_v1';
 const SET_USERS_CACHE_KEY = 'expenses_mobile_set_users_v1';
 const EXPENSES_CACHE_KEY = 'expenses_mobile_expenses_v1';
+const INCOMES_CACHE_KEY = 'expenses_mobile_incomes_v1';
+const UI_COLOR_SETTINGS_CACHE_KEY = 'expenses_mobile_ui_color_settings_v1';
 const USER_CACHE_KEY = 'expenses_mobile_user_v1';
 const SCOPE_KEY_PREFIX = 'scope:';
 const DEFAULT_SCOPE_KEY = `${SCOPE_KEY_PREFIX}global`;
@@ -182,4 +184,35 @@ export const setCachedExpenses = (setId, expenses, scope) => {
   };
 
   writeScopedValue(EXPENSES_CACHE_KEY, scope, 'object', nextScopedExpenses);
+};
+
+export const getCachedIncomes = (setId, scope) => {
+  const scopedIncomes = readScopedValue(INCOMES_CACHE_KEY, scope, 'object', {});
+  if (!isObject(scopedIncomes)) {
+    return [];
+  }
+
+  const setIncomes = scopedIncomes[String(setId)];
+  return Array.isArray(setIncomes) ? setIncomes : [];
+};
+
+export const setCachedIncomes = (setId, incomes, scope) => {
+  const scopedIncomes = readScopedValue(INCOMES_CACHE_KEY, scope, 'object', {});
+  const currentScopedIncomes = isObject(scopedIncomes) ? scopedIncomes : {};
+  const nextScopedIncomes = {
+    ...currentScopedIncomes,
+    [String(setId)]: Array.isArray(incomes) ? incomes : [],
+  };
+
+  writeScopedValue(INCOMES_CACHE_KEY, scope, 'object', nextScopedIncomes);
+};
+
+export const getCachedUiColorSettings = (scope) => {
+  const cachedSettings = readScopedValue(UI_COLOR_SETTINGS_CACHE_KEY, scope, 'object', null);
+  return isObject(cachedSettings) ? cachedSettings : null;
+};
+
+export const setCachedUiColorSettings = (settings, scope) => {
+  const nextSettings = isObject(settings) ? settings : {};
+  writeScopedValue(UI_COLOR_SETTINGS_CACHE_KEY, scope, 'object', nextSettings);
 };

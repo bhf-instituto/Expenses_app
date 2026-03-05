@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
@@ -14,14 +14,18 @@ import {
 } from '../lib/localCache.js';
 import { resolveSessionScope } from '../lib/sessionScope.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { getExpenseTypeBgVarName, getPaymentMethodBgVarName } from '../lib/uiColorSettings.js';
 
 const getEmailAlias = (email) => String(email || '').split('@')[0] || String(email || '');
+
 const formatDateOnly = (value) => {
   const rawValue = String(value || '');
   if (!rawValue) return '-';
   const dateMatch = rawValue.match(/\d{4}-\d{2}-\d{2}/);
   return dateMatch ? dateMatch[0] : rawValue;
 };
+
+const MOBILE_ITEMS_PER_PAGE = 30;
 
 export default function ViewExpensesPage() {
   const navigate = useNavigate();
@@ -37,6 +41,8 @@ export default function ViewExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [expensePage, setExpensePage] = useState(1);
+  const expenseRowsPerPage = MOBILE_ITEMS_PER_PAGE;
   const [filters, setFilters] = useState({
     expense_type: '',
     category_id: '',
@@ -52,7 +58,11 @@ export default function ViewExpensesPage() {
   const typeFilterOptions = useMemo(
     () => [
       { value: '', label: 'Todos' },
-      ...EXPENSE_TYPES.map((type) => ({ value: String(type.id), label: type.shortLabel || type.label })),
+      ...EXPENSE_TYPES.map((type) => ({
+        value: String(type.id),
+        label: type.shortLabel || type.label,
+        bgColorVar: getExpenseTypeBgVarName(type.id),
+      })),
     ],
     []
   );
@@ -63,6 +73,7 @@ export default function ViewExpensesPage() {
       ...PAYMENT_METHODS.map((method) => ({
         value: String(method.id),
         label: method.shortLabel || method.label,
+        bgColorVar: getPaymentMethodBgVarName(method.id),
       })),
     ],
     []
@@ -82,27 +93,43 @@ export default function ViewExpensesPage() {
     return [...withAll, ...meOption, ...others];
   }, [groupUsers, user?.id]);
 
-  const query = useMemo(
-    () => ({
-      page: 1,
-      limit: 50,
-      ...filters,
-    }),
-    [filters]
-  );
+  const fetchAllExpensesForSet = useCallback(async (currentSetId, currentFilters) => {
+    const pageSize = 100;
+    const maxPages = 1000;
+    const allRows = [];
 
-  const loadExpenses = async (currentQuery) => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await expensesApi.getAll(setId, currentQuery);
-      setExpenses(Array.isArray(data) ? data : []);
-    } catch {
-      setError('No se pudieron cargar los gastos');
-    } finally {
-      setLoading(false);
+    for (let page = 1; page <= maxPages; page += 1) {
+      const batch = await expensesApi.getAll(currentSetId, {
+        page,
+        limit: pageSize,
+        ...currentFilters,
+      });
+      const rows = Array.isArray(batch) ? batch : [];
+      allRows.push(...rows);
+
+      if (rows.length < pageSize) {
+        break;
+      }
     }
-  };
+
+    return allRows;
+  }, []);
+
+  const loadExpenses = useCallback(
+    async (currentFilters) => {
+      setLoading(true);
+      setError('');
+      try {
+        const rows = await fetchAllExpensesForSet(setId, currentFilters);
+        setExpenses(rows);
+      } catch {
+        setError('No se pudieron cargar los gastos');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchAllExpensesForSet, setId]
+  );
 
   const groupedCategoriesByType = useMemo(
     () =>
@@ -122,6 +149,34 @@ export default function ViewExpensesPage() {
     () => expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
     [expenses]
   );
+
+  const totalExpensePages = useMemo(
+    () => Math.max(1, Math.ceil(expenses.length / Math.max(1, expenseRowsPerPage))),
+    [expenseRowsPerPage, expenses.length]
+  );
+
+  const paginatedExpenses = useMemo(() => {
+    const startIndex = (expensePage - 1) * expenseRowsPerPage;
+    const endIndex = startIndex + expenseRowsPerPage;
+    return expenses.slice(startIndex, endIndex);
+  }, [expensePage, expenseRowsPerPage, expenses]);
+
+  const expensePageRange = useMemo(() => {
+    if (expenses.length === 0) {
+      return { from: 0, to: 0, total: 0 };
+    }
+    const from = (expensePage - 1) * expenseRowsPerPage + 1;
+    const to = Math.min(expensePage * expenseRowsPerPage, expenses.length);
+    return { from, to, total: expenses.length };
+  }, [expensePage, expenseRowsPerPage, expenses.length]);
+
+  const goToExpensePage = (nextPage) => {
+    setExpensePage((prev) => {
+      const normalized = Number(nextPage);
+      if (!Number.isFinite(normalized)) return prev;
+      return Math.max(1, Math.min(totalExpensePages, Math.trunc(normalized)));
+    });
+  };
 
   useEffect(() => {
     if (!filters.category_id) return;
@@ -189,13 +244,13 @@ export default function ViewExpensesPage() {
   }, [setId, isOnline, sessionScope]);
 
   useEffect(() => {
-    if (!isOnline) return;
-
     let cancelled = false;
     const cachedCategories = getCachedCategories(setId, undefined, sessionScope);
     if (cachedCategories.length > 0) {
       setCategories(cachedCategories);
     }
+
+    if (!isOnline) return () => { cancelled = true; };
 
     const loadCategories = async () => {
       try {
@@ -213,12 +268,21 @@ export default function ViewExpensesPage() {
     };
 
     loadCategories();
-    loadExpenses(query);
+    loadExpenses(filters);
+
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, sessionScope, setId]);
+
+  useEffect(() => {
+    setExpensePage(1);
+  }, [setId]);
+
+  useEffect(() => {
+    setExpensePage((prev) => Math.min(prev, totalExpensePages));
+  }, [totalExpensePages]);
 
   if (!isOnline) {
     return (
@@ -237,8 +301,8 @@ export default function ViewExpensesPage() {
   return (
     <main className="app-shell">
       <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
-      <section className="scroll-pane">
-        <div className="space-y-3">
+      <section className="min-h-0 flex-1 overflow-hidden px-4 pb-2 pt-3">
+        <div className="flex h-full min-h-0 flex-col gap-3">
           <div className="rounded-2xl border-0 bg-app-panel p-4">
             <button
               type="button"
@@ -301,7 +365,7 @@ export default function ViewExpensesPage() {
                       </p>
                     ) : null}
                   </div>
-                  <label className="block col-span-2">
+                  <label className="col-span-2 block">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Categoria</span>
                     <select
                       value={filters.category_id}
@@ -347,7 +411,10 @@ export default function ViewExpensesPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => loadExpenses(query)}
+                  onClick={() => {
+                    setExpensePage(1);
+                    loadExpenses(filters);
+                  }}
                   className="mt-3 w-full rounded-lg border border-app-ink/30 bg-app-panel px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
                 >
                   Aplicar filtros
@@ -365,34 +432,100 @@ export default function ViewExpensesPage() {
             </div>
           ) : null}
 
-          <div className="space-y-2 rounded-2xl border-0 bg-app-panel/70 p-3">
-            {loading ? <p className="text-sm font-semibold text-app-muted">Cargando gastos...</p> : null}
-            {!loading && expenses.length === 0 ? (
-              <p className="text-sm font-semibold text-app-muted">No hay gastos con esos filtros.</p>
-            ) : null}
-            {!loading &&
-              expenses.map((expense) => {
-                const type = getExpenseTypeById(expense.expense_type);
-                const payment = getPaymentMethodById(expense.payment_method);
-                const expenseDate = formatDateOnly(expense.expense_date);
-                return (
-                  <article key={expense.id} className="rounded-xl border-0 bg-app-panel p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-heading text-sm font-semibold uppercase text-app-ink">
-                        {expense.category_name}
+          <div className="min-h-0 flex flex-1 flex-col rounded-2xl border-0 bg-app-panel/70 p-3">
+            <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              {loading ? <p className="text-sm font-semibold text-app-muted">Cargando gastos...</p> : null}
+              {!loading && expenses.length === 0 ? (
+                <p className="text-sm font-semibold text-app-muted">No hay gastos con esos filtros.</p>
+              ) : null}
+              {!loading &&
+                paginatedExpenses.map((expense) => {
+                  const type = getExpenseTypeById(expense.expense_type);
+                  const payment = getPaymentMethodById(expense.payment_method);
+                  const expenseDate = formatDateOnly(expense.expense_date);
+                  return (
+                    <article key={expense.id} className="rounded-xl border-0 bg-app-panel p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-heading text-sm font-semibold uppercase text-app-ink">
+                          {expense.category_name}
+                        </p>
+                        <p className="whitespace-nowrap text-lg font-extrabold text-app-ink">
+                          ${Number(expense.amount || 0).toLocaleString('es-AR')}
+                        </p>
+                      </div>
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-app-muted">
+                        <span
+                          className="inline-flex rounded-md px-2 py-1 text-app-ink"
+                          style={{ backgroundColor: `rgb(var(${getExpenseTypeBgVarName(expense.expense_type)}))` }}
+                        >
+                          {type?.label || 'Sin tipo'}
+                        </span>
+                        {' | '}
+                        <span
+                          className="inline-flex rounded-md px-2 py-1 text-app-ink"
+                          style={{ backgroundColor: `rgb(var(${getPaymentMethodBgVarName(expense.payment_method)}))` }}
+                        >
+                          {payment?.label || 'Sin forma pago'}
+                        </span>
+                        {' | '}
+                        <span>{expenseDate}</span>
                       </p>
-                      <p className="whitespace-nowrap text-lg font-extrabold text-app-ink">${expense.amount}</p>
-                    </div>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-app-muted">
-                      {type?.label || 'Sin tipo'} | {payment?.label || 'Sin forma pago'} | {expenseDate}
-                    </p>
-                    {expense.description ? (
-                      <p className="mt-1 text-xs font-semibold text-app-muted">{expense.description}</p>
-                    ) : null}
-                  </article>
-                );
-              })}
+                      {expense.description ? (
+                        <p className="mt-1 text-xs font-semibold text-app-muted">{expense.description}</p>
+                      ) : null}
+                    </article>
+                  );
+                })}
+            </div>
+
+            {!loading && expenses.length > 0 ? (
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-app-ink/10 pt-2">
+                <p className="text-[11px] font-semibold text-app-muted">
+                  Mostrando {expensePageRange.from}-{expensePageRange.to} de {expensePageRange.total}
+                </p>
+                {totalExpensePages > 1 ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(1)}
+                      disabled={expensePage <= 1}
+                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                    >
+                      {'<<'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(expensePage - 1)}
+                      disabled={expensePage <= 1}
+                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                    >
+                      {'<'}
+                    </button>
+                    <span className="min-w-7 rounded-md bg-app-ink px-2 py-1 text-center text-[11px] font-extrabold text-app-bg">
+                      {expensePage}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(expensePage + 1)}
+                      disabled={expensePage >= totalExpensePages}
+                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                    >
+                      {'>'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToExpensePage(totalExpensePages)}
+                      disabled={expensePage >= totalExpensePages}
+                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                    >
+                      {'>>'}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
+
           {error ? (
             <p className="rounded-xl bg-app-error-bg px-3 py-2 text-sm font-semibold text-app-error-text">{error}</p>
           ) : null}
@@ -401,3 +534,8 @@ export default function ViewExpensesPage() {
     </main>
   );
 }
+
+
+
+
+

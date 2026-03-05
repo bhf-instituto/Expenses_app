@@ -79,6 +79,15 @@ export const authApi = {
   logout: () => request('/auth/logout', { method: 'POST' }),
 };
 
+export const profileApi = {
+  getColorProfile: () => request('/auth/color-profile'),
+  saveColorProfile: (settings) =>
+    request('/auth/color-profile', {
+      method: 'PUT',
+      body: { settings },
+    }),
+};
+
 export const setsApi = {
   getAll: () => request('/sets'),
   getById: (setId) => request(`/sets/${setId}`),

@@ -33,6 +33,12 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 import useFlipListAnimation from '../hooks/useFlipListAnimation.js';
 import { formatAmountInput, parseAmountInput } from '../lib/amountFormat.js';
+import {
+  applyUiColorSettingsToDocument,
+  getExpenseTypeBgVarName,
+  getPaymentMethodBgVarName,
+  getScopedUiColorSettings,
+} from '../lib/uiColorSettings.js';
 
 const LazyDesktopTopCategoryChart = lazy(() => import('../components/DesktopTopCategoryChart.jsx'));
 
@@ -44,13 +50,10 @@ const TAB = {
   ANALYTICS: 'analytics',
 };
 
-const CHART_COLORS = [
-  'rgb(var(--app-accent-main))',
-  'rgb(var(--app-text-primary))',
-  'rgb(var(--app-text-muted))',
-  'rgb(var(--app-input-border))',
-  'rgb(var(--app-accent-soft))',
-];
+const CHART_COLOR_EXPENSE = 'rgb(var(--app-chart-expense-color))';
+const CHART_COLOR_INCOME = 'rgb(var(--app-chart-income-color))';
+const CHART_COLOR_BALANCE = 'rgb(var(--app-chart-balance-color))';
+const CHART_COLOR_SECONDARY = 'rgb(var(--app-input-border))';
 
 const ANALYTICS_INCOME_TYPE_OPTIONS = [
   { value: '', label: 'Todos los ingresos' },
@@ -99,6 +102,8 @@ const buildPaginationItems = (currentPage, totalPages) => {
 const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
 const formatDateOnly = (value) => String(value || '').slice(0, 10);
 const getEmailAlias = (email) => String(email || '').split('@')[0] || String(email || '');
+const getCssVarBadgeStyle = (varName) => ({ backgroundColor: `rgb(var(${varName}))` });
+const getCssVarFill = (varName) => `rgb(var(${varName}))`;
 const formatLocalYmd = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -204,16 +209,16 @@ const toggleListValue = (list, value) => {
 };
 const CATEGORY_FILTER_TONES = {
   '1': {
-    active: 'border border-app-ink/60 bg-app-mint text-app-ink',
-    inactive: 'border border-app-ink/20 bg-app-panel text-app-muted hover:bg-app-bg',
+    active: 'bg-app-ink/25 text-app-ink',
+    inactive: 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink',
   },
   '2': {
-    active: 'border border-app-ink/60 bg-app-mint text-app-ink',
-    inactive: 'border border-app-ink/20 bg-app-panel text-app-muted hover:bg-app-bg',
+    active: 'bg-app-ink/25 text-app-ink',
+    inactive: 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink',
   },
   '3': {
-    active: 'border border-app-ink/60 bg-app-mint text-app-ink',
-    inactive: 'border border-app-ink/20 bg-app-panel text-app-muted hover:bg-app-bg',
+    active: 'bg-app-ink/25 text-app-ink',
+    inactive: 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink',
   },
 };
 const defaultFilters = {
@@ -340,7 +345,7 @@ export default function DesktopDashboardPage() {
   const [categorySort, setCategorySort] = useState({ key: null, direction: 'asc' });
   const [analyticsFilters, setAnalyticsFilters] = useState(defaultAnalyticsFilters);
   const [analyticsAppliedFilters, setAnalyticsAppliedFilters] = useState(defaultAnalyticsFilters);
-  const [analyticsFiltersExpanded, setAnalyticsFiltersExpanded] = useState(true);
+  const [analyticsFiltersExpanded, setAnalyticsFiltersExpanded] = useState(false);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
@@ -348,6 +353,10 @@ export default function DesktopDashboardPage() {
   const firstExpenseRowRef = useRef(null);
   const [expenseRowsPerPage, setExpenseRowsPerPage] = useState(10);
   const [expensePage, setExpensePage] = useState(1);
+
+  useEffect(() => {
+    applyUiColorSettingsToDocument(getScopedUiColorSettings(scope));
+  }, [scope]);
 
   const selectedGroup = useMemo(
     () => groups.find((group) => Number(group.id) === Number(selectedSetId)) || null,
@@ -810,6 +819,36 @@ export default function DesktopDashboardPage() {
     [filteredExpenses]
   );
 
+  const incomesInExpenseDateRange = useMemo(
+    () =>
+      incomes.filter((income) => {
+        const incomeDate = formatDateOnly(income.income_date);
+        if (filters.from_date && incomeDate < filters.from_date) {
+          return false;
+        }
+        if (filters.to_date && incomeDate > filters.to_date) {
+          return false;
+        }
+        return true;
+      }),
+    [filters.from_date, filters.to_date, incomes]
+  );
+
+  const totalIncomeAmount = useMemo(
+    () => incomesInExpenseDateRange.reduce((sum, income) => sum + Number(income.amount || 0), 0),
+    [incomesInExpenseDateRange]
+  );
+
+  const incomeExpenseDiffPercent = useMemo(() => {
+    if (!totalIncomeAmount) return null;
+    return (totalIncomeAmount - totalAmount) / totalIncomeAmount;
+  }, [totalAmount, totalIncomeAmount]);
+
+  const totalBalanceAmount = useMemo(
+    () => totalIncomeAmount - totalAmount,
+    [totalAmount, totalIncomeAmount]
+  );
+
   const loadAnalytics = useCallback(async () => {
     if (!selectedSetId || Number(selectedSetId) <= 0) {
       setAnalyticsData(null);
@@ -955,24 +994,28 @@ export default function DesktopDashboardPage() {
     return [
       {
         label: 'Total gasto',
+        expenseTypeId: null,
         g3: analyticsSummary?.expense_growth_3m ?? null,
         g6: analyticsSummary?.expense_growth_6m ?? null,
         g12: analyticsSummary?.expense_growth_12m ?? null,
       },
       {
         label: 'FIJO',
+        expenseTypeId: 1,
         g3: byType.fixed_3m ?? null,
         g6: byType.fixed_6m ?? null,
         g12: byType.fixed_12m ?? null,
       },
       {
         label: 'VARIABLE',
+        expenseTypeId: 2,
         g3: byType.variable_3m ?? null,
         g6: byType.variable_6m ?? null,
         g12: byType.variable_12m ?? null,
       },
       {
         label: 'PROVEEDOR',
+        expenseTypeId: 3,
         g3: byType.providers_3m ?? null,
         g6: byType.providers_6m ?? null,
         g12: byType.providers_12m ?? null,
@@ -982,57 +1025,57 @@ export default function DesktopDashboardPage() {
 
   const analyticsIncomeExpenseSeries = useMemo(
     () => [
-      { key: 'income', label: 'Ingresos', color: CHART_COLORS[1] },
-      { key: 'expense', label: 'Gastos', color: CHART_COLORS[0] },
-      { key: 'balance', label: 'Saldo', color: CHART_COLORS[2] },
+      { key: 'income', label: 'Ingresos', color: CHART_COLOR_INCOME },
+      { key: 'expense', label: 'Gastos', color: CHART_COLOR_EXPENSE },
+      { key: 'balance', label: 'Saldo', color: CHART_COLOR_BALANCE },
     ],
     []
   );
 
   const analyticsExecutionSeries = useMemo(
-    () => [{ key: 'execution_ratio_percent', label: 'Ratio ejecucion %', color: CHART_COLORS[2] }],
+    () => [{ key: 'execution_ratio_percent', label: 'Ratio ejecucion %', color: CHART_COLOR_BALANCE }],
     []
   );
 
   const analyticsGrowthRatesSeries = useMemo(
     () => [
-      { key: 'growth_income', label: 'Crec. ingresos %', color: CHART_COLORS[1] },
-      { key: 'growth_expense', label: 'Crec. gastos %', color: CHART_COLORS[0] },
-      { key: 'growth_balance', label: 'Crec. saldo %', color: CHART_COLORS[2] },
+      { key: 'growth_income', label: 'Crec. ingresos %', color: CHART_COLOR_INCOME },
+      { key: 'growth_expense', label: 'Crec. gastos %', color: CHART_COLOR_EXPENSE },
+      { key: 'growth_balance', label: 'Crec. saldo %', color: CHART_COLOR_BALANCE },
     ],
     []
   );
 
   const analyticsMarginSeries = useMemo(
     () => [
-      { key: 'margin', label: 'Margen %', color: CHART_COLORS[0] },
-      { key: 'rolling_margin_3m', label: 'Prom. movil 3m %', color: CHART_COLORS[1] },
+      { key: 'margin', label: 'Margen %', color: CHART_COLOR_EXPENSE },
+      { key: 'rolling_margin_3m', label: 'Prom. movil 3m %', color: CHART_COLOR_INCOME },
     ],
     []
   );
 
   const analyticsTypeTrendSeries = useMemo(
     () => [
-      { key: 'fixed_total', label: 'FIJO', color: CHART_COLORS[0] },
-      { key: 'variable_total', label: 'VARIABLE', color: CHART_COLORS[1] },
-      { key: 'providers_total', label: 'PROVEEDOR', color: CHART_COLORS[2] },
+      { key: 'fixed_total', label: 'FIJO', color: getCssVarFill(getExpenseTypeBgVarName(1)) },
+      { key: 'variable_total', label: 'VARIABLE', color: getCssVarFill(getExpenseTypeBgVarName(2)) },
+      { key: 'providers_total', label: 'PROVEEDOR', color: getCssVarFill(getExpenseTypeBgVarName(3)) },
     ],
     []
   );
 
   const analyticsStructureSeries = useMemo(
     () => [
-      { key: 'fixed_ratio_percent', label: 'FIJO', color: CHART_COLORS[0] },
-      { key: 'variable_ratio_percent', label: 'VARIABLE', color: CHART_COLORS[1] },
-      { key: 'providers_ratio_percent', label: 'PROVEEDOR', color: CHART_COLORS[2] },
+      { key: 'fixed_ratio_percent', label: 'FIJO', color: getCssVarFill(getExpenseTypeBgVarName(1)) },
+      { key: 'variable_ratio_percent', label: 'VARIABLE', color: getCssVarFill(getExpenseTypeBgVarName(2)) },
+      { key: 'providers_ratio_percent', label: 'PROVEEDOR', color: getCssVarFill(getExpenseTypeBgVarName(3)) },
     ],
     []
   );
 
   const analyticsCategoryCompareSeries = useMemo(
     () => [
-      { key: 'total_current', label: 'Actual', color: CHART_COLORS[0] },
-      { key: 'total_previous', label: 'Anterior', color: CHART_COLORS[3] },
+      { key: 'total_current', label: 'Actual', color: CHART_COLOR_EXPENSE },
+      { key: 'total_previous', label: 'Anterior', color: CHART_COLOR_SECONDARY },
     ],
     []
   );
@@ -1042,6 +1085,7 @@ export default function DesktopDashboardPage() {
       EXPENSE_TYPES.map((type) => ({
         value: String(type.id),
         label: type.shortLabel || type.label,
+        bgColorVar: getExpenseTypeBgVarName(type.id),
       })),
     []
   );
@@ -1050,6 +1094,7 @@ export default function DesktopDashboardPage() {
       EXPENSE_TYPES.map((type) => ({
         value: String(type.id),
         label: type.shortLabel || type.label,
+        bgColorVar: getExpenseTypeBgVarName(type.id),
       })),
     []
   );
@@ -1069,6 +1114,7 @@ export default function DesktopDashboardPage() {
       PAYMENT_METHODS.map((method) => ({
         value: String(method.id),
         label: method.shortLabel || method.label,
+        bgColorVar: getPaymentMethodBgVarName(method.id),
       })),
     []
   );
@@ -1985,37 +2031,22 @@ export default function DesktopDashboardPage() {
                     {Number(group.role) === 1 ? 'Admin' : 'Participante'}
                   </p>
                 </button>
-                <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 flex-col gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      title={isFavorite ? `Quitar favorito de ${group.name}` : `Marcar favorito ${group.name}`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleGroupFavorite(group.id);
-                      }}
-                      className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
-                    >
-                      <MonoIcon
-                        src={isFavorite ? starFullIcon : starEmptyIcon}
-                        colorVar={isFavorite ? '--app-icon-star-full' : '--app-icon-star-empty'}
-                        className="h-4 w-4"
-                      />
-                    </button>
-                    {canManageGroup ? (
-                      <button
-                        type="button"
-                        title={`Eliminar ${group.name}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onAction(async () => openGroupDeleteModal(group));
-                        }}
-                        className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
-                      >
-                        <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
-                      </button>
-                    ) : null}
-                  </div>
+                <div className="pointer-events-none absolute bottom-2 right-2 top-2 flex flex-col items-center justify-between opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
+                  <button
+                    type="button"
+                    title={isFavorite ? `Quitar favorito de ${group.name}` : `Marcar favorito ${group.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleGroupFavorite(group.id);
+                    }}
+                    className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                  >
+                    <MonoIcon
+                      src={isFavorite ? starFullIcon : starEmptyIcon}
+                      colorVar={isFavorite ? '--app-icon-star-full' : '--app-icon-star-empty'}
+                      className="h-4 w-4"
+                    />
+                  </button>
                   {canManageGroup ? (
                     <button
                       type="button"
@@ -2024,9 +2055,22 @@ export default function DesktopDashboardPage() {
                         event.stopPropagation();
                         onAction(async () => openGroupEditModal(group));
                       }}
-                      className="ml-auto flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                      className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
                     >
                       <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
+                    </button>
+                  ) : null}
+                  {canManageGroup ? (
+                    <button
+                      type="button"
+                      title={`Eliminar ${group.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onAction(async () => openGroupDeleteModal(group));
+                      }}
+                      className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                    >
+                      <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
                     </button>
                   ) : null}
                 </div>
@@ -2062,11 +2106,23 @@ export default function DesktopDashboardPage() {
         </header>
 
         <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6">
-          <div className="grid grid-cols-4 gap-3">
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Total filtrado</p><p className="mt-1 font-heading text-xl font-bold">${totalAmount.toLocaleString('es-AR')}</p></article>
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Gastos</p><p className="mt-1 font-heading text-xl font-bold">{filteredExpenses.length}</p></article>
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Categorias</p><p className="mt-1 font-heading text-xl font-bold">{categories.length}</p></article>
-            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Usuarios</p><p className="mt-1 font-heading text-xl font-bold">{users.length}</p></article>
+          <div className="grid grid-cols-[repeat(5,minmax(0,1fr))_minmax(0,0.7fr)] gap-3">
+            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Total Gastos</p><p className="mt-1 font-heading text-xl font-bold">${totalAmount.toLocaleString('es-AR')}</p></article>
+            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Total Ingresos</p><p className="mt-1 font-heading text-xl font-bold">${totalIncomeAmount.toLocaleString('es-AR')}</p></article>
+            <article className="rounded-xl bg-app-panel/70 p-3">
+              <p className="text-xs uppercase text-app-muted">Saldo</p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className={`font-heading text-xl font-bold ${totalBalanceAmount === 0 ? 'text-app-muted' : totalBalanceAmount > 0 ? 'text-[rgb(var(--app-status-online-text))]' : 'text-[rgb(var(--app-status-offline-text))]'}`}>
+                  ${totalBalanceAmount.toLocaleString('es-AR')}
+                </p>
+                <p className={`font-heading text-lg font-bold ${incomeExpenseDiffPercent === null ? 'text-app-muted' : incomeExpenseDiffPercent >= 0 ? 'text-[rgb(var(--app-status-online-text))]' : 'text-[rgb(var(--app-status-offline-text))]'}`}>
+                  {formatSignedPercentFromDecimal(incomeExpenseDiffPercent)}
+                </p>
+              </div>
+            </article>
+            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Cant. gastos</p><p className="mt-1 font-heading text-xl font-bold">{filteredExpenses.length}</p></article>
+            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Cant. ingresos</p><p className="mt-1 font-heading text-xl font-bold">{sortedIncomes.length}</p></article>
+            <article className="rounded-xl bg-app-panel/70 p-3"><p className="text-xs uppercase text-app-muted">Filtros</p><p className="mt-1 font-heading text-xl font-bold">{activeFiltersCount}</p></article>
           </div>
 
           <article className="flex h-[calc(100dvh-13rem)] min-h-[26rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-app-panel/70 p-4">
@@ -2270,8 +2326,22 @@ export default function DesktopDashboardPage() {
                             >
                               <td className="px-2 py-2 font-semibold">{expense.category_name}</td>
                               <td className="px-2 py-2 font-extrabold">${Number(expense.amount || 0).toLocaleString('es-AR')}</td>
-                              <td className="px-2 py-2">{getExpenseTypeById(expense.expense_type)?.label || '-'}</td>
-                              <td className="px-2 py-2">{getPaymentMethodById(expense.payment_method)?.label || '-'}</td>
+                              <td className="px-2 py-2">
+                                <span
+                                  className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                                  style={getCssVarBadgeStyle(getExpenseTypeBgVarName(expense.expense_type))}
+                                >
+                                  {getExpenseTypeById(expense.expense_type)?.label || '-'}
+                                </span>
+                              </td>
+                              <td className="px-2 py-2">
+                                <span
+                                  className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                                  style={getCssVarBadgeStyle(getPaymentMethodBgVarName(expense.payment_method))}
+                                >
+                                  {getPaymentMethodById(expense.payment_method)?.label || '-'}
+                                </span>
+                              </td>
                               <td className="px-2 py-2">{getEmailAlias(expense.user_email)}</td>
                               <td className="px-2 py-2">{formatDateOnly(expense.expense_date)}</td>
                               <td className="px-2 py-2">
@@ -2399,7 +2469,14 @@ export default function DesktopDashboardPage() {
                   <tbody>
                     {sortedIncomes.map((income) => (
                       <tr key={income.id} className="border-t border-app-ink/10 text-base">
-                        <td className="px-2 py-2 font-semibold">{getIncomeTypeLabel(income.income_type)}</td>
+                        <td className="px-2 py-2">
+                          <span
+                            className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                            style={getCssVarBadgeStyle(getPaymentMethodBgVarName(income.income_type))}
+                          >
+                            {getIncomeTypeLabel(income.income_type)}
+                          </span>
+                        </td>
                         <td className="px-2 py-2 font-extrabold">{formatMoney(income.amount)}</td>
                         <td className="px-2 py-2">{formatDateOnly(income.income_date)}</td>
                         <td className="px-2 py-2">
@@ -2551,7 +2628,7 @@ export default function DesktopDashboardPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       {ANALYTICS_QUICK_RANGE_OPTIONS.map((option) => {
                         const quickRange = resolveAnalyticsQuickRange(option.key);
@@ -2869,7 +2946,21 @@ export default function DesktopDashboardPage() {
                             <tbody>
                               {analyticsGrowthMatrixRows.map((row) => (
                                 <tr key={row.label} className="border-t border-app-ink/10">
-                                  <td className="px-3 py-2 font-semibold">{row.label}</td>
+                                  <td className="px-3 py-2 font-semibold">
+                                    {row.expenseTypeId ? (
+                                      <span
+                                        className="inline-flex rounded-md border border-app-ink/25 px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide"
+                                        style={{
+                                          color: 'rgb(var(--app-text-primary))',
+                                          backgroundColor: `rgb(var(${getExpenseTypeBgVarName(row.expenseTypeId)}))`,
+                                        }}
+                                      >
+                                        {row.label}
+                                      </span>
+                                    ) : (
+                                      row.label
+                                    )}
+                                  </td>
                                   <td className="px-3 py-2" style={getHeatCellStyle(row.g3)}>
                                     {formatSignedPercentFromDecimal(row.g3)}
                                   </td>
@@ -2991,7 +3082,14 @@ export default function DesktopDashboardPage() {
                     {sortedCategories.map((category) => (
                       <tr key={category.id} className="border-t border-app-ink/10 text-base">
                         <td className="px-2 py-2 font-semibold">{category.name}</td>
-                        <td className="px-2 py-2">{getExpenseTypeById(category.expense_type)?.label || '-'}</td>
+                        <td className="px-2 py-2">
+                          <span
+                            className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                            style={getCssVarBadgeStyle(getExpenseTypeBgVarName(category.expense_type))}
+                          >
+                            {getExpenseTypeById(category.expense_type)?.label || '-'}
+                          </span>
+                        </td>
                         <td className="px-2 py-2">
                           <div className="flex items-center justify-start gap-2">
                             <button type="button" onClick={() => startCategoryEdit(category)} className="rounded-md bg-app-panel px-2 py-1 text-[11px] font-bold uppercase">Editar</button>
@@ -3318,9 +3416,9 @@ export default function DesktopDashboardPage() {
           </div>
 
           <div className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-              {getExpenseTypeById(currentCategoryFilterTypeId)?.label || 'Categorias'}
-            </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                {getExpenseTypeById(currentCategoryFilterTypeId)?.label || 'Categorias'}
+              </span>
             <div className="mt-2">
               <div className="relative overflow-hidden rounded-lg border-0 bg-transparent pr-10">
                 <div className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">

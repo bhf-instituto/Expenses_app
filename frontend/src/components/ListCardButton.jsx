@@ -7,6 +7,7 @@ export default function ListCardButton({
   subtitle: _subtitle,
   onClick,
   accent = 'bg-app-mint',
+  accentStyle = null,
   disabled = false,
   showFavorite = false,
   isFavorite = false,
@@ -43,6 +44,7 @@ export default function ListCardButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
+        style={accentStyle || undefined}
         className={`flex w-full flex-col justify-center rounded-2xl border-0 border-app-ink/20 shadow-md transition uppercase ${
           showFavorite ? 'pr-16' : ''
         } ${

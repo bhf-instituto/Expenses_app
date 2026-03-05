@@ -7,6 +7,7 @@ import { setsApi } from '../lib/apiClient.js';
 import { getCachedSets } from '../lib/localCache.js';
 import { resolveSessionScope } from '../lib/sessionScope.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { getExpenseTypeBgVarName } from '../lib/uiColorSettings.js';
 
 export default function ExpenseTypePage() {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ export default function ExpenseTypePage() {
                 title={type.label}
                 subtitle="Seleccionar tipo de gasto"
                 accent={type.accent}
+                accentStyle={{ backgroundColor: `rgb(var(${getExpenseTypeBgVarName(type.id)}))` }}
                 size="fill"
                 centerContent
                 onClick={() =>

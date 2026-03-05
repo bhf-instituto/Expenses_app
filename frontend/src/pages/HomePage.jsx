@@ -136,14 +136,24 @@ export default function HomePage() {
   const openGroup = (group) => {
     const savedStartupId = setStartupGroupId(group.id, sessionScope);
     setStartupGroupIdState(savedStartupId);
+    const navigationState = {
+      setName: group.name,
+      role: Number(group.role),
+    };
 
     if (effectiveMode === 'view') {
       if (!isOnline) return;
-      navigate(`/sets/${group.id}/view`, { state: { setName: group.name } });
+      navigate(`/sets/${group.id}/view`, { state: navigationState });
       return;
     }
 
-    navigate(`/sets/${group.id}/types`, { state: { setName: group.name } });
+    if (effectiveMode === 'incomes') {
+      if (!isOnline) return;
+      navigate(`/sets/${group.id}/incomes`, { state: navigationState });
+      return;
+    }
+
+    navigate(`/sets/${group.id}/types`, { state: navigationState });
   };
 
   const handleLogout = async () => {
@@ -217,10 +227,15 @@ export default function HomePage() {
               {flashMessage}
             </p>
           ) : null}
-          <ModeToggle mode={effectiveMode} onChange={setMode} viewDisabled={!isOnline} />
-          {effectiveMode === 'view' && !isOnline ? (
+          <ModeToggle
+            mode={effectiveMode}
+            onChange={setMode}
+            viewDisabled={!isOnline}
+            incomeDisabled={!isOnline}
+          />
+          {(effectiveMode === 'view' || effectiveMode === 'incomes') && !isOnline ? (
             <p className="rounded-xl border border-app-ink/15 bg-app-panel px-3 py-2 text-xs font-semibold uppercase tracking-wide text-app-muted">
-              El modo VER esta deshabilitado sin conexion.
+              Los modos VER e INGRESOS estan deshabilitados sin conexion.
             </p>
           ) : null}
 
@@ -240,10 +255,16 @@ export default function HomePage() {
                     <div key={group.id} ref={setAnimatedGroupRef(group.id)}>
                       <ListCardButton
                         title={group.name}
-                        subtitle={effectiveMode === 'create' ? 'Crear gasto' : 'Ver gastos'}
+                        subtitle={
+                          effectiveMode === 'create'
+                            ? 'Crear gasto'
+                            : effectiveMode === 'view'
+                            ? 'Ver gastos'
+                            : 'Ingresos'
+                        }
                         accent="bg-app-mint"
                         onClick={() => openGroup(group)}
-                        disabled={effectiveMode === 'view' && !isOnline}
+                        disabled={(effectiveMode === 'view' || effectiveMode === 'incomes') && !isOnline}
                         showFavorite
                         isFavorite={Number(group.id) === Number(favoriteGroupId)}
                         onToggleFavorite={() => handleToggleGroupFavorite(group.id)}
@@ -268,7 +289,7 @@ export default function HomePage() {
         />
       ) : (
         <BottomActionBar
-          label="Modo ver activo"
+          label={effectiveMode === 'incomes' ? 'Modo ingresos activo' : 'Modo ver activo'}
           disabled
           onClick={() => {}}
         />
