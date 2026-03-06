@@ -3,6 +3,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
 import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
+import DateInputDmy from '../components/DateInputDmy.jsx';
 import { ApiError, categoriesApi, expensesApi, setsApi } from '../lib/apiClient.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
 import {
@@ -484,19 +485,17 @@ export default function ViewExpensesPage() {
                   </label>
                   <label className="block">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Desde</span>
-                    <input
-                      type="date"
+                    <DateInputDmy
                       value={filters.from_date}
-                      onChange={(event) => setFilters((prev) => ({ ...prev, from_date: event.target.value }))}
+                      onChange={(nextValue) => setFilters((prev) => ({ ...prev, from_date: nextValue }))}
                       className="mt-1 app-input"
                     />
                   </label>
                   <label className="block">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Hasta</span>
-                    <input
-                      type="date"
+                    <DateInputDmy
                       value={filters.to_date}
-                      onChange={(event) => setFilters((prev) => ({ ...prev, to_date: event.target.value }))}
+                      onChange={(nextValue) => setFilters((prev) => ({ ...prev, to_date: nextValue }))}
                       className="mt-1 app-input"
                     />
                   </label>
@@ -626,7 +625,6 @@ export default function ViewExpensesPage() {
     </main>
   );
 }
-
 
 
 

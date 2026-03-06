@@ -12,6 +12,7 @@ import triangleUpIcon from '../assets/icons/triangle-up-icon.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import WrappedChoiceGroup from '../components/WrappedChoiceGroup.jsx';
 import WrappedMultiChoiceGroup from '../components/WrappedMultiChoiceGroup.jsx';
+import DateInputDmy from '../components/DateInputDmy.jsx';
 import { ApiError, categoriesApi, expensesApi, incomesApi, setsApi } from '../lib/apiClient.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
 import {
@@ -883,6 +884,7 @@ export default function DesktopDashboardPage() {
       .map((category) => ({
         name: category.name,
         total: Number(category.total_amount || 0),
+        expense_type: Number(category.expense_type || 0),
       }));
   }, [categoriesWithTotals, categoryTopLimit]);
 
@@ -892,19 +894,43 @@ export default function DesktopDashboardPage() {
         (sum, income) => sum + Number(income.amount || 0),
         0
       );
-      return categoriesTopChartData.map((item) => ({
+      const totalExpenseInRange = categoriesWithTotals.reduce(
+        (sum, category) => sum + Number(category.total_amount || 0),
+        0
+      );
+
+      const topRows = categoriesTopChartData.map((item) => ({
         ...item,
         income_share_percent: incomeTotalInRange > 0
           ? (Number(item.total || 0) / incomeTotalInRange) * 100
           : 0,
       }));
-    },
-    [categoriesTopChartData, filteredIncomes]
-  );
 
-  const categoryVsIncomeSeries = useMemo(
-    () => [{ key: 'income_share_percent', label: '% del ingreso', color: CHART_COLOR_INCOME }],
-    []
+      if (incomeTotalInRange <= 0) {
+        return topRows;
+      }
+
+      const topTrackedAmount = topRows.reduce(
+        (sum, item) => sum + Number(item.total || 0),
+        0
+      );
+      const othersAmount = Math.max(0, totalExpenseInRange - topTrackedAmount);
+
+      if (othersAmount <= 0) {
+        return topRows;
+      }
+
+      return [
+        ...topRows,
+        {
+          name: 'Otros',
+          total: othersAmount,
+          income_share_percent: (othersAmount / incomeTotalInRange) * 100,
+          expense_type: 0,
+        },
+      ];
+    },
+    [categoriesTopChartData, filteredIncomes, categoriesWithTotals]
   );
 
   const incomeTypeSplitData = useMemo(() => {
@@ -2995,7 +3021,7 @@ export default function DesktopDashboardPage() {
 
                   {!analyticsLoading && analyticsData ? (
                     <>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      {/* <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         <article className="rounded-xl bg-app-panel/70 p-3">
                           <p className="text-xs uppercase text-app-muted">Ingresos</p>
                           <p className="mt-1 font-heading text-xl font-bold">
@@ -3044,7 +3070,7 @@ export default function DesktopDashboardPage() {
                             {formatSignedPercentFromDecimal(analyticsSummary?.margin_trend_3m)}
                           </p>
                         </article>
-                      </div>
+                      </div> */}
 
                       <div className="mt-4 grid gap-4 xl:grid-cols-3">
                         <article className="rounded-xl bg-app-panel/65 p-4 xl:col-span-2">
@@ -3482,46 +3508,57 @@ export default function DesktopDashboardPage() {
                     </div>
                   </div>
                   <p className="mt-1 text-[11px] font-semibold text-app-muted">
-                    Cada porcion representa el porcentaje que gasta cada categoria respecto al ingreso total del rango.
+                    Top categorias y su porcentaje sobre el ingreso total del rango.
                   </p>
-                  <div className="mt-3 grid min-h-0 flex-1 grid-rows-[1fr_auto] gap-3">
-                    <div className="min-h-0 rounded-lg bg-app-panel/35 p-2">
-                      {categoriesTopVsIncomeChartData.length > 0 && totalIncomeAmount > 0 ? (
-                        <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-app-muted">Cargando grafico...</div>}>
-                          <LazyDesktopTopCategoryChart
-                            key={`categories-top-income-${categoryTopLimit}-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${categoriesTopVsIncomeChartData.length}-${totalIncomeAmount}`}
-                            type="activePie"
-                            data={categoriesTopVsIncomeChartData}
-                            xKey="name"
-                            series={categoryVsIncomeSeries}
-                            valueFormat="percent"
-                            pieLabelFormatter={({ payload }) =>
-                              `${Number(payload?.income_share_percent || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}%`
-                            }
-                          />
-                        </Suspense>
-                      ) : totalIncomeAmount <= 0 ? (
-                        <div className="flex h-full items-center justify-center rounded-lg bg-app-panel/60 px-3 text-xs font-semibold text-app-muted">
-                          No hay ingresos en el rango seleccionado.
-                        </div>
-                      ) : (
-                        <div className="flex h-full items-center justify-center rounded-lg bg-app-panel/60 px-3 text-xs font-semibold text-app-muted">
+                  {totalIncomeAmount > 0 ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                      <span className="rounded-md bg-app-panel/50 px-2 py-1 text-app-muted">
+                        Gasto total: {formatPercentFromDecimal(totalAmount / totalIncomeAmount, 1)}
+                      </span>
+                      {totalBalanceAmount > 0 ? (
+                        <span className="rounded-md bg-app-success-bg px-2 py-1 text-app-success-text">
+                          Saldo a favor: {formatMoney(totalBalanceAmount)} ({formatPercentFromDecimal(totalBalanceAmount / totalIncomeAmount, 1)})
+                        </span>
+                      ) : null}
+                      {totalBalanceAmount < 0 ? (
+                        <span className="rounded-md bg-app-error-bg px-2 py-1 text-app-error-text">
+                          Gasto sobre ingreso: {formatMoney(Math.abs(totalBalanceAmount))} ({formatPercentFromDecimal(Math.abs(totalBalanceAmount) / totalIncomeAmount, 1)})
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className="mt-3 min-h-0 flex-1">
+                    {totalIncomeAmount <= 0 ? (
+                      <div className="mb-2 rounded-lg bg-app-panel/60 px-3 py-2 text-xs font-semibold text-app-muted">
+                        No hay ingresos en el rango seleccionado. Los porcentajes quedan en 0%.
+                      </div>
+                    ) : null}
+                    <div className="no-scrollbar h-full overflow-auto rounded-lg border border-app-ink/10 bg-app-panel/20 p-2">
+                      {categoriesTopVsIncomeChartData.length === 0 ? (
+                        <div className="flex h-full items-center justify-center px-3 text-xs font-semibold text-app-muted">
                           Sin gastos por categoria en el rango seleccionado.
                         </div>
-                      )}
-                    </div>
-                    <div className="no-scrollbar max-h-32 overflow-auto rounded-lg border border-app-ink/10 bg-app-panel/20 p-2">
-                      {categoriesTopVsIncomeChartData.map((item) => (
-                        <div key={item.name} className="flex items-center justify-between gap-2 border-b border-app-ink/10 py-1 text-xs font-semibold last:border-b-0">
-                          <span className="truncate text-app-muted">{item.name}</span>
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <span className="text-app-ink">{formatMoney(item.total)}</span>
-                            <span className="text-app-muted">
+                      ) : (
+                        categoriesTopVsIncomeChartData.map((item) => (
+                          <div key={item.name} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-app-ink/10 py-1 text-xs font-semibold last:border-b-0">
+                            <div className="flex min-w-0 items-center gap-2">
+                              {[1, 2, 3].includes(Number(item.expense_type)) ? (
+                                <span
+                                  className="inline-flex rounded-md px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-app-ink"
+                                  style={getCssVarBadgeStyle(getExpenseTypeBgVarName(item.expense_type))}
+                                >
+                                  {getExpenseTypeById(item.expense_type)?.label || '-'}
+                                </span>
+                              ) : null}
+                              <p className="truncate uppercase text-app-muted">{item.name}</p>
+                            </div>
+                            <span className="whitespace-nowrap text-app-ink">{formatMoney(item.total)}</span>
+                            <span className="whitespace-nowrap text-app-muted">
                               {formatPercentFromDecimal(Number(item.income_share_percent || 0) / 100, 1)}
                             </span>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
                 </aside>
@@ -3674,11 +3711,10 @@ export default function DesktopDashboardPage() {
 
           <label className="block">
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
-            <input
+            <DateInputDmy
               className="app-input mt-2"
-              type="date"
               value={expenseForm.expense_date}
-              onChange={(event) => setExpenseForm((prev) => ({ ...prev, expense_date: event.target.value }))}
+              onChange={(nextValue) => setExpenseForm((prev) => ({ ...prev, expense_date: nextValue }))}
             />
           </label>
 
@@ -3757,12 +3793,11 @@ export default function DesktopDashboardPage() {
 
           <label className="block">
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
-            <input
+            <DateInputDmy
               className="app-input mt-2"
-              type="date"
               value={incomeForm.income_date}
-              onChange={(event) =>
-                setIncomeForm((prev) => ({ ...prev, income_date: event.target.value }))
+              onChange={(nextValue) =>
+                setIncomeForm((prev) => ({ ...prev, income_date: nextValue }))
               }
             />
           </label>
@@ -3864,30 +3899,28 @@ export default function DesktopDashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Desde</span>
-              <input
+              <DateInputDmy
                 className="app-input mt-2"
-                type="date"
                 value={globalTimeDraft.from_date}
-                onChange={(event) =>
+                onChange={(nextValue) =>
                   setGlobalTimeDraft((prev) => ({
                     ...prev,
                     preset: 'custom',
-                    from_date: event.target.value,
+                    from_date: nextValue,
                   }))
                 }
               />
             </label>
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Hasta</span>
-              <input
+              <DateInputDmy
                 className="app-input mt-2"
-                type="date"
                 value={globalTimeDraft.to_date}
-                onChange={(event) =>
+                onChange={(nextValue) =>
                   setGlobalTimeDraft((prev) => ({
                     ...prev,
                     preset: 'custom',
-                    to_date: event.target.value,
+                    to_date: nextValue,
                   }))
                 }
               />

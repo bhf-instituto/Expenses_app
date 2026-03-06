@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
 import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
+import DateInputDmy from '../components/DateInputDmy.jsx';
 import { ApiError, incomesApi, setsApi } from '../lib/apiClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
@@ -243,13 +244,12 @@ export default function CreateIncomePage() {
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
-                <input
-                  type="date"
+                <DateInputDmy
                   value={incomeForm.income_date}
-                  onChange={(event) =>
+                  onChange={(nextValue) =>
                     setIncomeForm((prev) => ({
                       ...prev,
-                      income_date: event.target.value,
+                      income_date: nextValue,
                     }))
                   }
                   className="mt-1 app-input"

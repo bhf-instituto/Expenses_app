@@ -4,6 +4,7 @@ import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
 import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
+import DateInputDmy from '../components/DateInputDmy.jsx';
 import { ApiError, expensesApi, setsApi } from '../lib/apiClient.js';
 import { PAYMENT_METHODS, getExpenseTypeByKey } from '../constants/catalogs.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -226,10 +227,9 @@ export default function CreateExpensePage() {
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
-                <input
-                  type="date"
+                <DateInputDmy
                   value={expenseDate}
-                  onChange={(event) => setExpenseDate(event.target.value)}
+                  onChange={setExpenseDate}
                   className="mt-1 app-input"
                 />
               </label>

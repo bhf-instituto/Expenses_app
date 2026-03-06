@@ -1,0 +1,111 @@
+import { useEffect, useState } from 'react';
+
+const YMD_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+const pad2 = (value) => String(value).padStart(2, '0');
+
+const toDmyFromYmd = (value) => {
+  const normalized = String(value || '').trim();
+  const match = YMD_REGEX.exec(normalized);
+  if (!match) return '';
+  return `${match[3]}/${match[2]}/${match[1]}`;
+};
+
+const isValidDateParts = (day, month, year) => {
+  const numericDay = Number(day);
+  const numericMonth = Number(month);
+  const numericYear = Number(year);
+
+  if (!Number.isInteger(numericDay) || !Number.isInteger(numericMonth) || !Number.isInteger(numericYear)) {
+    return false;
+  }
+  if (numericYear < 1000 || numericYear > 9999) return false;
+  if (numericMonth < 1 || numericMonth > 12) return false;
+  if (numericDay < 1 || numericDay > 31) return false;
+
+  const date = new Date(Date.UTC(numericYear, numericMonth - 1, numericDay));
+  return (
+    date.getUTCFullYear() === numericYear
+    && date.getUTCMonth() === numericMonth - 1
+    && date.getUTCDate() === numericDay
+  );
+};
+
+const toYmdFromDmy = (value) => {
+  const normalized = String(value || '').trim();
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(normalized);
+  if (!match) return '';
+  const [, day, month, year] = match;
+  if (!isValidDateParts(day, month, year)) return '';
+  return `${year}-${month}-${day}`;
+};
+
+const normalizeDigits = (value) => String(value || '').replace(/\D/g, '').slice(0, 8);
+
+const maskDigitsAsDmy = (digits) => {
+  const normalized = normalizeDigits(digits);
+  if (!normalized) return '';
+  if (normalized.length <= 2) return normalized;
+  if (normalized.length <= 4) {
+    return `${normalized.slice(0, 2)}/${normalized.slice(2)}`;
+  }
+  return `${normalized.slice(0, 2)}/${normalized.slice(2, 4)}/${normalized.slice(4)}`;
+};
+
+export default function DateInputDmy({
+  value,
+  onChange,
+  className,
+  placeholder = 'dd/mm/yyyy',
+  name,
+  id,
+  disabled = false,
+  required = false,
+}) {
+  const [displayValue, setDisplayValue] = useState(() => toDmyFromYmd(value));
+
+  useEffect(() => {
+    setDisplayValue(toDmyFromYmd(value));
+  }, [value]);
+
+  const handleChange = (event) => {
+    const maskedValue = maskDigitsAsDmy(event.target.value);
+    setDisplayValue(maskedValue);
+
+    const ymdValue = toYmdFromDmy(maskedValue);
+    onChange(ymdValue);
+  };
+
+  const handleBlur = () => {
+    if (!displayValue) {
+      onChange('');
+      return;
+    }
+
+    const ymdValue = toYmdFromDmy(displayValue);
+    if (ymdValue) {
+      setDisplayValue(toDmyFromYmd(ymdValue));
+      onChange(ymdValue);
+      return;
+    }
+
+    setDisplayValue(toDmyFromYmd(value));
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      placeholder={placeholder}
+      value={displayValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      className={className}
+      name={name}
+      id={id}
+      disabled={disabled}
+      required={required}
+    />
+  );
+}
