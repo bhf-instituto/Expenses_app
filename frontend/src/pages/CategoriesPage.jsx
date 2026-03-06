@@ -173,15 +173,16 @@ export default function CategoriesPage() {
           ) : null}
         </div>
       </section>
-      <BottomActionBar
-        label={typeKey === 'proveedor' ? 'Crear proveedor' : 'Crear categoria'}
-        disabled={!isOnline}
-        onClick={() =>
-          navigate(`/sets/${setId}/categories/${typeKey}/new`, {
-            state: { setName },
-          })
-        }
-      />
+      {isOnline ? (
+        <BottomActionBar
+          label={typeKey === 'proveedor' ? 'Crear proveedor' : 'Crear categoria'}
+          onClick={() =>
+            navigate(`/sets/${setId}/categories/${typeKey}/new`, {
+              state: { setName },
+            })
+          }
+        />
+      ) : null}
     </main>
   );
 }

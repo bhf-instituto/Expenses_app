@@ -478,8 +478,7 @@ export default function ProfilePage() {
                                   type="color"
                                   value={rgbTripletToHex(bgTriplet, '#1b2d42')}
                                   onChange={(event) => updateUiColor('expenseType', type.id, 'bg', event.target.value)}
-                                  className="color-chip-input"
-                                  style={{ backgroundColor: `rgb(${bgTriplet || '27 45 66'})` }}
+                                  className="h-4 w-7 cursor-pointer rounded-sm border border-app-ink/20 bg-transparent p-0"
                                 />
                               </label>
                               <span
@@ -508,8 +507,7 @@ export default function ProfilePage() {
                                   type="color"
                                   value={rgbTripletToHex(bgTriplet, '#2e455d')}
                                   onChange={(event) => updateUiColor('paymentMethod', method.id, 'bg', event.target.value)}
-                                  className="color-chip-input"
-                                  style={{ backgroundColor: `rgb(${bgTriplet || '46 69 93'})` }}
+                                  className="h-4 w-7 cursor-pointer rounded-sm border border-app-ink/20 bg-transparent p-0"
                                 />
                               </label>
                               <span
@@ -544,8 +542,7 @@ export default function ProfilePage() {
                                   onChange={(event) =>
                                     updateUiColor('analyticsSeries', seriesItem.key, 'color', event.target.value)
                                   }
-                                  className="color-chip-input"
-                                  style={{ backgroundColor: `rgb(${triplet || '223 208 184'})` }}
+                                  className="h-4 w-7 cursor-pointer rounded-sm border border-app-ink/20 bg-transparent p-0"
                                 />
                               </label>
                               <span
@@ -599,7 +596,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setCreateInviteOpen((prev) => !prev)}
-                  className="flex w-full items-center justify-between border border-app-ink/20 bg-app-panel px-3 py-2 bg-transparent border-0 border-b-2 bor p-0 m-0 text-inherit"
+                  className="flex w-full items-center justify-between border border-app-ink/20 bg-app-panel px-3 py-2  border-0 border-b-2 bor p-0 m-0 text-inherit"
                 >
                   <span className="font-heading text-sm font-semibold uppercase tracking-wide text-app-ink ">
                     Crear invitacion
@@ -682,7 +679,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setAcceptInviteOpen((prev) => !prev)}
-                  className="flex w-full items-center justify-between border border-app-ink/20 bg-app-panel px-3 py-2 bg-transparent border-0 border-b-2 bor p-0 m-0 text-inherit"
+                  className="flex w-full items-center justify-between border border-app-ink/20 bg-app-panel px-3 py-2 border- border-b-2 bor p-0 m-0 text-inherit"
                 >
                   <span className="font-heading text-sm font-semibold uppercase tracking-wide text-app-ink">
                     Aceptar invitacion
@@ -735,14 +732,6 @@ export default function ProfilePage() {
               </div>
             </article>
           ) : null}
-
-          <button
-            type="button"
-            onClick={goToGroups}
-            className="w-full rounded-xl border border-app-ink/30 bg-app-sky px-4 py-3 font-heading text-sm font-semibold uppercase tracking-wide text-app-ink"
-          >
-            Volver a grupos
-          </button>
         </div>
       </section>
     </main>

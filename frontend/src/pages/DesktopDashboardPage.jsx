@@ -267,13 +267,13 @@ const defaultExpenseForm = {
   expense_type: '1',
   category_id: '',
   amount: '',
-  payment_method: '1',
+  payment_method: '',
   user_id: '',
   expense_date: new Date().toISOString().slice(0, 10),
   description: '',
 };
 const defaultIncomeForm = {
-  income_type: '1',
+  income_type: '',
   amount: '',
   income_date: getTodayYmd(),
 };
@@ -1814,7 +1814,7 @@ export default function DesktopDashboardPage() {
     const incomeDate = String(incomeForm.income_date || '').trim();
 
     if (![1, 3].includes(incomeType)) {
-      setError('Tipo de ingreso invalido.');
+      setError('Debes seleccionar un tipo de ingreso.');
       return;
     }
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -1902,7 +1902,7 @@ export default function DesktopDashboardPage() {
       return;
     }
     if (![1, 2, 3].includes(paymentMethod)) {
-      setError('Forma de pago invalida.');
+      setError('Debes seleccionar una forma de pago.');
       return;
     }
     if (!expenseDate) {
@@ -2953,7 +2953,7 @@ export default function DesktopDashboardPage() {
                           <button
                             type="button"
                             onClick={clearAnalyticsFilters}
-                            className="w-full rounded-lg bg-app-panel px-3 py-2 text-xs font-extrabold uppercase text-app-ink"
+                            className="w-full rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase text-app-ink"
                           >
                             Limpiar
                           </button>
@@ -2975,7 +2975,7 @@ export default function DesktopDashboardPage() {
                     <button
                       type="button"
                       onClick={() => setAnalyticsFiltersExpanded((prev) => !prev)}
-                      className="rounded-lg bg-app-panel px-3 py-2 text-xs font-extrabold uppercase text-app-ink"
+                      className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase text-app-ink"
                     >
                       {analyticsFiltersExpanded ? 'Ocultar filtros' : 'Mostrar filtros'}
                     </button>
@@ -3474,7 +3474,7 @@ export default function DesktopDashboardPage() {
                           key={limit}
                           type="button"
                           onClick={() => setCategoryTopLimit(String(limit))}
-                          className={`rounded-md px-2 py-1 text-[11px] font-extrabold uppercase ${Number(categoryTopLimit) === limit ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+                          className={`rounded-md px-2 py-1 text-[11px] font-extrabold uppercase ${Number(categoryTopLimit) === limit ? 'bg-app-mint text-app-ink' : 'bg-app-mint text-app-muted'}`}
                         >
                           Top {limit}
                         </button>
@@ -3703,7 +3703,7 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={resetExpenseForm}
-            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
           >
             Cancelar
           </button>
@@ -3772,7 +3772,7 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={resetIncomeForm}
-            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
           >
             Cancelar
           </button>
@@ -3824,7 +3824,7 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={resetCategoryForm}
-            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
           >
             Cancelar
           </button>
@@ -3853,7 +3853,7 @@ export default function DesktopDashboardPage() {
                   key={option.key}
                   type="button"
                   onClick={() => applyGlobalTimePreset(option.key)}
-                  className={`rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide ${globalTimeDraft.preset === option.key ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+                  className={`rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide ${globalTimeDraft.preset === option.key ? 'bg-app-mint text-app-ink' : 'bg-app-mint text-app-muted'}`}
                 >
                   {option.label}
                 </button>
@@ -3899,7 +3899,7 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={closeGlobalTimeModal}
-            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
           >
             Cancelar
           </button>
@@ -3957,7 +3957,7 @@ export default function DesktopDashboardPage() {
                     type="button"
                     onClick={() => setCategoryFilterPaneIndex((prev) => Math.max(0, prev - 1))}
                     disabled={categoryFilterPaneIndex <= 0}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-app-ink/25 bg-app-panel text-xs font-black text-app-ink disabled:cursor-not-allowed disabled:opacity-35"
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-app-ink/25 bg-app-mint text-xs font-black text-app-ink disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     &#8592;
                   </button>
@@ -3969,7 +3969,7 @@ export default function DesktopDashboardPage() {
                       )
                     }
                     disabled={categoryFilterPaneIndex >= categoryFilterPanes.length - 1}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-app-ink/25 bg-app-panel text-xs font-black text-app-ink disabled:cursor-not-allowed disabled:opacity-35"
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-app-ink/25 bg-app-mint text-xs font-black text-app-ink disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     &#8594;
                   </button>
@@ -4041,14 +4041,14 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
           >
             Limpiar
           </button>
           <button
             type="button"
             onClick={closeFiltersModal}
-            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
           >
             Cancelar
           </button>
@@ -4116,7 +4116,7 @@ export default function DesktopDashboardPage() {
                             <button
                               type="button"
                               onClick={cancelPendingActionEdit}
-                              className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                              className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
                             >
                               Cancelar
                             </button>
@@ -4133,7 +4133,7 @@ export default function DesktopDashboardPage() {
                             <button
                               type="button"
                               onClick={() => startPendingActionEdit(action)}
-                              className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                              className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
                             >
                               Editar
                             </button>
@@ -4183,7 +4183,7 @@ export default function DesktopDashboardPage() {
               <button
                 type="button"
                 onClick={closeGroupActionModal}
-                className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
               >
                 No
               </button>
@@ -4220,7 +4220,7 @@ export default function DesktopDashboardPage() {
               <button
                 type="button"
                 onClick={() => goGroupActionStep(1)}
-                className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
               >
                 Volver
               </button>
@@ -4256,7 +4256,7 @@ export default function DesktopDashboardPage() {
               <button
                 type="button"
                 onClick={closeGroupActionModal}
-                className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
               >
                 Volver
               </button>
@@ -4297,7 +4297,7 @@ export default function DesktopDashboardPage() {
               <button
                 type="button"
                 onClick={() => goGroupActionStep(1)}
-                className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+                className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
               >
                 Volver
               </button>
@@ -4338,7 +4338,7 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={closeConfirmModal}
-            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
           >
             Cancelar
           </button>

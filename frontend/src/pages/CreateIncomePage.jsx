@@ -20,7 +20,7 @@ const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
 const todayDate = new Date().toISOString().slice(0, 10);
 
 const defaultIncomeForm = {
-  income_type: '1',
+  income_type: '',
   amount: '',
   income_date: todayDate,
 };
@@ -43,6 +43,11 @@ export default function CreateIncomePage() {
 
   const setName = location.state?.setName || `Grupo ${setId}`;
   const isAdmin = Number(resolvedRole) === 1;
+  const canSubmitIncome =
+    Number.isInteger(parseAmountInput(incomeForm.amount))
+    && parseAmountInput(incomeForm.amount) > 0
+    && [1, 3].includes(Number(incomeForm.income_type))
+    && Boolean(String(incomeForm.income_date || '').trim());
 
   useEffect(() => {
     if (resolvedRole !== null) return;
@@ -96,7 +101,7 @@ export default function CreateIncomePage() {
     const incomeDate = String(incomeForm.income_date || '').trim();
 
     if (![1, 3].includes(incomeType)) {
-      setError('Tipo de ingreso invalido.');
+      setError('Debes seleccionar un tipo de ingreso.');
       return;
     }
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -257,8 +262,9 @@ export default function CreateIncomePage() {
 
       <BottomActionBar
         label={actionLabel}
-        disabled={submitting || !isAdmin || resolvedRole === null}
+        disabled={submitting || !isAdmin || resolvedRole === null || !canSubmitIncome}
         borderless
+        tone="success"
         onClick={submitIncome}
       />
     </main>

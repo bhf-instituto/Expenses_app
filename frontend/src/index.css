@@ -134,7 +134,7 @@
     box-sizing: border-box;
   }
 
-  button[class] {
+  button[class]:not(.form-filter-choice-btn) {
     border: 0 !important;
   }
 

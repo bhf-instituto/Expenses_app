@@ -24,7 +24,7 @@ export default function CreateExpensePage() {
   const expenseType = getExpenseTypeByKey(typeKey);
   const sessionScope = resolveSessionScope(user);
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [selectedCreatorId, setSelectedCreatorId] = useState(() => Number(user?.id));
   const [groupUsers, setGroupUsers] = useState(() => getCachedSetUsers(setId, sessionScope));
   const [usersLoading, setUsersLoading] = useState(() => getCachedSetUsers(setId, sessionScope).length === 0);
@@ -49,6 +49,11 @@ export default function CreateExpensePage() {
     }),
     [categoryId, selectedCreatorId, user?.id, amount, paymentMethod, description, expenseDate]
   );
+  const canSubmitExpense =
+    Number.isInteger(parseAmountInput(amount))
+    && parseAmountInput(amount) > 0
+    && [1, 2, 3].includes(Number(paymentMethod))
+    && Boolean(String(expenseDate || '').trim());
 
   const paymentMethodOptions = useMemo(
     () =>
@@ -140,8 +145,13 @@ export default function CreateExpensePage() {
     if (submitting) return;
 
     const numericAmount = parseAmountInput(amount);
+    const numericPaymentMethod = Number(paymentMethod);
     if (!Number.isInteger(numericAmount) || numericAmount <= 0) {
       setError('El monto debe ser un entero positivo.');
+      return;
+    }
+    if (![1, 2, 3].includes(numericPaymentMethod)) {
+      setError('Debes seleccionar una forma de pago.');
       return;
     }
 
@@ -229,7 +239,7 @@ export default function CreateExpensePage() {
                 <div className="mt-2">
                   <SingleChoiceButtons
                     value={paymentMethod}
-                    onChange={(value) => setPaymentMethod(Number(value))}
+                    onChange={(value) => setPaymentMethod(String(value))}
                     options={paymentMethodOptions}
                     columns={3}
                   />
@@ -280,8 +290,9 @@ export default function CreateExpensePage() {
       </section>
       <BottomActionBar
         label={submitting ? 'Guardando...' : isOnline ? 'Guardar gasto' : 'Guardar gasto offline'}
-        disabled={submitting || !amount}
+        disabled={submitting || !canSubmitExpense}
         borderless
+        tone="success"
         onClick={submitExpense}
       />
     </main>

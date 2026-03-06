@@ -399,7 +399,7 @@ export default function ViewExpensesPage() {
             <button
               type="button"
               onClick={() => setFiltersOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-lg border-0 border-app-ink/20 bg-app-panel py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+              className="flex w-full items-center justify-between rounded-lg border-0 border-app-ink/20 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
             >
               <span>Filtros</span>
               <span>{filtersOpen ? 'Ocultar' : 'Mostrar'}</span>
@@ -507,7 +507,7 @@ export default function ViewExpensesPage() {
                     setExpensePage(1);
                     loadExpenses(filters);
                   }}
-                  className="mt-3 w-full rounded-lg border border-app-ink/30 bg-app-panel px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+                  className="mt-3 w-full rounded-lg border border-app-ink/30 bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
                 >
                   Aplicar filtros
                 </button>
@@ -626,7 +626,6 @@ export default function ViewExpensesPage() {
     </main>
   );
 }
-
 
 
 

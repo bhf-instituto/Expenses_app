@@ -297,19 +297,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {effectiveMode === 'create' ? (
+      {effectiveMode === 'create' && isOnline ? (
         <BottomActionBar
-          label={isOnline ? 'Crear grupo' : 'Crear grupo (offline bloqueado)'}
-          disabled={!isOnline}
+          label="Crear grupo"
           onClick={() => navigate('/sets/new')}
         />
-      ) : (
-        <BottomActionBar
-          label={effectiveMode === 'incomes' ? 'Modo ingresos activo' : 'Modo ver activo'}
-          disabled
-          onClick={() => {}}
-        />
-      )}
+      ) : null}
     </main>
   );
 }

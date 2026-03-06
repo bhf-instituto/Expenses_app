@@ -34,16 +34,16 @@ export default function SingleChoiceButtons({
             type="button"
             onClick={() => onChange(option.value)}
             style={style}
-            className={`rounded-lg border px-2 py-2 font-heading font-semibold uppercase tracking-wide transition ${
+            className={`form-filter-choice-btn rounded-lg border px-2 py-2 font-heading font-semibold uppercase tracking-wide transition ${
               compact ? 'text-[11px]' : 'text-xs'
             } ${
               hasCustomStyle
                 ? isActive
-                  ? 'border-app-ink/60 text-app-ink'
-                  : 'border-app-ink/20 text-app-ink opacity-80 hover:opacity-100'
+                  ? 'border-app-ink text-app-ink'
+                  : 'border-transparent text-app-ink opacity-80 hover:opacity-100'
                 : isActive
-                  ? 'border-app-ink/60 bg-app-mint text-app-ink'
-                  : 'border-app-ink/20 bg-app-panel text-app-muted hover:bg-app-bg'
+                  ? 'border-app-ink bg-app-mint text-app-ink'
+                  : 'border-transparent bg-app-mint text-app-muted hover:bg-app-bg'
             }`}
           >
             {option.label}
