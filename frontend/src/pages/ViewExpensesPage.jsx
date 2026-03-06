@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
@@ -102,8 +102,10 @@ export default function ViewExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersBarVisible, setFiltersBarVisible] = useState(true);
   const [expensePage, setExpensePage] = useState(1);
   const expenseRowsPerPage = MOBILE_ITEMS_PER_PAGE;
+  const listScrollTopRef = useRef(0);
   const [filters, setFilters] = useState({
     expense_type: '',
     category_id: '',
@@ -275,6 +277,21 @@ export default function ViewExpensesPage() {
     });
   };
 
+  const handleExpensesListScroll = useCallback((event) => {
+    const currentTop = Number(event.currentTarget.scrollTop || 0);
+    const previousTop = Number(listScrollTopRef.current || 0);
+    const delta = currentTop - previousTop;
+    const revealTopThreshold = 28;
+
+    if (delta > 6 && currentTop > revealTopThreshold) {
+      setFiltersBarVisible(false);
+    } else if (delta < -6 && currentTop <= revealTopThreshold) {
+      setFiltersBarVisible(true);
+    }
+
+    listScrollTopRef.current = currentTop;
+  }, []);
+
   useEffect(() => {
     if (!filters.category_id) return;
     const stillValid = visibleCategories.some(
@@ -396,120 +413,128 @@ export default function ViewExpensesPage() {
               Modo offline: se muestran gastos cacheados.
             </p>
           ) : null} */}
-          <div className="rounded-2xl border-0 bg-app-panel p-4">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-lg border-0 border-app-ink/20 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
-            >
-              <span>Filtros</span>
-              <span>{filtersOpen ? 'Ocultar' : 'Mostrar'}</span>
-            </button>
+          <div
+            className={`grid overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${
+              filtersBarVisible
+                ? 'max-h-[42rem] translate-y-0 opacity-100'
+                : 'pointer-events-none max-h-0 -translate-y-2 opacity-0'
+            }`}
+          >
+            <div className="rounded-2xl border-0 bg-app-panel p-4">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-lg border-0 border-app-ink/20 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+              >
+                <span>Filtros</span>
+                <span>{filtersOpen ? 'Ocultar' : 'Mostrar'}</span>
+              </button>
 
-            <div
-              className={`grid overflow-hidden p-1transition-all duration-300 ease-out ${
-                filtersOpen ? 'mt-3 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-              }`}
-            >
-              <div className="min-h-0">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="col-span-2 block">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Tipo</span>
-                    <div className="mt-2">
-                      <SingleChoiceButtons
-                        value={filters.expense_type}
-                        onChange={(value) => setFilters((prev) => ({ ...prev, expense_type: String(value) }))}
-                        options={typeFilterOptions}
-                        columns={4}
-                        compact
-                      />
+              <div
+                className={`grid overflow-hidden p-1 transition-all duration-300 ease-out ${
+                  filtersOpen ? 'mt-3 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                }`}
+              >
+                <div className="min-h-0">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2 block">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Tipo</span>
+                      <div className="mt-2">
+                        <SingleChoiceButtons
+                          value={filters.expense_type}
+                          onChange={(value) => setFilters((prev) => ({ ...prev, expense_type: String(value) }))}
+                          options={typeFilterOptions}
+                          columns={4}
+                          compact
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="col-span-2 block">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Forma pago</span>
-                    <div className="mt-2">
-                      <SingleChoiceButtons
-                        value={filters.payment_method}
-                        onChange={(value) => setFilters((prev) => ({ ...prev, payment_method: String(value) }))}
-                        options={paymentFilterOptions}
-                        columns={4}
-                        compact
-                      />
+                    <div className="col-span-2 block">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Forma pago</span>
+                      <div className="mt-2">
+                        <SingleChoiceButtons
+                          value={filters.payment_method}
+                          onChange={(value) => setFilters((prev) => ({ ...prev, payment_method: String(value) }))}
+                          options={paymentFilterOptions}
+                          columns={4}
+                          compact
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="col-span-2 block">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Usuario</span>
-                    <div className="mt-2">
-                      <HorizontalScrollableChoice
-                        value={filters.user_id}
-                        onChange={(value) => setFilters((prev) => ({ ...prev, user_id: String(value) }))}
-                        options={userFilterOptions}
-                        itemMinWidth={86}
-                      />
+                    <div className="col-span-2 block">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Usuario</span>
+                      <div className="mt-2">
+                        <HorizontalScrollableChoice
+                          value={filters.user_id}
+                          onChange={(value) => setFilters((prev) => ({ ...prev, user_id: String(value) }))}
+                          options={userFilterOptions}
+                          itemMinWidth={86}
+                        />
+                      </div>
+                      {usersLoading ? (
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-app-muted">
+                          Cargando usuarios...
+                        </p>
+                      ) : null}
+                      {usersError ? (
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-app-error-text">
+                          {usersError}
+                        </p>
+                      ) : null}
                     </div>
-                    {usersLoading ? (
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-app-muted">
-                        Cargando usuarios...
-                      </p>
-                    ) : null}
-                    {usersError ? (
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-app-error-text">
-                        {usersError}
-                      </p>
-                    ) : null}
+                    <label className="col-span-2 block">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Categoria</span>
+                      <select
+                        value={filters.category_id}
+                        onChange={(event) => setFilters((prev) => ({ ...prev, category_id: event.target.value }))}
+                        className="mt-1 app-select"
+                      >
+                        <option value="">Todas</option>
+                        {selectedTypeId
+                          ? visibleCategories.map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))
+                          : groupedCategoriesByType.map((group) => (
+                              <optgroup key={group.type.id} label={group.type.label.toLowerCase()}>
+                                {group.categories.map((category) => (
+                                  <option key={category.id} value={category.id}>
+                                    {category.name}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Desde</span>
+                      <DateInputDmy
+                        value={filters.from_date}
+                        onChange={(nextValue) => setFilters((prev) => ({ ...prev, from_date: nextValue }))}
+                        className="mt-1 app-input"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Hasta</span>
+                      <DateInputDmy
+                        value={filters.to_date}
+                        onChange={(nextValue) => setFilters((prev) => ({ ...prev, to_date: nextValue }))}
+                        className="mt-1 app-input"
+                      />
+                    </label>
                   </div>
-                  <label className="col-span-2 block">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Categoria</span>
-                    <select
-                      value={filters.category_id}
-                      onChange={(event) => setFilters((prev) => ({ ...prev, category_id: event.target.value }))}
-                      className="mt-1 app-select"
-                    >
-                      <option value="">Todas</option>
-                      {selectedTypeId
-                        ? visibleCategories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))
-                        : groupedCategoriesByType.map((group) => (
-                            <optgroup key={group.type.id} label={group.type.label.toLowerCase()}>
-                              {group.categories.map((category) => (
-                                <option key={category.id} value={category.id}>
-                                  {category.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Desde</span>
-                    <DateInputDmy
-                      value={filters.from_date}
-                      onChange={(nextValue) => setFilters((prev) => ({ ...prev, from_date: nextValue }))}
-                      className="mt-1 app-input"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Hasta</span>
-                    <DateInputDmy
-                      value={filters.to_date}
-                      onChange={(nextValue) => setFilters((prev) => ({ ...prev, to_date: nextValue }))}
-                      className="mt-1 app-input"
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpensePage(1);
+                      loadExpenses(filters);
+                    }}
+                    className="mt-3 w-full rounded-lg border border-app-ink/30 bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+                  >
+                    Aplicar filtros
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setExpensePage(1);
-                    loadExpenses(filters);
-                  }}
-                  className="mt-3 w-full rounded-lg border border-app-ink/30 bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
-                >
-                  Aplicar filtros
-                </button>
               </div>
             </div>
           </div>
@@ -524,7 +549,7 @@ export default function ViewExpensesPage() {
           ) : null}
 
           <div className="min-h-0 flex flex-1 flex-col rounded-2xl border-0 bg-app-panel/70 p-3">
-            <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" onScroll={handleExpensesListScroll}>
               {loading ? <p className="text-sm font-semibold text-app-muted">Cargando gastos...</p> : null}
               {!loading && expenses.length === 0 ? (
                 <p className="text-sm font-semibold text-app-muted">No hay gastos con esos filtros.</p>
@@ -575,41 +600,25 @@ export default function ViewExpensesPage() {
                   Mostrando {expensePageRange.from}-{expensePageRange.to} de {expensePageRange.total}
                 </p>
                 {totalExpensePages > 1 ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => goToExpensePage(1)}
-                      disabled={expensePage <= 1}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
-                    >
-                      {'<<'}
-                    </button>
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => goToExpensePage(expensePage - 1)}
                       disabled={expensePage <= 1}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                      className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
                       {'<'}
                     </button>
-                    <span className="min-w-7 rounded-md bg-app-ink px-2 py-1 text-center text-[11px] font-extrabold text-app-bg">
-                      {expensePage}
+                    <span className="app-pagination-mobile-counter">
+                      {expensePage}/{totalExpensePages}
                     </span>
                     <button
                       type="button"
                       onClick={() => goToExpensePage(expensePage + 1)}
                       disabled={expensePage >= totalExpensePages}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                      className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
                       {'>'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => goToExpensePage(totalExpensePages)}
-                      disabled={expensePage >= totalExpensePages}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
-                    >
-                      {'>>'}
                     </button>
                   </div>
                 ) : null}
@@ -625,6 +634,3 @@ export default function ViewExpensesPage() {
     </main>
   );
 }
-
-
-

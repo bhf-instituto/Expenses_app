@@ -1,5 +1,6 @@
 import { Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactPaginate from 'react-paginate';
 import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
@@ -87,22 +88,6 @@ const INCOME_TYPE_OPTIONS = [
   { value: '1', label: 'Efectivo' },
   { value: '3', label: 'Debito' },
 ];
-
-const buildPaginationItems = (currentPage, totalPages) => {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 3) {
-    return [1, 2, 3, 4, '...', totalPages];
-  }
-
-  if (currentPage >= totalPages - 2) {
-    return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-  }
-
-  return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
-};
 
 const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
 const formatDateOnly = (value) => String(value || '').slice(0, 10);
@@ -759,11 +744,6 @@ export default function DesktopDashboardPage() {
     const endIndex = startIndex + expenseRowsPerPage;
     return sortedFilteredExpenses.slice(startIndex, endIndex);
   }, [expensePage, expenseRowsPerPage, sortedFilteredExpenses]);
-
-  const expensePaginationItems = useMemo(
-    () => buildPaginationItems(expensePage, totalExpensePages),
-    [expensePage, totalExpensePages]
-  );
 
   const expensePageRange = useMemo(() => {
     if (sortedFilteredExpenses.length === 0) {
@@ -2759,49 +2739,37 @@ export default function DesktopDashboardPage() {
                       type="button"
                       onClick={() => goToExpensePage(1)}
                       disabled={expensePage <= 1}
-                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
+                      className="app-pagination-edge-btn"
                     >
                       &laquo;
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => goToExpensePage(expensePage - 1)}
-                      disabled={expensePage <= 1}
-                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      &lsaquo;
-                    </button>
-                    {expensePaginationItems.map((item, index) => (
-                      item === '...'
-                        ? (
-                          <span key={`expense-page-ellipsis-${index}`} className="px-1 text-xs font-bold text-app-muted">
-                            ...
-                          </span>
-                        )
-                        : (
-                          <button
-                            key={`expense-page-${item}`}
-                            type="button"
-                            onClick={() => goToExpensePage(item)}
-                            className={`min-w-7 rounded-md px-2 py-1 text-xs font-extrabold ${expensePage === item ? 'bg-app-ink text-app-bg' : 'bg-app-panel text-app-ink'}`}
-                          >
-                            {item}
-                          </button>
-                        )
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => goToExpensePage(expensePage + 1)}
-                      disabled={expensePage >= totalExpensePages}
-                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      &rsaquo;
-                    </button>
+                    <ReactPaginate
+                      forcePage={Math.max(0, expensePage - 1)}
+                      pageCount={totalExpensePages}
+                      pageRangeDisplayed={3}
+                      marginPagesDisplayed={1}
+                      breakLabel="..."
+                      previousLabel={<span aria-hidden>&lsaquo;</span>}
+                      nextLabel={<span aria-hidden>&rsaquo;</span>}
+                      onPageChange={({ selected }) => goToExpensePage(selected + 1)}
+                      containerClassName="app-pagination app-pagination-desktop"
+                      pageClassName="app-pagination-page"
+                      pageLinkClassName="app-pagination-link"
+                      activeClassName="is-active"
+                      previousClassName="app-pagination-nav"
+                      nextClassName="app-pagination-nav"
+                      previousLinkClassName="app-pagination-link"
+                      nextLinkClassName="app-pagination-link"
+                      breakClassName="app-pagination-break"
+                      breakLinkClassName="app-pagination-link"
+                      disabledClassName="is-disabled"
+                      renderOnZeroPageCount={null}
+                    />
                     <button
                       type="button"
                       onClick={() => goToExpensePage(totalExpensePages)}
                       disabled={expensePage >= totalExpensePages}
-                      className="rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink disabled:cursor-not-allowed disabled:opacity-45"
+                      className="app-pagination-edge-btn"
                     >
                       &raquo;
                     </button>

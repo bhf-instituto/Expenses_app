@@ -251,6 +251,64 @@
     @apply w-full rounded-none border-0 border-b border-app-ink/35 bg-transparent px-1 py-2 text-sm outline-none transition focus:border-app-ink/70;
   }
 
+  .app-pagination {
+    @apply m-0 flex list-none items-center gap-1 p-0;
+  }
+
+  .app-pagination .app-pagination-link {
+    @apply inline-flex min-h-[1.75rem] min-w-[1.75rem] items-center justify-center rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink transition;
+  }
+
+  .app-pagination .app-pagination-link:hover {
+    @apply brightness-110;
+  }
+
+  .app-pagination .is-active .app-pagination-link {
+    @apply bg-app-ink text-app-bg;
+  }
+
+  .app-pagination .is-disabled .app-pagination-link {
+    @apply pointer-events-none opacity-45;
+  }
+
+  .app-pagination .app-pagination-break .app-pagination-link {
+    @apply cursor-default bg-transparent px-1 text-app-muted;
+  }
+
+  .app-pagination-mobile .app-pagination-link {
+    @apply min-h-[2.15rem] min-w-[2.15rem] px-2 py-1 text-sm;
+  }
+
+  .app-pagination-mobile .app-pagination-page,
+  .app-pagination-mobile .app-pagination-break {
+    display: none;
+  }
+
+  .app-pagination-desktop .app-pagination-link {
+    @apply px-2 py-1 text-xs;
+  }
+
+  .app-pagination-edge-btn {
+    @apply inline-flex min-h-[1.75rem] min-w-[1.75rem] items-center justify-center rounded-md bg-app-panel px-2 py-1 text-xs font-extrabold text-app-ink transition;
+  }
+
+  .app-pagination-edge-btn:hover {
+    @apply brightness-110;
+  }
+
+  .app-pagination-edge-btn:disabled {
+    @apply cursor-not-allowed opacity-45;
+  }
+
+  .app-pagination-edge-btn-mobile {
+    @apply min-h-[2.2rem] min-w-[2.2rem] px-2.5 py-1 text-sm;
+  }
+
+  .app-pagination-mobile-counter {
+    @apply inline-flex w-[7ch] items-center justify-center text-[11px] font-semibold text-app-muted;
+    font-variant-numeric: tabular-nums;
+  }
+
   .icon-mask {
     display: inline-block;
     flex-shrink: 0;

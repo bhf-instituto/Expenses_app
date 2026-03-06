@@ -255,41 +255,25 @@ export default function IncomesPage() {
                   Mostrando {incomePageRange.from}-{incomePageRange.to} de {incomePageRange.total}
                 </p>
                 {totalIncomePages > 1 ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => goToIncomePage(1)}
-                      disabled={incomePage <= 1}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
-                    >
-                      {'<<'}
-                    </button>
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => goToIncomePage(incomePage - 1)}
                       disabled={incomePage <= 1}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                      className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
                       {'<'}
                     </button>
-                    <span className="min-w-7 rounded-md bg-app-ink px-2 py-1 text-center text-[11px] font-extrabold text-app-bg">
-                      {incomePage}
+                    <span className="app-pagination-mobile-counter">
+                      {incomePage}/{totalIncomePages}
                     </span>
                     <button
                       type="button"
                       onClick={() => goToIncomePage(incomePage + 1)}
                       disabled={incomePage >= totalIncomePages}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
+                      className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
                       {'>'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => goToIncomePage(totalIncomePages)}
-                      disabled={incomePage >= totalIncomePages}
-                      className="rounded-md bg-app-panel px-1.5 py-1 text-[11px] font-extrabold text-app-ink disabled:opacity-40"
-                    >
-                      {'>>'}
                     </button>
                   </div>
                 ) : null}
