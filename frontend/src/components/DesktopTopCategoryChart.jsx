@@ -53,13 +53,17 @@ const getPieFillByName = (name, fallbackIndex) => {
   return PIE_COLORS[Number(fallbackIndex || 0) % PIE_COLORS.length];
 };
 
-const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value, payload }, labelFormatter) => {
   if (cx == null || cy == null || innerRadius == null || outerRadius == null) return null;
   const safeCx = Number(cx);
   const safeCy = Number(cy);
   const radius = Number(innerRadius) + (Number(outerRadius) - Number(innerRadius)) * 0.52;
   const x = safeCx + radius * Math.cos(-Number(midAngle || 0) * RADIAN);
   const y = safeCy + radius * Math.sin(-Number(midAngle || 0) * RADIAN);
+  const labelText = typeof labelFormatter === 'function'
+    ? labelFormatter({ cx, cy, midAngle, innerRadius, outerRadius, percent, value, payload })
+    : `${(Number(percent || 0) * 100).toFixed(0)}%`;
+  if (labelText === null || labelText === undefined || labelText === '') return null;
 
   return (
     <text
@@ -70,7 +74,7 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent })
       dominantBaseline="central"
       className="text-[11px] font-extrabold"
     >
-      {`${(Number(percent || 0) * 100).toFixed(0)}%`}
+      {String(labelText)}
     </text>
   );
 };
@@ -92,6 +96,7 @@ export default function DesktopTopCategoryChart({
   showZeroReference = false,
   lineType = 'monotone',
   lineConnectNulls = false,
+  pieLabelFormatter = null,
 }) {
   const resolvedSeries = useMemo(() => (Array.isArray(series) ? series : []), [series]);
 
@@ -170,7 +175,7 @@ export default function DesktopTopCategoryChart({
             cy="50%"
             outerRadius="80%"
             labelLine={false}
-            label={renderPieLabel}
+            label={(props) => renderPieLabel(props, pieLabelFormatter)}
             shape={renderPieSlice}
             dataKey="value"
             isAnimationActive

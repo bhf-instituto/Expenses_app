@@ -4,6 +4,7 @@ const SET_USERS_CACHE_KEY = 'expenses_mobile_set_users_v1';
 const EXPENSES_CACHE_KEY = 'expenses_mobile_expenses_v1';
 const INCOMES_CACHE_KEY = 'expenses_mobile_incomes_v1';
 const UI_COLOR_SETTINGS_CACHE_KEY = 'expenses_mobile_ui_color_settings_v1';
+const GROUPS_MODE_CACHE_KEY = 'expenses_mobile_groups_mode_v1';
 const USER_CACHE_KEY = 'expenses_mobile_user_v1';
 const SCOPE_KEY_PREFIX = 'scope:';
 const DEFAULT_SCOPE_KEY = `${SCOPE_KEY_PREFIX}global`;
@@ -215,4 +216,22 @@ export const getCachedUiColorSettings = (scope) => {
 export const setCachedUiColorSettings = (settings, scope) => {
   const nextSettings = isObject(settings) ? settings : {};
   writeScopedValue(UI_COLOR_SETTINGS_CACHE_KEY, scope, 'object', nextSettings);
+};
+
+const normalizeGroupsMode = (mode) => {
+  const normalizedMode = String(mode || '').trim().toLowerCase();
+  if (normalizedMode === 'view' || normalizedMode === 'incomes') return normalizedMode;
+  return 'create';
+};
+
+export const getCachedGroupsMode = (scope) => {
+  const mode = readScopedValue(GROUPS_MODE_CACHE_KEY, scope, 'object', null);
+  if (typeof mode !== 'string') return 'create';
+  return normalizeGroupsMode(mode);
+};
+
+export const setCachedGroupsMode = (mode, scope) => {
+  const normalizedMode = normalizeGroupsMode(mode);
+  writeScopedValue(GROUPS_MODE_CACHE_KEY, scope, 'object', normalizedMode);
+  return normalizedMode;
 };

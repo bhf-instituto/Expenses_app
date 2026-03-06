@@ -8,7 +8,7 @@ import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import { ApiError, setsApi } from '../lib/apiClient.js';
-import { getCachedSets, setCachedSets } from '../lib/localCache.js';
+import { getCachedGroupsMode, getCachedSets, setCachedGroupsMode, setCachedSets } from '../lib/localCache.js';
 import { resolveSessionScope } from '../lib/sessionScope.js';
 import {
   clearFavoriteGroup,
@@ -30,7 +30,7 @@ export default function HomePage() {
   // const { user, logout, isOnline } = useAuth();
   const { pendingCount } = useExpenseSync();
   const sessionScope = resolveSessionScope(user);
-  const [mode, setMode] = useState('create');
+  const [mode, setMode] = useState(() => getCachedGroupsMode(sessionScope));
   const effectiveMode = mode;
   const [groups, setGroups] = useState(() => getCachedSets(sessionScope));
   const [favoriteGroupId, setFavoriteGroupId] = useState(() => getFavoriteGroupId(sessionScope));
@@ -44,6 +44,14 @@ export default function HomePage() {
       || window.localStorage.getItem('expenses_net_debug') === '1'
     );
   // const profileAlias = user?.email ? String(user.email).split('@')[0] : '-';
+
+  useEffect(() => {
+    setMode(getCachedGroupsMode(sessionScope));
+  }, [sessionScope]);
+
+  useEffect(() => {
+    setCachedGroupsMode(mode, sessionScope);
+  }, [mode, sessionScope]);
 
   useEffect(() => {
     let cancelled = false;

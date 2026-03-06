@@ -187,7 +187,7 @@ const getPendingActionLabel = (type) => {
   return labels[normalized] || type || 'Accion';
 };
 const formatMonthLabel = (year, month) => `${String(month).padStart(2, '0')}/${year}`;
-const formatMoney = (value) => `$${Number(value || 0).toLocaleString('es-AR')}`;
+const formatMoney = (value) => `$ ${Number(value || 0).toLocaleString('es-AR')}`;
 const formatQueuedAt = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
@@ -886,8 +886,24 @@ export default function DesktopDashboardPage() {
       }));
   }, [categoriesWithTotals, categoryTopLimit]);
 
-  const categoryTotalSeries = useMemo(
-    () => [{ key: 'total', label: 'Total gastado', color: CHART_COLOR_EXPENSE }],
+  const categoriesTopVsIncomeChartData = useMemo(
+    () => {
+      const incomeTotalInRange = filteredIncomes.reduce(
+        (sum, income) => sum + Number(income.amount || 0),
+        0
+      );
+      return categoriesTopChartData.map((item) => ({
+        ...item,
+        income_share_percent: incomeTotalInRange > 0
+          ? (Number(item.total || 0) / incomeTotalInRange) * 100
+          : 0,
+      }));
+    },
+    [categoriesTopChartData, filteredIncomes]
+  );
+
+  const categoryVsIncomeSeries = useMemo(
+    () => [{ key: 'income_share_percent', label: '% del ingreso', color: CHART_COLOR_INCOME }],
     []
   );
 
@@ -3449,7 +3465,9 @@ export default function DesktopDashboardPage() {
                 </div>
                 <aside className="flex min-h-0 flex-col rounded-xl bg-app-bg/20 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Top categorias por gasto</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                      Top categorias sobre ingreso total
+                    </p>
                     <div className="flex items-center gap-1">
                       {[5, 10].map((limit) => (
                         <button
@@ -3463,25 +3481,48 @@ export default function DesktopDashboardPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="mt-3 grid min-h-0 flex-1 grid-rows-2 gap-3">
-                    <div className="min-h-0">
-                      {categoriesTopChartData.length > 0 ? (
+                  <p className="mt-1 text-[11px] font-semibold text-app-muted">
+                    Cada porcion representa el porcentaje que gasta cada categoria respecto al ingreso total del rango.
+                  </p>
+                  <div className="mt-3 grid min-h-0 flex-1 grid-rows-[1fr_auto] gap-3">
+                    <div className="min-h-0 rounded-lg bg-app-panel/35 p-2">
+                      {categoriesTopVsIncomeChartData.length > 0 && totalIncomeAmount > 0 ? (
                         <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-app-muted">Cargando grafico...</div>}>
                           <LazyDesktopTopCategoryChart
-                            key={`categories-top-${categoryTopLimit}-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${categoriesTopChartData.length}`}
-                            type="verticalBar"
-                            data={categoriesTopChartData}
+                            key={`categories-top-income-${categoryTopLimit}-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${categoriesTopVsIncomeChartData.length}-${totalIncomeAmount}`}
+                            type="activePie"
+                            data={categoriesTopVsIncomeChartData}
                             xKey="name"
-                            series={categoryTotalSeries}
+                            series={categoryVsIncomeSeries}
+                            valueFormat="percent"
+                            pieLabelFormatter={({ payload }) =>
+                              `${Number(payload?.income_share_percent || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}%`
+                            }
                           />
                         </Suspense>
+                      ) : totalIncomeAmount <= 0 ? (
+                        <div className="flex h-full items-center justify-center rounded-lg bg-app-panel/60 px-3 text-xs font-semibold text-app-muted">
+                          No hay ingresos en el rango seleccionado.
+                        </div>
                       ) : (
                         <div className="flex h-full items-center justify-center rounded-lg bg-app-panel/60 px-3 text-xs font-semibold text-app-muted">
                           Sin gastos por categoria en el rango seleccionado.
                         </div>
                       )}
                     </div>
-                    <div className="rounded-lg border border-dashed border-app-ink/15 bg-app-panel/20" aria-hidden="true" />
+                    <div className="no-scrollbar max-h-32 overflow-auto rounded-lg border border-app-ink/10 bg-app-panel/20 p-2">
+                      {categoriesTopVsIncomeChartData.map((item) => (
+                        <div key={item.name} className="flex items-center justify-between gap-2 border-b border-app-ink/10 py-1 text-xs font-semibold last:border-b-0">
+                          <span className="truncate text-app-muted">{item.name}</span>
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <span className="text-app-ink">{formatMoney(item.total)}</span>
+                            <span className="text-app-muted">
+                              {formatPercentFromDecimal(Number(item.income_share_percent || 0) / 100, 1)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </aside>
               </div>
