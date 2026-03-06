@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
+import backIcon from '../assets/icons/back-icon.svg';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpenseSync } from '../context/ExpenseSyncContext.jsx';
 import MonoIcon from './MonoIcon.jsx';
@@ -42,9 +43,11 @@ export default function MobileHeader({
         <button
           type="button"
           onClick={handleBack}
-          className="shrink-0 rounded-lg border-0 bg-app-mint/100 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+          title={leftLabel}
+          aria-label={leftLabel}
+          className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-app-mint/100 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
         >
-          {leftLabel}
+          <MonoIcon src={backIcon} className="h-4 w-4" />
         </button>
         <h1 className="min-w-0 flex-1 ml-2 truncate font-heading text-sm font-semibold uppercase tracking-wide text-app-ink">
           {title}

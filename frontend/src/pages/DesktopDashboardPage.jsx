@@ -6,6 +6,7 @@ import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
 import pencilIcon from '../assets/icons/pencil-icon.svg';
 import closeLineIcon from '../assets/icons/close-line-icon.svg';
+import closeIcon from '../assets/icons/close-icon.svg';
 import starEmptyIcon from '../assets/icons/star-empty-icon.svg';
 import starFullIcon from '../assets/icons/star-full-icon.svg';
 import triangleDownIcon from '../assets/icons/triangle-down-icon.svg';
@@ -297,9 +298,11 @@ function DesktopModal({ open, title, children, onClose, maxWidthClass = 'max-w-l
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md bg-app-bg/35 px-2 py-1 text-xs font-bold uppercase tracking-wide text-app-muted"
+            title="Cerrar"
+            aria-label="Cerrar"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-app-bg/35 hover:bg-app-bg/55"
           >
-            Cerrar
+            <MonoIcon src={closeIcon} className="h-3.5 w-3.5" />
           </button>
         </div>
         {children}

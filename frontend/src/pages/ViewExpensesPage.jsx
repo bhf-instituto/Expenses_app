@@ -407,7 +407,7 @@ export default function ViewExpensesPage() {
     <main className="app-shell">
       <MobileHeader title={`Ver gastos: ${setName}`} backTo="/groups" />
       <section className="min-h-0 flex-1 overflow-hidden px-4 pb-2 pt-3">
-        <div className="flex h-full min-h-0 flex-col gap-3">
+        <div className= {`flex h-full min-h-0 flex-col gap-${filtersBarVisible ? "3" : "0"}`}>
           {/* {!isOnline ? (
             <p className="rounded-xl bg-app-warning px-3 py-2 text-sm font-semibold text-app-ink">
               Modo offline: se muestran gastos cacheados.
@@ -420,11 +420,11 @@ export default function ViewExpensesPage() {
                 : 'pointer-events-none max-h-0 -translate-y-2 opacity-0'
             }`}
           >
-            <div className="rounded-2xl border-0 bg-app-panel p-4">
+            <div className="rounded-2xl border-0 bg-app-panel p-3 pb-1">
               <button
                 type="button"
                 onClick={() => setFiltersOpen((prev) => !prev)}
-                className="flex w-full items-center justify-between rounded-lg border-0 border-app-ink/20 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+                className="flex w-full items-center justify-between rounded-lg border-0 border-app-ink/20  text-xs font-extrabold uppercase tracking-wide text-app-ink"
               >
                 <span>Filtros</span>
                 <span>{filtersOpen ? 'Ocultar' : 'Mostrar'}</span>
@@ -540,7 +540,7 @@ export default function ViewExpensesPage() {
           </div>
 
           {!loading && expenses.length > 0 ? (
-            <div className="rounded-2xl border-0 bg-indigo-900 px-4 py-3">
+            <div className={`rounded-2xl border-0 bg-indigo-900 px-4 py-3 mb-${filtersBarVisible ? "0" : "3"}`}>
               <p className="text-[10px] font-bold uppercase tracking-wide text-app-muted">Total filtrado</p>
               <p className="mt-1 font-heading text-2xl font-bold text-app-ink">
                 ${totalAmount.toLocaleString('es-AR')}
