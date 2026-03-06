@@ -145,7 +145,7 @@ export default function CreateIncomePage() {
           state: {
             setName,
             role: resolvedRole,
-            flash: 'Ingreso encolado offline.',
+            flash: 'Ingreso pendiente.',
           },
         });
         return;

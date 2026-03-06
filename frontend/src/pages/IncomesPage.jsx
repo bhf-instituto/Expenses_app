@@ -199,7 +199,7 @@ export default function IncomesPage() {
     ? 'Solo admin puede crear ingresos'
     : isOnline
     ? 'Crear ingreso'
-    : 'Crear ingreso (offline)';
+    : 'Crear ingreso';
 
   return (
     <main className="app-shell">

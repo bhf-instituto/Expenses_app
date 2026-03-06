@@ -1849,7 +1849,7 @@ export default function DesktopDashboardPage() {
           },
         });
         resetIncomeForm();
-        setMessage('Ingreso encolado offline.');
+        setMessage('Ingreso pendiente');
         if (tab === TAB.ANALYTICS) {
           await loadAnalytics();
         }
@@ -1946,7 +1946,7 @@ export default function DesktopDashboardPage() {
       if (!isOnline) {
         queueExpense({ setId: Number(selectedSetId), payload, tempExpenseId });
         resetExpenseForm();
-        setMessage('Gasto encolado offline.');
+        setMessage('Gasto pendiente.');
         return;
       }
 
