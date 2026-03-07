@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
@@ -45,6 +45,7 @@ export default function IncomesPage() {
   });
   const [incomePage, setIncomePage] = useState(1);
   const incomeRowsPerPage = MOBILE_ITEMS_PER_PAGE;
+  const incomeListContainerRef = useRef(null);
 
   const setName = location.state?.setName || `Grupo ${setId}`;
   const flashMessage = String(location.state?.flash || '').trim();
@@ -81,11 +82,13 @@ export default function IncomesPage() {
   }, [incomePage, incomeRowsPerPage, sortedIncomes.length]);
 
   const goToIncomePage = (nextPage) => {
-    setIncomePage((prev) => {
-      const normalized = Number(nextPage);
-      if (!Number.isFinite(normalized)) return prev;
-      return Math.max(1, Math.min(totalIncomePages, Math.trunc(normalized)));
-    });
+    const normalized = Number(nextPage);
+    if (!Number.isFinite(normalized)) return;
+    const clamped = Math.max(1, Math.min(totalIncomePages, Math.trunc(normalized)));
+    setIncomePage((prev) => (prev === clamped ? prev : clamped));
+    if (incomeListContainerRef.current) {
+      incomeListContainerRef.current.scrollTop = 0;
+    }
   };
 
   const fetchAllIncomesForSet = useCallback(async (currentSetId) => {
@@ -223,7 +226,7 @@ export default function IncomesPage() {
           ) : null}
 
           <div className="min-h-0 flex flex-1 flex-col rounded-2xl border-0 bg-app-panel/70 p-3">
-            <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            <div ref={incomeListContainerRef} className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               {loading ? <p className="text-sm font-semibold text-app-muted">Cargando ingresos...</p> : null}
               {!loading && sortedIncomes.length === 0 ? (
                 <p className="text-sm font-semibold text-app-muted">No hay ingresos cargados.</p>

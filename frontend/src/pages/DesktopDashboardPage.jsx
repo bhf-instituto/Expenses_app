@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
@@ -289,7 +289,7 @@ function DesktopModal({ open, title, children, onClose, maxWidthClass = 'max-w-l
             onClick={onClose}
             title="Cerrar"
             aria-label="Cerrar"
-            className="flex h-8 w-8 items-center justify-center rounded-md bg-app-bg/35 hover:bg-app-bg/55"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-app-panel hover:bg-app-bg/55"
           >
             <MonoIcon src={closeIcon} className="h-3.5 w-3.5" />
           </button>
@@ -369,7 +369,6 @@ export default function DesktopDashboardPage() {
   const [expandedExpenseIds, setExpandedExpenseIds] = useState([]);
   const [expenseSort, setExpenseSort] = useState({ key: null, direction: 'asc' });
   const [categorySort, setCategorySort] = useState({ key: null, direction: 'asc' });
-  const [categoryTopLimit, setCategoryTopLimit] = useState('5');
   const [analyticsFilters, setAnalyticsFilters] = useState(defaultAnalyticsFilters);
   const [analyticsAppliedFilters, setAnalyticsAppliedFilters] = useState(defaultAnalyticsFilters);
   const [analyticsFiltersExpanded, setAnalyticsFiltersExpanded] = useState(false);
@@ -380,9 +379,7 @@ export default function DesktopDashboardPage() {
   const [pendingEditingActionId, setPendingEditingActionId] = useState(null);
   const [pendingEditType, setPendingEditType] = useState('');
   const [pendingEditPayload, setPendingEditPayload] = useState('');
-  const expensesViewportRef = useRef(null);
-  const firstExpenseRowRef = useRef(null);
-  const [expenseRowsPerPage, setExpenseRowsPerPage] = useState(10);
+  const expenseRowsPerPage = 30;
   const [expensePage, setExpensePage] = useState(1);
 
   useEffect(() => {
@@ -822,63 +819,31 @@ export default function DesktopDashboardPage() {
     [pendingActions]
   );
 
-  const categoriesTopChartData = useMemo(() => {
-    const topLimit = Math.max(1, Number(categoryTopLimit || 5));
-    return [...categoriesWithTotals]
-      .filter((category) => Number(category.total_amount || 0) > 0)
-      .sort((a, b) => Number(b.total_amount || 0) - Number(a.total_amount || 0))
-      .slice(0, topLimit)
-      .map((category) => ({
-        name: category.name,
-        total: Number(category.total_amount || 0),
-        expense_type: Number(category.expense_type || 0),
-      }));
-  }, [categoriesWithTotals, categoryTopLimit]);
+  const expenseTypeShareChartData = useMemo(() => {
+    const totalsByType = { 1: 0, 2: 0, 3: 0 };
+    categoriesWithTotals.forEach((category) => {
+      const typeId = Number(category.expense_type);
+      if (![1, 2, 3].includes(typeId)) return;
+      totalsByType[typeId] += Number(category.total_amount || 0);
+    });
 
-  const categoriesTopVsIncomeChartData = useMemo(
-    () => {
-      const incomeTotalInRange = filteredIncomes.reduce(
-        (sum, income) => sum + Number(income.amount || 0),
-        0
-      );
-      const totalExpenseInRange = categoriesWithTotals.reduce(
-        (sum, category) => sum + Number(category.total_amount || 0),
-        0
-      );
+    const totalExpensesByType = totalsByType[1] + totalsByType[2] + totalsByType[3];
+    if (totalExpensesByType <= 0) return [];
 
-      const topRows = categoriesTopChartData.map((item) => ({
-        ...item,
-        income_share_percent: incomeTotalInRange > 0
-          ? (Number(item.total || 0) / incomeTotalInRange) * 100
-          : 0,
-      }));
-
-      if (incomeTotalInRange <= 0) {
-        return topRows;
-      }
-
-      const topTrackedAmount = topRows.reduce(
-        (sum, item) => sum + Number(item.total || 0),
-        0
-      );
-      const othersAmount = Math.max(0, totalExpenseInRange - topTrackedAmount);
-
-      if (othersAmount <= 0) {
-        return topRows;
-      }
-
-      return [
-        ...topRows,
-        {
-          name: 'Otros',
-          total: othersAmount,
-          income_share_percent: (othersAmount / incomeTotalInRange) * 100,
-          expense_type: 0,
-        },
-      ];
-    },
-    [categoriesTopChartData, filteredIncomes, categoriesWithTotals]
-  );
+    return [1, 2, 3]
+      .map((typeId) => {
+        const amount = Number(totalsByType[typeId] || 0);
+        const sharePercent = totalExpensesByType > 0 ? (amount / totalExpensesByType) * 100 : 0;
+        return {
+          name: getExpenseTypeById(typeId)?.label || `Tipo ${typeId}`,
+          value: sharePercent,
+          total: amount,
+          fill: getCssVarFill(getExpenseTypeBgVarName(typeId)),
+          expense_type: typeId,
+        };
+      })
+      .filter((item) => Number(item.total || 0) > 0);
+  }, [categoriesWithTotals]);
 
   const incomeTypeSplitData = useMemo(() => {
     const totals = { '1': 0, '3': 0 };
@@ -955,53 +920,6 @@ export default function DesktopDashboardPage() {
   useEffect(() => {
     setExpensePage((prev) => Math.min(prev, totalExpensePages));
   }, [totalExpensePages]);
-
-  const recalculateExpenseRowsPerPage = useCallback(() => {
-    const viewportNode = expensesViewportRef.current;
-    if (!viewportNode) return;
-
-    const viewportHeight = viewportNode.clientHeight;
-    if (!viewportHeight || viewportHeight <= 0) return;
-
-    const sampleRowHeight = firstExpenseRowRef.current?.getBoundingClientRect?.().height;
-    const estimatedRowHeight = Number.isFinite(sampleRowHeight) && sampleRowHeight > 0
-      ? sampleRowHeight
-      : 52;
-
-    const nextRowsPerPage = Math.max(1, Math.floor(viewportHeight / estimatedRowHeight));
-    setExpenseRowsPerPage((prev) => (prev === nextRowsPerPage ? prev : nextRowsPerPage));
-  }, []);
-
-  useEffect(() => {
-    if (tab !== TAB.EXPENSES) return undefined;
-
-    const raf = requestAnimationFrame(recalculateExpenseRowsPerPage);
-
-    if (typeof ResizeObserver === 'undefined') {
-      return () => cancelAnimationFrame(raf);
-    }
-
-    const viewportNode = expensesViewportRef.current;
-    if (!viewportNode) {
-      return () => cancelAnimationFrame(raf);
-    }
-
-    const observer = new ResizeObserver(() => {
-      recalculateExpenseRowsPerPage();
-    });
-    observer.observe(viewportNode);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
-  }, [recalculateExpenseRowsPerPage, tab]);
-
-  useEffect(() => {
-    if (tab !== TAB.EXPENSES) return undefined;
-    const raf = requestAnimationFrame(recalculateExpenseRowsPerPage);
-    return () => cancelAnimationFrame(raf);
-  }, [tab, expensePage, paginatedExpenses.length, expandedExpenseIds.length, recalculateExpenseRowsPerPage]);
 
   const totalAmount = useMemo(
     () => expensesInGlobalRange.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
@@ -2304,7 +2222,7 @@ export default function DesktopDashboardPage() {
 
   return (
     <main className="hidden h-[100dvh] overflow-hidden bg-app-bg text-app-ink lg:flex">
-      <aside className="w-64 border-r border-app-ink/10 bg-app-panel/70 p-4">
+      <aside className="w-64 border-r border-app-ink/5 bg-app-panel/70 p-4">
         <div className="mb-4">
           <h1 className="flex items-center" aria-label="Grupos">
             <MonoIcon src={appLogoIcon} colorVar="--app-text-primary" className="h-7 w-7" />
@@ -2392,7 +2310,7 @@ export default function DesktopDashboardPage() {
       </aside>
 
       <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        <header className="border-b border-app-ink/10 bg-app-panel/70 px-6 py-4">
+        <header className="border-0 border-app-ink/10 bg-app-panel/70 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-5">
               <div>
@@ -2531,18 +2449,20 @@ export default function DesktopDashboardPage() {
               ) : null}
               {tab === TAB.EXPENSES ? (
                 <div className="ml-auto flex  items-center gap-4">
-                  <div className="text-right bg-app-mint p-2 py-1 rounded-md">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-app-muted">Total filtrado</p>
-                    <p className="text-sm font-extrabold text-app-ink">
-                      $ {filteredExpensesAmount.toLocaleString('es-AR')}
-                    </p>
-                  </div>
+                  {/* {activeFiltersCount > 0 ? (
+                    <div className="rounded-md bg-app-mint p-2 py-1 text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-app-muted">Total filtrado</p>
+                      <p className="text-sm font-extrabold text-app-ink">
+                        $ {filteredExpensesAmount.toLocaleString('es-AR')}
+                      </p>
+                    </div>
+                  ) : null} */}
                   <button
                     type="button"
-                    onClick={openFiltersModal}
+                    onClick={openCreateExpenseModal}
                     className="rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg"
                   >
-                    Filtros{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
+                    Crear
                   </button>
                 </div>
               ) : null}
@@ -2566,7 +2486,7 @@ export default function DesktopDashboardPage() {
                     disabled={!isAdmin || !selectedSetId || !isOnline}
                     className="rounded-lg bg-app-ink px-3 py-2 text-xs font-extrabold uppercase text-app-bg disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    Cargar ingreso
+                    CREAR
                   </button>
                 </div>
               ) : null}
@@ -2650,7 +2570,7 @@ export default function DesktopDashboardPage() {
                     </tr>
                   </thead>
                 </table>
-                <div ref={expensesViewportRef} className="min-h-0 flex-1 overflow-hidden">
+                <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
                   <table className="w-full table-fixed text-left">
                     <colgroup>
                       <col className="w-[15%]" />
@@ -2662,13 +2582,12 @@ export default function DesktopDashboardPage() {
                       <col className="w-[10%]" />
                     </colgroup>
                     <tbody>
-                      {paginatedExpenses.map((expense, expenseIndex) => {
+                      {paginatedExpenses.map((expense) => {
                         const expenseId = Number(expense.id);
                         const isExpanded = expandedExpenseIds.includes(expenseId);
                         return (
                           <Fragment key={expense.id}>
                             <tr
-                              ref={expenseIndex === 0 ? firstExpenseRowRef : null}
                               className="cursor-pointer border-t border-app-ink/10 text-base hover:bg-app-bg/25"
                               onClick={() =>
                                 setExpandedExpenseIds((prev) =>
@@ -2746,12 +2665,12 @@ export default function DesktopDashboardPage() {
                   </table>
                 </div>
                 <div className="mt-1 shrink-0 border-t border-app-ink/10 pt-1.5">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="relative flex min-h-[2rem] items-center">
                     <p className="text-xs font-semibold text-app-muted">
-                    Mostrando {expensePageRange.from}-{expensePageRange.to} de {expensePageRange.total}
+                      Mostrando {expensePageRange.from}-{expensePageRange.to} de {expensePageRange.total}
                     </p>
                     {totalExpensePages > 1 ? (
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="absolute left-1/2 flex -translate-x-1/2 items-center justify-center gap-2">
                         <button
                           type="button"
                           onClick={() => goToExpensePage(1)}
@@ -2867,7 +2786,7 @@ export default function DesktopDashboardPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Ingreso por medio de cobro</p>
                   {incomeTypeSplitData.length > 0 ? (
                     <>
-                      <div className="mt-2 h-52">
+                      <div className="mt-2 h-60">
                         <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-app-muted">Cargando grafico...</div>}>
                           <LazyDesktopTopCategoryChart
                             type="activePie"
@@ -3478,76 +3397,35 @@ export default function DesktopDashboardPage() {
                   </table>
                 </div>
                 <aside className="flex min-h-0 flex-col rounded-xl bg-app-bg/20 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                      Top categorias sobre ingreso total
-                    </p>
-                    <div className="flex items-center gap-1">
-                      {[5, 10].map((limit) => (
-                        <button
-                          key={limit}
-                          type="button"
-                          onClick={() => setCategoryTopLimit(String(limit))}
-                          className={`rounded-md px-2 py-1 text-[11px] font-extrabold uppercase ${Number(categoryTopLimit) === limit ? 'bg-app-mint text-app-ink' : 'bg-app-mint text-app-muted'}`}
-                        >
-                          Top {limit}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="mt-1 text-[11px] font-semibold text-app-muted">
-                    Top categorias y su porcentaje sobre el ingreso total del rango.
+                  <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                    Distribucion de gastos por tipo
                   </p>
-                  {totalIncomeAmount > 0 ? (
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                      <span className="rounded-md bg-app-panel/50 px-2 py-1 text-app-muted">
-                        Gasto total: {formatPercentFromDecimal(totalAmount / totalIncomeAmount, 1)}
-                      </span>
-                      {totalBalanceAmount > 0 ? (
-                        <span className="rounded-md bg-app-success-bg px-2 py-1 text-app-success-text">
-                          Saldo a favor: {formatMoney(totalBalanceAmount)} ({formatPercentFromDecimal(totalBalanceAmount / totalIncomeAmount, 1)})
-                        </span>
-                      ) : null}
-                      {totalBalanceAmount < 0 ? (
-                        <span className="rounded-md bg-app-error-bg px-2 py-1 text-app-error-text">
-                          Gasto sobre ingreso: {formatMoney(Math.abs(totalBalanceAmount))} ({formatPercentFromDecimal(Math.abs(totalBalanceAmount) / totalIncomeAmount, 1)})
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <div className="mt-3 min-h-0 flex-1">
-                    {totalIncomeAmount <= 0 ? (
-                      <div className="mb-2 rounded-lg bg-app-panel/60 px-3 py-2 text-xs font-semibold text-app-muted">
-                        No hay ingresos en el rango seleccionado. Los porcentajes quedan en 0%.
-                      </div>
-                    ) : null}
-                    <div className="no-scrollbar h-full overflow-auto rounded-lg border border-app-ink/10 bg-app-panel/20 p-2">
-                      {categoriesTopVsIncomeChartData.length === 0 ? (
-                        <div className="flex h-full items-center justify-center px-3 text-xs font-semibold text-app-muted">
-                          Sin gastos por categoria en el rango seleccionado.
-                        </div>
-                      ) : (
-                        categoriesTopVsIncomeChartData.map((item) => (
-                          <div key={item.name} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-app-ink/10 py-1 text-xs font-semibold last:border-b-0">
-                            <div className="flex min-w-0 items-center gap-2">
-                              {[1, 2, 3].includes(Number(item.expense_type)) ? (
-                                <span
-                                  className="inline-flex rounded-md px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-app-ink"
-                                  style={getCssVarBadgeStyle(getExpenseTypeBgVarName(item.expense_type))}
-                                >
-                                  {getExpenseTypeById(item.expense_type)?.label || '-'}
-                                </span>
-                              ) : null}
-                              <p className="truncate uppercase text-app-muted">{item.name}</p>
-                            </div>
-                            <span className="whitespace-nowrap text-app-ink">{formatMoney(item.total)}</span>
-                            <span className="whitespace-nowrap text-app-muted">
-                              {formatPercentFromDecimal(Number(item.income_share_percent || 0) / 100, 1)}
-                            </span>
+                  <p className="mt-1 text-[11px] font-semibold text-app-muted">
+                    Porcentaje de gasto FIJO, VARIABLE y PROVEEDOR dentro del rango global.
+                  </p>
+                  <div className="mt-3 h-full min-h-[20rem]">
+                    {expenseTypeShareChartData.length > 0 ? (
+                      <Suspense
+                        fallback={
+                          <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                            Cargando grafico...
                           </div>
-                        ))
-                      )}
-                    </div>
+                        }
+                      >
+                        <LazyDesktopTopCategoryChart
+                          key={`categories-share-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${expenseTypeShareChartData.length}`}
+                          type="activePie"
+                          data={expenseTypeShareChartData}
+                          xKey="name"
+                          series={[{ key: 'value', label: 'Participacion' }]}
+                          valueFormat="percent"
+                        />
+                      </Suspense>
+                    ) : (
+                      <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                        Sin gastos para mostrar en el rango seleccionado.
+                      </div>
+                    )}
                   </div>
                 </aside>
               </div>
@@ -3603,11 +3481,28 @@ export default function DesktopDashboardPage() {
       {tab === TAB.EXPENSES ? (
         <button
           type="button"
-          onClick={openCreateExpenseModal}
+          onClick={openFiltersModal}
           disabled={!selectedSetId}
-          className="fixed bottom-8 right-8 z-40 rounded-full bg-app-mint px-5 py-4 font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink shadow-card transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+          className="fixed bottom-8 right-8 z-40 flex items-center rounded-full bg-app-panel px-5 py-3 text-app-ink shadow-card transition-all duration-300 hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-45"
         >
-          + Crear gasto
+          <div className="flex min-w-[5rem] flex-col items-center leading-tight">
+            {/* <span className="text-[9px] font-semibold uppercase tracking-wide text-app-muted">Filtros</span> */}
+            <span className="font-heading text-base font-extrabold uppercase tracking-wide">
+              {activeFiltersCount > 0 ? `Filtros (${activeFiltersCount})` : 'Filtros'}
+            </span>
+          </div>
+          <div
+            className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-out ${
+              activeFiltersCount > 0 ? 'ml-4 max-w-[10rem] opacity-100' : 'ml-0 max-w-0 opacity-0'
+            }`}
+          >
+            <div className="border-l border-app-ink/15 pl-4 text-right leading-tight">
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-app-muted">Total filtrado</p>
+              <p className="font-heading text-base font-extrabold">
+                $ {filteredExpensesAmount.toLocaleString('es-AR')}
+              </p>
+            </div>
+          </div>
         </button>
       ) : null}
 
@@ -3619,7 +3514,7 @@ export default function DesktopDashboardPage() {
       >
         <div className="grid gap-4 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)]">
           <div className="space-y-4">
-            <label className="block">
+            <div className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo de gasto</span>
               <div className="mt-2">
                 <WrappedChoiceGroup
@@ -3629,9 +3524,9 @@ export default function DesktopDashboardPage() {
                   itemMinWidth={132}
                 />
               </div>
-            </label>
+            </div>
 
-            <label className="block">
+            <div className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Forma de pago</span>
               <div className="mt-2">
                 <WrappedChoiceGroup
@@ -3641,9 +3536,9 @@ export default function DesktopDashboardPage() {
                   itemMinWidth={132}
                 />
               </div>
-            </label>
+            </div>
 
-            <label className="block">
+            <div className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Quien creo el gasto</span>
               <div className="mt-2">
                 <WrappedChoiceGroup
@@ -3658,10 +3553,10 @@ export default function DesktopDashboardPage() {
                   mintStyle
                 />
               </div>
-            </label>
+            </div>
           </div>
 
-          <label className="block">
+          <div className="block">
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
               Categoria / Proveedor
             </span>
@@ -3686,7 +3581,7 @@ export default function DesktopDashboardPage() {
                 </p>
               )}
             </div>
-          </label>
+          </div>
 
           <label className="block lg:col-span-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Monto</span>
@@ -4077,21 +3972,21 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Limpiar
           </button>
           <button
             type="button"
             onClick={closeFiltersModal}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={applyFilters}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Aplicar filtros
           </button>

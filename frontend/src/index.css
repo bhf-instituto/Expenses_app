@@ -114,17 +114,6 @@
     min-width: 320px;
     overflow: hidden;
     overscroll-behavior-y: none;
-    background: linear-gradient(
-      180deg,
-      rgb(var(--palette-black)) 0%,
-      rgb(var(--palette-black)) 26%,
-      rgb(var(--palette-indigo)) 26%,
-      rgb(var(--palette-indigo)) 55%,
-      rgb(var(--palette-copper)) 55%,
-      rgb(var(--palette-copper)) 77%,
-      rgb(var(--palette-sand)) 77%,
-      rgb(var(--palette-sand)) 100%
-    );
     background-color: rgb(var(--app-bg));
     color: rgb(var(--app-text-primary));
     font-family: 'Roboto', sans-serif;
@@ -219,7 +208,7 @@
 
 @layer components {
   .app-shell {
-    @apply mx-auto flex h-[100dvh] w-full max-w-md flex-col border-x border-app-ink/10 bg-app-bg shadow-card;
+    @apply mx-auto flex h-[100dvh] w-full max-w-md flex-col bg-app-bg shadow-card;
     min-height: 100vh;
     min-height: 100dvh;
   }

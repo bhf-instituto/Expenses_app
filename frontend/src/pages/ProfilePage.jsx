@@ -261,8 +261,8 @@ export default function ProfilePage() {
 
   if (isDesktop) {
     return (
-      <main className="mx-auto flex h-[100dvh] w-full max-w-[1600px] flex-col border-x border-app-ink/10 bg-app-bg shadow-card">
-        <header className="flex items-center justify-between border-b border-app-ink/10 px-6 py-4">
+      <main className="mx-auto flex h-[100dvh] w-full max-w-[1600px] flex-col bg-app-bg shadow-card">
+        <header className="flex items-center justify-between border-0 bg-app-panel/70 px-6 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-app-muted">Perfil</p>
             <h1 className="font-heading text-2xl font-extrabold uppercase text-app-ink">{user?.email || '-'}</h1>

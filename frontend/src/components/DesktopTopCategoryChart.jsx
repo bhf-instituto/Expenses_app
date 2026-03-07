@@ -72,7 +72,7 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, v
       fill={PIE_LABEL_FILL}
       textAnchor={x > safeCx ? 'start' : 'end'}
       dominantBaseline="central"
-      className="text-[11px] font-extrabold"
+      className="text-[15px] font-black"
     >
       {String(labelText)}
     </text>
@@ -137,7 +137,8 @@ export default function DesktopTopCategoryChart({
       .map((item, index) => ({
         name: String(item?.[xKey] || item?.name || `Categoria ${index + 1}`),
         value: Number(item?.[valueKey] || 0),
-        fill: getPieFillByName(item?.[xKey] || item?.name, index),
+        total: Number(item?.total ?? item?.[valueKey] ?? 0),
+        fill: String(item?.fill || '').trim() || getPieFillByName(item?.[xKey] || item?.name, index),
       }))
       .filter((item) => item.value > 0);
   }, [data, resolvedSeries, type, xKey]);
@@ -157,7 +158,7 @@ export default function DesktopTopCategoryChart({
           {point?.name || '-'}
         </p>
         <p className="mt-1 text-xs font-semibold" style={{ color: 'rgb(var(--app-text-primary))' }}>
-          {formatValue(point?.value)}
+          {formatCurrency(point?.payload?.total ?? point?.value)}
         </p>
       </div>
     );

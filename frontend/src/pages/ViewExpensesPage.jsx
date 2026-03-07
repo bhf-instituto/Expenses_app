@@ -107,6 +107,7 @@ export default function ViewExpensesPage() {
   const [filtersBarVisible, setFiltersBarVisible] = useState(true);
   const [expensePage, setExpensePage] = useState(1);
   const expenseRowsPerPage = MOBILE_ITEMS_PER_PAGE;
+  const expenseListContainerRef = useRef(null);
   const listScrollTopRef = useRef(0);
   const [filters, setFilters] = useState({
     expense_type: '',
@@ -272,11 +273,14 @@ export default function ViewExpensesPage() {
   }, [expensePage, expenseRowsPerPage, expenses.length]);
 
   const goToExpensePage = (nextPage) => {
-    setExpensePage((prev) => {
-      const normalized = Number(nextPage);
-      if (!Number.isFinite(normalized)) return prev;
-      return Math.max(1, Math.min(totalExpensePages, Math.trunc(normalized)));
-    });
+    const normalized = Number(nextPage);
+    if (!Number.isFinite(normalized)) return;
+    const clamped = Math.max(1, Math.min(totalExpensePages, Math.trunc(normalized)));
+    setExpensePage((prev) => (prev === clamped ? prev : clamped));
+    if (expenseListContainerRef.current) {
+      expenseListContainerRef.current.scrollTop = 0;
+    }
+    listScrollTopRef.current = 0;
   };
 
   const handleExpensesListScroll = useCallback((event) => {
@@ -551,7 +555,11 @@ export default function ViewExpensesPage() {
           ) : null}
 
           <div className="min-h-0 flex flex-1 flex-col rounded-2xl border-0 bg-app-panel/70 p-3">
-            <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" onScroll={handleExpensesListScroll}>
+            <div
+              ref={expenseListContainerRef}
+              className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1"
+              onScroll={handleExpensesListScroll}
+            >
               {loading ? <p className="text-sm font-semibold text-app-muted">Cargando gastos...</p> : null}
               {!loading && expenses.length === 0 ? (
                 <p className="text-sm font-semibold text-app-muted">No hay gastos con esos filtros.</p>
