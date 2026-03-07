@@ -309,6 +309,11 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .app-pagination-desktop-counter {
+    @apply inline-flex w-[8ch] items-center justify-center text-xs font-semibold text-app-muted;
+    font-variant-numeric: tabular-nums;
+  }
+
   .icon-mask {
     display: inline-block;
     flex-shrink: 0;

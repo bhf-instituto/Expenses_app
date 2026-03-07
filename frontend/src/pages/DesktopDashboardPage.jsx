@@ -1,6 +1,5 @@
 import { Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ReactPaginate from 'react-paginate';
 import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
@@ -11,6 +10,8 @@ import profileIcon from '../assets/icons/profile-icon.svg';
 import appLogoIcon from '../assets/logos/logo.svg';
 import starEmptyIcon from '../assets/icons/star-empty-icon.svg';
 import starFullIcon from '../assets/icons/star-full-icon.svg';
+import arrowDoubleIcon from '../assets/icons/arrow-double-icon.svg';
+import arrowUpIcon from '../assets/icons/arrow-up-icon.svg';
 import triangleDownIcon from '../assets/icons/triangle-down-icon.svg';
 import triangleUpIcon from '../assets/icons/triangle-up-icon.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
@@ -721,10 +722,10 @@ export default function DesktopDashboardPage() {
     return { from, to, total: sortedFilteredExpenses.length };
   }, [expensePage, expenseRowsPerPage, sortedFilteredExpenses.length]);
 
-  const expensePageProgress = useMemo(() => {
-    if (totalExpensePages <= 1) return 1;
-    return (expensePage - 1) / (totalExpensePages - 1);
-  }, [expensePage, totalExpensePages]);
+  const filteredExpensesAmount = useMemo(
+    () => filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
+    [filteredExpenses]
+  );
 
   const categoryTotalsById = useMemo(() => {
     const totals = new Map();
@@ -1334,6 +1335,8 @@ export default function DesktopDashboardPage() {
 
   const currentCategoryFilterTypeId =
     categoryFilterTypeIds[Math.min(categoryFilterPaneIndex, Math.max(0, categoryFilterTypeIds.length - 1))] || '';
+  const currentCategoryFilterPane =
+    categoryFilterPanes[Math.min(categoryFilterPaneIndex, Math.max(0, categoryFilterPanes.length - 1))] || null;
 
   const activeFiltersCount = useMemo(
     () =>
@@ -2527,15 +2530,12 @@ export default function DesktopDashboardPage() {
                 </button>
               ) : null}
               {tab === TAB.EXPENSES ? (
-                <div className="ml-auto flex items-center gap-5">
-                  <div
-                    className="relative h-3.5 w-32 overflow-hidden rounded-full bg-app-ink/20"
-                    aria-hidden="true"
-                  >
-                    <div
-                      className="absolute left-0 top-0 h-full bg-app-ink transition-[width] duration-150"
-                      style={{ width: `${Math.round(expensePageProgress * 100)}%` }}
-                    />
+                <div className="ml-auto flex  items-center gap-4">
+                  <div className="text-right bg-app-mint p-2 py-1 rounded-md">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-app-muted">Total filtrado</p>
+                    <p className="text-sm font-extrabold text-app-ink">
+                      $ {filteredExpensesAmount.toLocaleString('es-AR')}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -2745,49 +2745,54 @@ export default function DesktopDashboardPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="mt-2 shrink-0 border-t border-app-ink/10 pt-2">
-                  <p className="mb-2 text-xs font-semibold text-app-muted">
+                <div className="mt-1 shrink-0 border-t border-app-ink/10 pt-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-app-muted">
                     Mostrando {expensePageRange.from}-{expensePageRange.to} de {expensePageRange.total}
-                  </p>
-                  <div className="flex items-center justify-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => goToExpensePage(1)}
-                      disabled={expensePage <= 1}
-                      className="app-pagination-edge-btn"
-                    >
-                      &laquo;
-                    </button>
-                    <ReactPaginate
-                      forcePage={Math.max(0, expensePage - 1)}
-                      pageCount={totalExpensePages}
-                      pageRangeDisplayed={3}
-                      marginPagesDisplayed={1}
-                      breakLabel="..."
-                      previousLabel={<span aria-hidden>&lsaquo;</span>}
-                      nextLabel={<span aria-hidden>&rsaquo;</span>}
-                      onPageChange={({ selected }) => goToExpensePage(selected + 1)}
-                      containerClassName="app-pagination app-pagination-desktop"
-                      pageClassName="app-pagination-page"
-                      pageLinkClassName="app-pagination-link"
-                      activeClassName="is-active"
-                      previousClassName="app-pagination-nav"
-                      nextClassName="app-pagination-nav"
-                      previousLinkClassName="app-pagination-link"
-                      nextLinkClassName="app-pagination-link"
-                      breakClassName="app-pagination-break"
-                      breakLinkClassName="app-pagination-link"
-                      disabledClassName="is-disabled"
-                      renderOnZeroPageCount={null}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => goToExpensePage(totalExpensePages)}
-                      disabled={expensePage >= totalExpensePages}
-                      className="app-pagination-edge-btn"
-                    >
-                      &raquo;
-                    </button>
+                    </p>
+                    {totalExpensePages > 1 ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => goToExpensePage(1)}
+                          disabled={expensePage <= 1}
+                          className="app-pagination-edge-btn"
+                          title="Primera pagina"
+                        >
+                          <MonoIcon src={arrowDoubleIcon} colorVar="--app-ink" className="h-3.5 w-3.5 rotate-180" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => goToExpensePage(expensePage - 1)}
+                          disabled={expensePage <= 1}
+                          className="app-pagination-edge-btn"
+                          title="Pagina anterior"
+                        >
+                          <MonoIcon src={triangleUpIcon} colorVar="--app-ink" className="h-3 w-3 -rotate-90" />
+                        </button>
+                        <span className="app-pagination-desktop-counter">
+                          {expensePage}/{totalExpensePages}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => goToExpensePage(expensePage + 1)}
+                          disabled={expensePage >= totalExpensePages}
+                          className="app-pagination-edge-btn"
+                          title="Pagina siguiente"
+                        >
+                          <MonoIcon src={triangleUpIcon} colorVar="--app-ink" className="h-3 w-3 rotate-90" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => goToExpensePage(totalExpensePages)}
+                          disabled={expensePage >= totalExpensePages}
+                          className="app-pagination-edge-btn"
+                          title="Ultima pagina"
+                        >
+                          <MonoIcon src={arrowDoubleIcon} colorVar="--app-ink" className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -4007,73 +4012,61 @@ export default function DesktopDashboardPage() {
           </div>
 
           <div className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-              {getExpenseTypeById(currentCategoryFilterTypeId)?.label || 'Categorias'}
-            </span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                {getExpenseTypeById(currentCategoryFilterTypeId)?.label || 'Categorias'}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilterPaneIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={categoryFilterPaneIndex <= 0}
+                  className="flex h-6 w-6 items-center justify-center rounded-md bg-app-panel/70 text-xs font-black text-app-ink hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <MonoIcon src={arrowUpIcon} colorVar="--app-ink" className="h-3 w-3 -rotate-90" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCategoryFilterPaneIndex((prev) =>
+                      Math.min(categoryFilterPanes.length - 1, prev + 1)
+                    )
+                  }
+                  disabled={categoryFilterPaneIndex >= categoryFilterPanes.length - 1}
+                  className="flex h-6 w-6 items-center justify-center rounded-md bg-app-panel/70 text-xs font-black text-app-ink hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <MonoIcon src={arrowUpIcon} colorVar="--app-ink" className="h-3 w-3 rotate-90" />
+                </button>
+              </div>
+            </div>
             <div className="mt-2">
-              <div className="relative overflow-hidden rounded-lg border-0 bg-transparent pr-10">
-                <div className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCategoryFilterPaneIndex((prev) => Math.max(0, prev - 1))}
-                    disabled={categoryFilterPaneIndex <= 0}
-                    className="flex h-6 w-6 items-center justify-center rounded-md bg-app-panel/70 text-xs font-black text-app-ink hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-35"
-                  >
-                    &#8592;
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCategoryFilterPaneIndex((prev) =>
-                        Math.min(categoryFilterPanes.length - 1, prev + 1)
-                      )
-                    }
-                    disabled={categoryFilterPaneIndex >= categoryFilterPanes.length - 1}
-                    className="flex h-6 w-6 items-center justify-center rounded-md bg-app-panel/70 text-xs font-black text-app-ink hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-35"
-                  >
-                    &#8594;
-                  </button>
-                </div>
-
-                <div className="overflow-hidden">
-                  <div
-                    className="flex w-full transition-transform duration-300 ease-out"
-                    style={{ transform: `translateX(-${categoryFilterPaneIndex * 100}%)` }}
-                  >
-                    {categoryFilterPanes.map((pane, paneIndex) => (
-                      <div
-                        key={pane.typeId}
-                        className={`w-full shrink-0 ${paneIndex === categoryFilterPaneIndex ? 'pointer-events-auto' : 'pointer-events-none'}`}
-                        aria-hidden={paneIndex !== categoryFilterPaneIndex}
-                      >
-                        {pane.options.length > 0 ? (
-                          <div className="grid grid-cols-3 gap-2">
-                            {pane.options.map((option) => {
-                              const isActive = filtersDraft.category_ids.includes(String(option.value));
-                              return (
-                                <button
-                                  key={option.value}
-                                  type="button"
-                                  onClick={() => toggleDraftCategory(option.value)}
-                                  className={`min-w-0 rounded-md border px-2 py-2 text-sm font-heading uppercase tracking-wide transition ${
-                                    isActive
-                                      ? 'border-app-ink bg-app-mint text-app-ink'
-                                      : 'border-transparent bg-app-mint text-app-muted hover:bg-app-bg hover:text-app-ink'
-                                  }`}
-                                >
-                                  <span className="block truncate">{option.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <p className="rounded-lg bg-app-bg/35 px-3 py-2 text-xs font-semibold text-app-muted">
-                            No hay categorias/proveedores para este tipo.
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+              <div className="rounded-lg border-0 bg-transparent">
+                <div className="px-0.5">
+                  {currentCategoryFilterPane?.options?.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {currentCategoryFilterPane.options.map((option) => {
+                        const isActive = filtersDraft.category_ids.includes(String(option.value));
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => toggleDraftCategory(option.value)}
+                            className={`min-w-0 rounded-md px-2 py-2 text-sm font-heading uppercase tracking-wide transition ${
+                              isActive
+                                ? 'bg-app-mint text-app-ink ring-1 ring-app-ink/80'
+                                : 'bg-app-mint text-app-muted hover:bg-app-bg hover:text-app-ink'
+                            }`}
+                          >
+                            <span className="block truncate">{option.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg bg-app-bg/35 px-3 py-2 text-xs font-semibold text-app-muted">
+                      No hay categorias/proveedores para este tipo.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

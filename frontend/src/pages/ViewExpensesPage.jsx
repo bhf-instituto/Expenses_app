@@ -3,7 +3,9 @@ import { useLocation, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
 import SingleChoiceButtons from '../components/SingleChoiceButtons.jsx';
+import MonoIcon from '../components/MonoIcon.jsx';
 import DateInputDmy from '../components/DateInputDmy.jsx';
+import triangleUpIcon from '../assets/icons/triangle-up-icon.svg';
 import { ApiError, categoriesApi, expensesApi, setsApi } from '../lib/apiClient.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS, getExpenseTypeById, getPaymentMethodById } from '../constants/catalogs.js';
 import {
@@ -414,7 +416,7 @@ export default function ViewExpensesPage() {
             </p>
           ) : null} */}
           <div
-            className={`grid overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${
+            className={`grid overflow-hidden transition-[max-height,opacity,transform] duration-200 linear ${
               filtersBarVisible
                 ? 'max-h-[42rem] translate-y-0 opacity-100'
                 : 'pointer-events-none max-h-0 -translate-y-2 opacity-0'
@@ -607,7 +609,7 @@ export default function ViewExpensesPage() {
                       disabled={expensePage <= 1}
                       className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
-                      {'<'}
+                      <MonoIcon src={triangleUpIcon} colorVar="--app-ink" className="h-3.5 w-3.5 -rotate-90" />
                     </button>
                     <span className="app-pagination-mobile-counter">
                       {expensePage}/{totalExpensePages}
@@ -618,7 +620,7 @@ export default function ViewExpensesPage() {
                       disabled={expensePage >= totalExpensePages}
                       className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
-                      {'>'}
+                      <MonoIcon src={triangleUpIcon} colorVar="--app-ink" className="h-3.5 w-3.5 rotate-90" />
                     </button>
                   </div>
                 ) : null}

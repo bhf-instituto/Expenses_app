@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import BottomActionBar from '../components/BottomActionBar.jsx';
+import MonoIcon from '../components/MonoIcon.jsx';
+import triangleUpIcon from '../assets/icons/triangle-up-icon.svg';
 import { ApiError, incomesApi, setsApi } from '../lib/apiClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { resolveSessionScope } from '../lib/sessionScope.js';
@@ -262,7 +264,7 @@ export default function IncomesPage() {
                       disabled={incomePage <= 1}
                       className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
-                      {'<'}
+                      <MonoIcon src={triangleUpIcon} colorVar="--app-ink" className="h-3.5 w-3.5 -rotate-90" />
                     </button>
                     <span className="app-pagination-mobile-counter">
                       {incomePage}/{totalIncomePages}
@@ -273,7 +275,7 @@ export default function IncomesPage() {
                       disabled={incomePage >= totalIncomePages}
                       className="app-pagination-edge-btn app-pagination-edge-btn-mobile"
                     >
-                      {'>'}
+                      <MonoIcon src={triangleUpIcon} colorVar="--app-ink" className="h-3.5 w-3.5 rotate-90" />
                     </button>
                   </div>
                 ) : null}
