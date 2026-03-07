@@ -989,12 +989,12 @@ export default function DesktopDashboardPage() {
   }, [analyticsAppliedFilters, globalTimeFilter.from_date, globalTimeFilter.to_date, isOnline, selectedSetId]);
 
   useEffect(() => {
-    if (tab !== TAB.ANALYTICS) return;
+    if (tab !== TAB.ANALYTICS && tab !== TAB.CATEGORIES) return;
     loadAnalytics();
   }, [tab, loadAnalytics]);
 
   useEffect(() => {
-    if (tab !== TAB.ANALYTICS) return;
+    if (tab !== TAB.ANALYTICS && tab !== TAB.CATEGORIES) return;
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
     }, 80);
@@ -3233,67 +3233,6 @@ export default function DesktopDashboardPage() {
                         </div>
                       </article>
 
-                      <article className="mt-4 rounded-xl bg-app-panel/65 p-4">
-                        <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
-                          Ranking dinamico de categorias
-                        </h3>
-                        <p className="mt-1 text-xs font-semibold text-app-muted">
-                          Top N por total actual o crecimiento segun filtro seleccionado.
-                        </p>
-
-                        <div className="mt-3 grid gap-4 xl:grid-cols-[2fr,1fr]">
-                          <div className="h-80 min-w-0">
-                            {analyticsCategoryRankingChartData.length > 0 ? (
-                              <Suspense
-                                fallback={
-                                  <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
-                                    Cargando grafico...
-                                  </div>
-                                }
-                              >
-                                <LazyDesktopTopCategoryChart
-                                  key={`analytics-categories-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsCategoryRankingChartData.length}-${analyticsAppliedFilters.category_limit}-${analyticsAppliedFilters.category_sort}`}
-                                  type="horizontalBar"
-                                  data={analyticsCategoryRankingChartData}
-                                  xKey="name"
-                                  series={analyticsCategoryCompareSeries}
-                                />
-                              </Suspense>
-                            ) : (
-                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
-                                Sin categorias para mostrar.
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="no-scrollbar max-h-80 overflow-auto rounded-lg border border-app-ink/10 bg-app-bg/20">
-                            <table className="w-full text-left text-xs">
-                              <thead className="sticky top-0 bg-app-panel/90">
-                                <tr className="uppercase tracking-wide text-app-muted">
-                                  <th className="px-2 py-2">Categoria</th>
-                                  <th className="px-2 py-2">Actual</th>
-                                  <th className="px-2 py-2">Anterior</th>
-                                  <th className="px-2 py-2">Crec.</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(analyticsData?.category_ranking || []).map((item) => (
-                                  <tr key={item.category_id} className="border-t border-app-ink/10">
-                                    <td className="px-2 py-2 font-semibold">{item.name}</td>
-                                    <td className="px-2 py-2">{formatMoney(item.total_current)}</td>
-                                    <td className="px-2 py-2">{formatMoney(item.total_previous)}</td>
-                                    <td className="px-2 py-2">
-                                      {item.is_new_active
-                                        ? 'Nueva'
-                                        : formatSignedPercentFromDecimal(item.growth_rate)}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </article>
                     </>
                   ) : null}
 
@@ -3307,7 +3246,7 @@ export default function DesktopDashboardPage() {
             ) : null}
 
             {tab === TAB.CATEGORIES ? (
-              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.56fr)_minmax(0,0.44fr)]">
+              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)]">
                 <div className="no-scrollbar min-h-0 overflow-auto rounded-xl bg-app-bg/20 p-2">
                   <table className="w-full max-w-[42rem] table-fixed text-left">
                     <colgroup>
@@ -3396,14 +3335,14 @@ export default function DesktopDashboardPage() {
                     </tbody>
                   </table>
                 </div>
-                <aside className="flex min-h-0 flex-col rounded-xl bg-app-bg/20 p-3">
+                <aside className="no-scrollbar min-h-0 overflow-auto rounded-xl bg-app-bg/20 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
                     Distribucion de gastos por tipo
                   </p>
                   <p className="mt-1 text-[11px] font-semibold text-app-muted">
                     Porcentaje de gasto FIJO, VARIABLE y PROVEEDOR dentro del rango global.
                   </p>
-                  <div className="mt-3 h-full min-h-[20rem]">
+                  <div className="mt-3 h-60 min-h-[15rem]">
                     {expenseTypeShareChartData.length > 0 ? (
                       <Suspense
                         fallback={
@@ -3427,6 +3366,68 @@ export default function DesktopDashboardPage() {
                       </div>
                     )}
                   </div>
+
+                  <article className="mt-4 rounded-xl bg-app-panel/65 p-3">
+                    <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                      Ranking dinamico de categorias
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-app-muted">
+                      Top 5 por total actual o crecimiento segun filtro seleccionado.
+                    </p>
+
+                    <div className="mt-3 space-y-3">
+                      <div className="h-72 min-w-0">
+                        {analyticsCategoryRankingChartData.length > 0 ? (
+                          <Suspense
+                            fallback={
+                              <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                                Cargando grafico...
+                              </div>
+                            }
+                          >
+                            <LazyDesktopTopCategoryChart
+                              key={`categories-ranking-${globalTimeFilter.from_date}-${globalTimeFilter.to_date}-${analyticsCategoryRankingChartData.length}-${analyticsAppliedFilters.category_limit}-${analyticsAppliedFilters.category_sort}`}
+                              type="horizontalBar"
+                              data={analyticsCategoryRankingChartData}
+                              xKey="name"
+                              series={analyticsCategoryCompareSeries}
+                            />
+                          </Suspense>
+                        ) : (
+                          <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                            Sin categorias para mostrar.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="no-scrollbar max-h-72 overflow-auto rounded-lg border border-app-ink/10 bg-app-bg/20">
+                        <table className="w-full text-left text-xs">
+                          <thead className="sticky top-0 bg-app-panel/90">
+                            <tr className="uppercase tracking-wide text-app-muted">
+                              <th className="px-2 py-2">Categoria</th>
+                              <th className="px-2 py-2">Actual</th>
+                              <th className="px-2 py-2">Anterior</th>
+                              <th className="px-2 py-2">Crec.</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(analyticsData?.category_ranking || []).map((item) => (
+                              <tr key={item.category_id} className="border-t border-app-ink/10">
+                                <td className="px-2 py-2 font-semibold">{item.name}</td>
+                                <td className="px-2 py-2">{formatMoney(item.total_current)}</td>
+                                <td className="px-2 py-2">{formatMoney(item.total_previous)}</td>
+                                <td className="px-2 py-2">
+                                  {item.is_new_active
+                                    ? 'Nueva'
+                                    : formatSignedPercentFromDecimal(item.growth_rate)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </article>
                 </aside>
               </div>
             ) : null}
