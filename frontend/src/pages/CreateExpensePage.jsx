@@ -271,7 +271,7 @@ export default function CreateExpensePage() {
               </div>
 
               <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Descripcion (opcional)</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Descripcion</span>
                 <textarea
                   rows={1}
                   value={description}

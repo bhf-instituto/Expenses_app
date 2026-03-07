@@ -45,7 +45,7 @@ export default function MobileHeader({
           onClick={handleBack}
           title={leftLabel}
           aria-label={leftLabel}
-          className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-app-mint/100 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
+          className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
         >
           <MonoIcon src={backIcon} className="h-4 w-4" />
         </button>

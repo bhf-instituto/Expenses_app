@@ -7,6 +7,8 @@ import pendingIcon from '../assets/icons/pending-icon.svg';
 import pencilIcon from '../assets/icons/pencil-icon.svg';
 import closeLineIcon from '../assets/icons/close-line-icon.svg';
 import closeIcon from '../assets/icons/close-icon.svg';
+import profileIcon from '../assets/icons/profile-icon.svg';
+import appLogoIcon from '../assets/logos/logo.svg';
 import starEmptyIcon from '../assets/icons/star-empty-icon.svg';
 import starFullIcon from '../assets/icons/star-full-icon.svg';
 import triangleDownIcon from '../assets/icons/triangle-down-icon.svg';
@@ -86,8 +88,8 @@ const GLOBAL_TIME_PRESET_OPTIONS = [
   { key: 'year', label: 'Ultimo año' },
 ];
 const INCOME_TYPE_OPTIONS = [
-  { value: '1', label: 'Efectivo' },
-  { value: '3', label: 'Debito' },
+  { value: '1', label: 'Efectivo', bgColorVar: getPaymentMethodBgVarName(1) },
+  { value: '3', label: 'Debito', bgColorVar: getPaymentMethodBgVarName(3) },
 ];
 
 const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
@@ -228,20 +230,6 @@ const toggleListValue = (list, value) => {
     ? list.filter((item) => String(item) !== asString)
     : [...list, asString];
 };
-const CATEGORY_FILTER_TONES = {
-  '1': {
-    active: 'bg-app-ink/25 text-app-ink',
-    inactive: 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink',
-  },
-  '2': {
-    active: 'bg-app-ink/25 text-app-ink',
-    inactive: 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink',
-  },
-  '3': {
-    active: 'bg-app-ink/25 text-app-ink',
-    inactive: 'bg-app-bg/55 text-app-muted hover:bg-black/45 hover:text-app-ink',
-  },
-};
 const defaultFilters = {
   expense_type_ids: [],
   payment_method_ids: [],
@@ -251,7 +239,7 @@ const defaultFilters = {
   to_date: '',
 };
 const defaultExpenseForm = {
-  expense_type: '1',
+  expense_type: '',
   category_id: '',
   amount: '',
   payment_method: '',
@@ -313,7 +301,7 @@ function DesktopModal({ open, title, children, onClose, maxWidthClass = 'max-w-l
 
 export default function DesktopDashboardPage() {
   const navigate = useNavigate();
-  const { user, logout, isOnline } = useAuth();
+  const { user, isOnline } = useAuth();
   const {
     pendingCount,
     pendingActions,
@@ -356,7 +344,7 @@ export default function DesktopDashboardPage() {
   const [categoryForm, setCategoryForm] = useState({
     editingId: null,
     name: '',
-    expense_type: '1',
+    expense_type: '',
   });
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
@@ -600,31 +588,6 @@ export default function DesktopDashboardPage() {
     if (!isOnline || pendingCount !== 0) return;
     loadGroups();
   }, [isOnline, pendingCount, loadGroups]);
-
-  useEffect(() => {
-    if (!expenseModalOpen) return;
-    if (editingExpenseId) return;
-
-    setExpenseForm((prev) => {
-      const next = { ...prev };
-      if (!next.user_id && user?.id) {
-        next.user_id = String(user.id);
-      }
-
-      const selectedType = Number(next.expense_type || 1);
-      const validCategories = categories.filter(
-        (category) => Number(category.expense_type) === selectedType
-      );
-      if (
-        !next.category_id ||
-        !validCategories.some((category) => String(category.id) === String(next.category_id))
-      ) {
-        next.category_id = validCategories[0] ? String(validCategories[0].id) : '';
-      }
-
-      return next;
-    });
-  }, [categories, editingExpenseId, expenseModalOpen, user?.id]);
 
   const expensesInGlobalRange = useMemo(
     () =>
@@ -1310,7 +1273,8 @@ export default function DesktopDashboardPage() {
   );
 
   const categoryChoiceOptions = useMemo(() => {
-    const selectedType = Number(expenseForm.expense_type || 1);
+    const selectedType = Number(expenseForm.expense_type || 0);
+    if (![1, 2, 3].includes(selectedType)) return [];
     return categories
       .filter((category) => Number(category.expense_type) === selectedType)
       .map((category) => ({
@@ -1411,6 +1375,47 @@ export default function DesktopDashboardPage() {
 
     return options;
   }, [user?.id, users]);
+
+  const isExpenseFormReady = useMemo(() => {
+    const expenseTypeId = Number(expenseForm.expense_type);
+    const categoryId = Number(expenseForm.category_id);
+    const userId = Number(expenseForm.user_id);
+    const paymentMethod = Number(expenseForm.payment_method);
+    const amount = parseAmountInput(expenseForm.amount);
+    const expenseDate = String(expenseForm.expense_date || '').trim();
+
+    return (
+      [1, 2, 3].includes(expenseTypeId)
+      && Number.isInteger(categoryId)
+      && categoryId > 0
+      && Number.isInteger(userId)
+      && userId > 0
+      && [1, 2, 3].includes(paymentMethod)
+      && Number.isInteger(amount)
+      && amount > 0
+      && Boolean(expenseDate)
+    );
+  }, [expenseForm]);
+
+  const isIncomeFormReady = useMemo(() => {
+    const incomeType = Number(incomeForm.income_type);
+    const amount = parseAmountInput(incomeForm.amount);
+    const incomeDate = String(incomeForm.income_date || '').trim();
+
+    return (
+      [1, 3].includes(incomeType)
+      && Number.isInteger(amount)
+      && amount > 0
+      && Boolean(incomeDate)
+    );
+  }, [incomeForm]);
+
+  const isCategoryFormReady = useMemo(() => {
+    const categoryName = String(categoryForm.name || '').trim();
+    const typeId = Number(categoryForm.expense_type);
+
+    return Boolean(categoryName) && [1, 2, 3].includes(typeId);
+  }, [categoryForm]);
 
   const upsertExpenseLocal = (nextExpense) => {
     const next = [nextExpense, ...expenses.filter((item) => Number(item.id) !== Number(nextExpense.id))];
@@ -1602,7 +1607,7 @@ export default function DesktopDashboardPage() {
     setCategoryForm({
       editingId: null,
       name: '',
-      expense_type: '1',
+      expense_type: '',
     });
     setCategoryModalOpen(true);
   };
@@ -1612,7 +1617,7 @@ export default function DesktopDashboardPage() {
     setCategoryForm({
       editingId: null,
       name: '',
-      expense_type: '1',
+      expense_type: '',
     });
   };
 
@@ -1707,10 +1712,7 @@ export default function DesktopDashboardPage() {
 
   const openCreateExpenseModal = () => {
     setEditingExpenseId(null);
-    setExpenseForm({
-      ...defaultExpenseForm,
-      user_id: user?.id ? String(user.id) : '',
-    });
+    setExpenseForm(defaultExpenseForm);
     setExpenseModalOpen(true);
   };
 
@@ -1726,11 +1728,7 @@ export default function DesktopDashboardPage() {
       return {
         ...prev,
         expense_type: String(nextTypeValue),
-        category_id: keepCurrentCategory
-          ? prev.category_id
-          : validCategories[0]
-            ? String(validCategories[0].id)
-            : '',
+        category_id: keepCurrentCategory ? prev.category_id : '',
       };
     });
   };
@@ -1901,11 +1899,16 @@ export default function DesktopDashboardPage() {
 
   const saveExpense = async () => {
     if (!selectedSetId) return;
+    const expenseType = Number(expenseForm.expense_type);
     const amount = parseAmountInput(expenseForm.amount);
     const paymentMethod = Number(expenseForm.payment_method);
     const expenseDate = String(expenseForm.expense_date || '').trim();
     const description = String(expenseForm.description || '').trim() || null;
 
+    if (![1, 2, 3].includes(expenseType)) {
+      setError('Debes seleccionar un tipo de gasto.');
+      return;
+    }
     if (!Number.isInteger(amount) || amount <= 0) {
       setError('Monto invalido.');
       return;
@@ -1921,7 +1924,7 @@ export default function DesktopDashboardPage() {
 
     if (!editingExpenseId) {
       const categoryId = Number(expenseForm.category_id);
-      const userId = Number(expenseForm.user_id || user?.id);
+      const userId = Number(expenseForm.user_id);
       if (!Number.isInteger(categoryId) || categoryId <= 0) {
         setError('Categoria/proveedor requerido.');
         return;
@@ -2300,7 +2303,9 @@ export default function DesktopDashboardPage() {
     <main className="hidden h-[100dvh] overflow-hidden bg-app-bg text-app-ink lg:flex">
       <aside className="w-64 border-r border-app-ink/10 bg-app-panel/70 p-4">
         <div className="mb-4">
-          <h1 className="font-heading text-lg font-bold uppercase">Grupos</h1>
+          <h1 className="flex items-center" aria-label="Grupos">
+            <MonoIcon src={appLogoIcon} colorVar="--app-text-primary" className="h-7 w-7" />
+          </h1>
           <div className="mt-3 flex items-center gap-2">
             <input
               className="app-input"
@@ -2399,7 +2404,7 @@ export default function DesktopDashboardPage() {
             <div className="ml-auto flex items-center gap-3">
               <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wide">
                 <MonoIcon src={isOnline ? connectionIcon : offlineIcon} colorVar={isOnline ? '--app-icon-connection' : '--app-icon-offline'} className="h-7 w-7" />
-                {isOnline ? 'Online' : 'Offline'}
+                {/* {isOnline ? 'Online' : 'Offline'} */}
               </div>
               {pendingCount > 0 ? (
                 <button
@@ -2412,8 +2417,15 @@ export default function DesktopDashboardPage() {
                   {pendingCount} pendientes
                 </button>
               ) : null}
-              <button type="button" onClick={() => navigate('/profile')} className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase">{getEmailAlias(user?.email)}</button>
-              <button type="button" onClick={async () => { await logout(); navigate('/auth', { replace: true }); }} className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase">Logout</button>
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                title="Perfil"
+                aria-label="Perfil"
+                className="flex h-8 w-8 items-center justify-center border-0 bg-app-panel/50 text-app-ink"
+              >
+                <MonoIcon src={profileIcon} colorVar="--app-text-primary" className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </header>
@@ -3600,46 +3612,49 @@ export default function DesktopDashboardPage() {
         title={editingExpenseId ? 'Editar gasto' : 'Nuevo gasto'}
         maxWidthClass="max-w-5xl"
       >
-        <div className="grid gap-4 lg:grid-cols-2">
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo de gasto</span>
-            <div className="mt-2">
-              <WrappedChoiceGroup
-                options={expenseTypeOptions}
-                value={expenseForm.expense_type}
-                onChange={editingExpenseId ? () => { } : handleExpenseTypeChange}
-                itemMinWidth={132}
-              />
-            </div>
-          </label>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)]">
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo de gasto</span>
+              <div className="mt-2">
+                <WrappedChoiceGroup
+                  options={expenseTypeOptions}
+                  value={expenseForm.expense_type}
+                  onChange={editingExpenseId ? () => { } : handleExpenseTypeChange}
+                  itemMinWidth={132}
+                />
+              </div>
+            </label>
 
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Forma de pago</span>
-            <div className="mt-2">
-              <WrappedChoiceGroup
-                options={paymentMethodOptions}
-                value={expenseForm.payment_method}
-                onChange={(value) => setExpenseForm((prev) => ({ ...prev, payment_method: String(value) }))}
-                itemMinWidth={132}
-              />
-            </div>
-          </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Forma de pago</span>
+              <div className="mt-2">
+                <WrappedChoiceGroup
+                  options={paymentMethodOptions}
+                  value={expenseForm.payment_method}
+                  onChange={(value) => setExpenseForm((prev) => ({ ...prev, payment_method: String(value) }))}
+                  itemMinWidth={132}
+                />
+              </div>
+            </label>
 
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Quien creo el gasto</span>
-            <div className="mt-2">
-              <WrappedChoiceGroup
-                options={creatorOptions}
-                value={expenseForm.user_id}
-                onChange={
-                  editingExpenseId
-                    ? () => { }
-                    : (value) => setExpenseForm((prev) => ({ ...prev, user_id: String(value) }))
-                }
-                itemMinWidth={124}
-              />
-            </div>
-          </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Quien creo el gasto</span>
+              <div className="mt-2">
+                <WrappedChoiceGroup
+                  options={creatorOptions}
+                  value={expenseForm.user_id}
+                  onChange={
+                    editingExpenseId
+                      ? () => { }
+                      : (value) => setExpenseForm((prev) => ({ ...prev, user_id: String(value) }))
+                  }
+                  itemMinWidth={124}
+                  mintStyle
+                />
+              </div>
+            </label>
+          </div>
 
           <label className="block">
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
@@ -3656,16 +3671,19 @@ export default function DesktopDashboardPage() {
                       : (value) => setExpenseForm((prev) => ({ ...prev, category_id: String(value) }))
                   }
                   itemMinWidth={148}
+                  mintStyle
                 />
               ) : (
                 <p className="rounded-lg bg-app-bg/35 px-3 py-2 text-xs font-semibold text-app-muted">
-                  No hay categorias/proveedores para este tipo.
+                  {expenseForm.expense_type
+                    ? 'No hay categorias/proveedores para este tipo.'
+                    : 'Selecciona un tipo de gasto para ver categorias/proveedores.'}
                 </p>
               )}
             </div>
           </label>
 
-          <label className="block">
+          <label className="block lg:col-span-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Monto</span>
             <input
               className="app-input mt-2"
@@ -3680,7 +3698,7 @@ export default function DesktopDashboardPage() {
             />
           </label>
 
-          <label className="block">
+          <label className="block lg:col-span-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Fecha</span>
             <DateInputDmy
               className="app-input mt-2"
@@ -3690,7 +3708,7 @@ export default function DesktopDashboardPage() {
           </label>
 
           <label className="block lg:col-span-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Descripcion (opcional)</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Descripcion</span>
             <input
               className="app-input mt-2"
               value={expenseForm.description}
@@ -3710,14 +3728,19 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={resetExpenseForm}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={() => onAction(saveExpense)}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+            disabled={!isExpenseFormReady}
+            className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase tracking-wide transition ${
+              isExpenseFormReady
+                ? 'bg-lime-400/30 text-white hover:bg-emerald-500'
+                : 'cursor-not-allowed bg-app-panel text-app-muted'
+            }`}
           >
             {editingExpenseId ? 'Guardar cambios' : 'Guardar gasto'}
           </button>
@@ -3778,16 +3801,21 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={resetIncomeForm}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={() => onAction(saveIncome)}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+            disabled={!isIncomeFormReady}
+            className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase tracking-wide transition ${
+              isIncomeFormReady
+                ? 'bg-lime-400/30 text-white hover:bg-emerald-500'
+                : 'cursor-not-allowed bg-app-panel text-app-muted'
+            }`}
           >
-            {editingIncomeId ? 'Guardar cambios' : 'Guardar ingreso'}
+            Guardar
           </button>
         </div>
       </DesktopModal>
@@ -3830,14 +3858,19 @@ export default function DesktopDashboardPage() {
           <button
             type="button"
             onClick={resetCategoryForm}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={() => onAction(saveCategory)}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+            disabled={!isCategoryFormReady}
+            className={`rounded-lg px-3 py-2 text-xs font-extrabold uppercase tracking-wide transition ${
+              isCategoryFormReady
+                ? 'bg-lime-400/30 text-white hover:bg-emerald-500'
+                : 'cursor-not-allowed bg-app-panel text-app-muted'
+            }`}
           >
             {categoryForm.editingId ? 'Guardar' : 'Crear'}
           </button>
@@ -3923,37 +3956,60 @@ export default function DesktopDashboardPage() {
         title="Filtros de gastos"
         maxWidthClass="max-w-5xl"
       >
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo de gasto</span>
-            <div className="mt-2">
-              <WrappedMultiChoiceGroup
-                options={expenseTypeOptions}
-                values={filtersDraft.expense_type_ids}
-                onChange={toggleDraftExpenseTypes}
-                itemMinWidth={128}
-              />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.48fr)_minmax(0,0.52fr)]">
+          <div className="space-y-4">
+            <div className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Tipo de gasto</span>
+              <div className="mt-2">
+                <WrappedMultiChoiceGroup
+                  options={expenseTypeOptions}
+                  values={filtersDraft.expense_type_ids}
+                  onChange={toggleDraftExpenseTypes}
+                  itemMinWidth={128}
+                />
+              </div>
+            </div>
+
+            <div className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Forma de pago</span>
+              <div className="mt-2">
+                <WrappedMultiChoiceGroup
+                  options={paymentMethodOptions}
+                  values={filtersDraft.payment_method_ids}
+                  onChange={(next) =>
+                    setFiltersDraft((prev) => ({ ...prev, payment_method_ids: next }))
+                  }
+                  itemMinWidth={132}
+                />
+              </div>
+            </div>
+
+            <div className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Usuarios</span>
+              <div className="mt-2">
+                {userFilterOptions.length > 0 ? (
+                  <WrappedMultiChoiceGroup
+                    options={userFilterOptions}
+                    values={filtersDraft.user_ids}
+                    onChange={(next) =>
+                      setFiltersDraft((prev) => ({ ...prev, user_ids: next }))
+                    }
+                    itemMinWidth={120}
+                    mintStyle
+                  />
+                ) : (
+                  <p className="rounded-lg bg-app-bg/35 px-3 py-2 text-xs font-semibold text-app-muted">
+                    Sin usuarios para filtrar.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Forma de pago</span>
-            <div className="mt-2">
-              <WrappedMultiChoiceGroup
-                options={paymentMethodOptions}
-                values={filtersDraft.payment_method_ids}
-                onChange={(next) =>
-                  setFiltersDraft((prev) => ({ ...prev, payment_method_ids: next }))
-                }
-                itemMinWidth={132}
-              />
-            </div>
-          </div>
-
-          <div className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                {getExpenseTypeById(currentCategoryFilterTypeId)?.label || 'Categorias'}
-              </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+              {getExpenseTypeById(currentCategoryFilterTypeId)?.label || 'Categorias'}
+            </span>
             <div className="mt-2">
               <div className="relative overflow-hidden rounded-lg border-0 bg-transparent pr-10">
                 <div className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
@@ -3961,7 +4017,7 @@ export default function DesktopDashboardPage() {
                     type="button"
                     onClick={() => setCategoryFilterPaneIndex((prev) => Math.max(0, prev - 1))}
                     disabled={categoryFilterPaneIndex <= 0}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-app-ink/25 bg-app-mint text-xs font-black text-app-ink disabled:cursor-not-allowed disabled:opacity-35"
+                    className="flex h-6 w-6 items-center justify-center rounded-md bg-app-panel/70 text-xs font-black text-app-ink hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     &#8592;
                   </button>
@@ -3973,7 +4029,7 @@ export default function DesktopDashboardPage() {
                       )
                     }
                     disabled={categoryFilterPaneIndex >= categoryFilterPanes.length - 1}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-app-ink/25 bg-app-mint text-xs font-black text-app-ink disabled:cursor-not-allowed disabled:opacity-35"
+                    className="flex h-6 w-6 items-center justify-center rounded-md bg-app-panel/70 text-xs font-black text-app-ink hover:bg-app-bg disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     &#8594;
                   </button>
@@ -3994,13 +4050,16 @@ export default function DesktopDashboardPage() {
                           <div className="grid grid-cols-3 gap-2">
                             {pane.options.map((option) => {
                               const isActive = filtersDraft.category_ids.includes(String(option.value));
-                              const tone = CATEGORY_FILTER_TONES[String(pane.typeId)] || CATEGORY_FILTER_TONES['1'];
                               return (
                                 <button
                                   key={option.value}
                                   type="button"
                                   onClick={() => toggleDraftCategory(option.value)}
-                                  className={`min-w-0 rounded-md px-2 py-2 text-sm font-heading uppercase tracking-wide transition ${isActive ? tone.active : tone.inactive}`}
+                                  className={`min-w-0 rounded-md border px-2 py-2 text-sm font-heading uppercase tracking-wide transition ${
+                                    isActive
+                                      ? 'border-app-ink bg-app-mint text-app-ink'
+                                      : 'border-transparent bg-app-mint text-app-muted hover:bg-app-bg hover:text-app-ink'
+                                  }`}
                                 >
                                   <span className="block truncate">{option.label}</span>
                                 </button>
@@ -4019,47 +4078,27 @@ export default function DesktopDashboardPage() {
               </div>
             </div>
           </div>
-          <div className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Usuarios</span>
-            <div className="mt-2">
-              {userFilterOptions.length > 0 ? (
-                <WrappedMultiChoiceGroup
-                  options={userFilterOptions}
-                  values={filtersDraft.user_ids}
-                  onChange={(next) =>
-                    setFiltersDraft((prev) => ({ ...prev, user_ids: next }))
-                  }
-                  itemMinWidth={120}
-                />
-              ) : (
-                <p className="rounded-lg bg-app-bg/35 px-3 py-2 text-xs font-semibold text-app-muted">
-                  Sin usuarios para filtrar.
-                </p>
-              )}
-            </div>
-          </div>
-
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Limpiar
           </button>
           <button
             type="button"
             onClick={closeFiltersModal}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={applyFilters}
-            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink"
+            className="rounded-lg bg-app-mint px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-app-ink hover:bg-app-bg"
           >
             Aplicar filtros
           </button>

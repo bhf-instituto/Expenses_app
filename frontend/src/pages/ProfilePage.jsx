@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import MobileHeader from '../components/MobileHeader.jsx';
 import HorizontalScrollableChoice from '../components/HorizontalScrollableChoice.jsx';
 import InlineActionInput from '../components/InlineActionInput.jsx';
+import MonoIcon from '../components/MonoIcon.jsx';
 import copyIcon from '../assets/icons/copy-icon.svg';
 import pasteIcon from '../assets/icons/paste-icon.svg';
+import logoutIcon from '../assets/icons/logout-icon.svg';
+import backIcon from '../assets/icons/back-icon.svg';
 import useDesktopViewport from '../hooks/useDesktopViewport.js';
 import { EXPENSE_TYPES, PAYMENT_METHODS } from '../constants/catalogs.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -250,7 +253,6 @@ export default function ProfilePage() {
     scheduleColorProfileSave(normalized, { immediate: true });
   };
 
-  const goToGroups = () => navigate('/groups');
   const goToDashboard = () => navigate('/dashboard');
   const onLogout = async () => {
     await logout();
@@ -269,16 +271,20 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={goToDashboard}
-              className="rounded-lg bg-app-panel px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+              title="Volver"
+              aria-label="Volver"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border-0 bg-app-mint/100 hover:bg-app-bg"
             >
-              Volver
+              <MonoIcon src={backIcon} className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={onLogout}
-              className="rounded-lg bg-app-mint px-3 py-2 text-xs font-bold uppercase tracking-wide text-app-ink"
+              title="Logout"
+              aria-label="Logout"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border-0 bg-app-mint/100 hover:bg-app-bg"
             >
-              Logout
+              <MonoIcon src={logoutIcon} className="h-4 w-4" />
             </button>
           </div>
         </header>
@@ -569,7 +575,21 @@ export default function ProfilePage() {
 
   return (
     <main className="app-shell">
-      <MobileHeader title="Perfil" backTo="/groups" />
+      <MobileHeader
+        title="Perfil"
+        backTo="/groups"
+        rightSlot={
+          <button
+            type="button"
+            onClick={onLogout}
+            title="Logout"
+            aria-label="Logout"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border-0 bg-app-panel/50 hover:bg-app-bg"
+          >
+            <MonoIcon src={logoutIcon} className="h-4 w-4" />
+          </button>
+        }
+      />
       <section className="scroll-pane">
         <div className="space-y-3">
           <article className="rounded-2xl border-0 bg-app-panel p-4 shadow-card">

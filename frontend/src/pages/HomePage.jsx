@@ -6,6 +6,8 @@ import BottomActionBar from '../components/BottomActionBar.jsx';
 import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
+import profileIcon from '../assets/icons/profile-icon.svg';
+import appLogoIcon from '../assets/logos/logo.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import { ApiError, setsApi } from '../lib/apiClient.js';
 import { getCachedGroupsMode, getCachedSets, setCachedGroupsMode, setCachedSets } from '../lib/localCache.js';
@@ -184,15 +186,14 @@ export default function HomePage() {
   return (
     <main className="app-shell">
       <header className="safe-top border-b border-app-ink/0 bg-app-panel/80 px-4 pb-2 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg border-0 bg-app-mint/100 border-app-ink/50 px-3 py-1.5 text-xs  font-bold  uppercase tracking-wide text-app-ink hover:bg-app-bg"
-          >
-            Logout
-          </button>
-          <div className="ml-auto flex min-w-0 items-center gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <MonoIcon src={appLogoIcon} colorVar="--app-text-primary" className="h-6 w-6 shrink-0" />
+            {/* <h1 className="min-w-0 flex-1 truncate font-heading text-sm font-semibold uppercase tracking-wide text-app-ink">
+              Grupos
+            </h1> */}
+          </div>
+          <div className="flex min-w-0 items-center gap-1">
             {isOnline ? (
               <div
                 className="flex h-8 shrink-0 items-center rounded-full border-0 bg-transparent border-app-status-online-border bg-app-status-online-bg px-2"
@@ -234,9 +235,11 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => navigate('/profile')}
-              className="max-w-[100%] truncate rounded-lg border-0 bg-app-mint border-app-panel/20  px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-app-ink hover:bg-app-sky/30"
+              title="Perfil"
+              aria-label="Perfil"
+              className=" rounded-md flex h-8 w-8 items-center justify-center border-0 bg-app-panel/50 hover:bg-app-bg text-app-ink"
             >
-              Perfil
+              <MonoIcon src={profileIcon} colorVar="--app-text-primary" className="h-4 w-4" />
             </button>
           </div>
         </div>
