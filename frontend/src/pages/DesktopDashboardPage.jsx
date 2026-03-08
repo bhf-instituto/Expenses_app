@@ -92,6 +92,11 @@ const INCOME_TYPE_OPTIONS = [
   { value: '1', label: 'Efectivo', bgColorVar: getPaymentMethodBgVarName(1) },
   { value: '3', label: 'Debito', bgColorVar: getPaymentMethodBgVarName(3) },
 ];
+const INCOME_MONTH_RANGE_OPTIONS = [
+  { value: '12', label: '12 meses' },
+  { value: '6', label: '6 meses' },
+  { value: '3', label: '3 meses' },
+];
 
 const createTempId = () => -Math.floor(Date.now() + Math.random() * 100000);
 const formatDateOnly = (value) => String(value || '').slice(0, 10);
@@ -353,6 +358,7 @@ export default function DesktopDashboardPage() {
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const [incomeForm, setIncomeForm] = useState(defaultIncomeForm);
   const [editingIncomeId, setEditingIncomeId] = useState(null);
+  const [incomeMonthlyWindow, setIncomeMonthlyWindow] = useState('12');
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
@@ -395,7 +401,6 @@ export default function DesktopDashboardPage() {
     [groups, favoriteGroupId]
   );
   const sortedGroupIds = useMemo(() => sortedGroups.map((group) => group.id), [sortedGroups]);
-  const isSelectedGroupFavorite = Number(selectedGroup?.id) === Number(favoriteGroupId);
   const isAdmin = Number(selectedGroup?.role) === 1;
   const setAnimatedGroupRef = useFlipListAnimation(sortedGroupIds);
   const historicalStartDate = useMemo(() => {
@@ -864,6 +869,65 @@ export default function DesktopDashboardPage() {
     [incomeTypeSplitData]
   );
 
+  const incomeMonthlyTotalsData = useMemo(() => {
+    const totalsByMonth = new Map();
+    incomes.forEach((income) => {
+      const incomeDate = formatDateOnly(income.income_date);
+      const monthKey = String(incomeDate || '').slice(0, 7);
+      if (!monthKey || monthKey.length !== 7) return;
+      totalsByMonth.set(monthKey, (totalsByMonth.get(monthKey) || 0) + Number(income.amount || 0));
+    });
+
+    return [...totalsByMonth.entries()]
+      .sort(([leftMonth], [rightMonth]) => leftMonth.localeCompare(rightMonth))
+      .map(([monthKey, total]) => {
+        const [year, month] = monthKey.split('-');
+        return {
+          monthKey,
+          period: `${month}/${year}`,
+          total: Number(total || 0),
+        };
+      });
+  }, [incomes]);
+
+  const availableIncomeMonthsCount = incomeMonthlyTotalsData.length;
+
+  const effectiveIncomeMonthlyWindow = useMemo(() => {
+    const requestedWindow = Number(incomeMonthlyWindow);
+    const normalizedRequestedWindow = [3, 6, 12].includes(requestedWindow) ? requestedWindow : 12;
+    if (availableIncomeMonthsCount <= 0) return 0;
+    const minimumWindow = availableIncomeMonthsCount >= 2 ? 2 : 1;
+    return Math.max(minimumWindow, Math.min(normalizedRequestedWindow, 12, availableIncomeMonthsCount));
+  }, [availableIncomeMonthsCount, incomeMonthlyWindow]);
+
+  const incomeMonthlyTrendData = useMemo(() => {
+    if (effectiveIncomeMonthlyWindow <= 0) return [];
+    return incomeMonthlyTotalsData.slice(-effectiveIncomeMonthlyWindow);
+  }, [effectiveIncomeMonthlyWindow, incomeMonthlyTotalsData]);
+
+  const incomeMonthlyExtremes = useMemo(() => {
+    const allHistoricalMonths = incomeMonthlyTotalsData
+      .map((item) => ({
+        ...item,
+        total: Number(item.total || 0),
+      }))
+      .filter((item) => item.total > 0);
+
+    if (allHistoricalMonths.length === 0) {
+      return { highest: [], lowest: [] };
+    }
+
+    const highest = [...allHistoricalMonths]
+      .sort((a, b) => (b.total - a.total) || a.monthKey.localeCompare(b.monthKey))
+      .slice(0, 5);
+
+    const lowest = [...allHistoricalMonths]
+      .sort((a, b) => (a.total - b.total) || a.monthKey.localeCompare(b.monthKey))
+      .slice(0, 5);
+
+    return { highest, lowest };
+  }, [incomeMonthlyTotalsData]);
+
   const toggleExpenseSort = (key) => {
     setExpenseSort((prev) => {
       if (prev.key !== key) {
@@ -1171,6 +1235,7 @@ export default function DesktopDashboardPage() {
     ],
     []
   );
+
 
   const expenseTypeOptions = useMemo(
     () =>
@@ -2224,9 +2289,43 @@ export default function DesktopDashboardPage() {
     <main className="hidden h-[100dvh] overflow-hidden bg-app-bg text-app-ink lg:flex">
       <aside className="w-64 border-r border-app-ink/5 bg-app-panel/70 p-4">
         <div className="mb-4">
-          <h1 className="flex items-center" aria-label="Grupos">
-            <MonoIcon src={appLogoIcon} colorVar="--app-text-primary" className="h-7 w-7" />
-          </h1>
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="flex items-center" aria-label="Grupos">
+              <MonoIcon src={appLogoIcon} colorVar="--app-text-primary" className="h-7 w-7" />
+            </h1>
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center">
+                <MonoIcon
+                  src={isOnline ? connectionIcon : offlineIcon}
+                  colorVar={isOnline ? '--app-icon-connection' : '--app-icon-offline'}
+                  className="h-7 w-7"
+                />
+              </div>
+              {pendingCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={openPendingActionsModal}
+                  className="relative flex h-8 w-8 items-center justify-center transition hover:opacity-80"
+                  title="Ver acciones pendientes"
+                  aria-label={`Pendientes: ${pendingCount}`}
+                >
+                  <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
+                  <span className="absolute -right-1 -top-1 rounded-full bg-app-mint px-1 text-[10px] font-extrabold text-app-ink">
+                    {pendingCount}
+                  </span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                title="Perfil"
+                aria-label="Perfil"
+                className="flex h-8 w-8 items-center justify-center transition hover:opacity-80"
+              >
+                <MonoIcon src={profileIcon} colorVar="--app-text-primary" className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
           <div className="mt-3 flex items-center gap-2">
             <input
               className="app-input"
@@ -2253,14 +2352,14 @@ export default function DesktopDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedSetId(Number(group.id))}
-                  className={`w-full rounded-xl px-3 py-3 pr-14 text-left ${isFavorite ? 'bg-indigo-900 text-app-ink' : isSelected ? 'bg-app-mint text-app-ink' : 'bg-app-panel text-app-muted'}`}
+                  className={`w-full min-h-[6.25rem] rounded-xl px-3 py-4 pr-14 text-left ${isSelected ? 'bg-indigo-900 text-app-ink' : 'bg-app-panel text-app-muted'}`}
                 >
                   <p className="font-heading text-base font-bold uppercase">{group.name}</p>
                   <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide">
                     {Number(group.role) === 1 ? 'Admin' : 'Participante'}
                   </p>
                 </button>
-                <div className="pointer-events-none absolute bottom-2 right-2 top-2 flex flex-col items-center justify-between opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
+                <div className="pointer-events-none absolute bottom-3 right-2 top-3 flex flex-col items-center justify-between opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
                   <button
                     type="button"
                     title={isFavorite ? `Quitar favorito de ${group.name}` : `Marcar favorito ${group.name}`}
@@ -2310,47 +2409,6 @@ export default function DesktopDashboardPage() {
       </aside>
 
       <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        <header className="border-0 border-app-ink/10 bg-app-panel/70 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-5">
-              <div>
-              <p
-                className={`text-xs font-semibold uppercase tracking-[0.2em] ${isSelectedGroupFavorite ? 'text-[rgb(var(--app-icon-star-full))]' : 'text-app-muted'}`}
-              >
-                Grupo activo
-              </p>
-              <h2 className="font-heading text-xl font-bold uppercase">{selectedGroup?.name || 'Sin grupo seleccionado'}</h2>
-              </div>
-            </div>
-            <div className="ml-auto flex items-center gap-3">
-              <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wide">
-                <MonoIcon src={isOnline ? connectionIcon : offlineIcon} colorVar={isOnline ? '--app-icon-connection' : '--app-icon-offline'} className="h-7 w-7" />
-                {/* {isOnline ? 'Online' : 'Offline'} */}
-              </div>
-              {pendingCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={openPendingActionsModal}
-                  className="flex items-center gap-1 text-xs font-bold uppercase"
-                  title="Ver acciones pendientes"
-                >
-                  <MonoIcon src={pendingIcon} colorVar="--app-icon-pending" className="h-4 w-4" />
-                  {pendingCount} pendientes
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => navigate('/profile')}
-                title="Perfil"
-                aria-label="Perfil"
-                className="flex h-8 w-8 items-center justify-center border-0 bg-app-panel/50 text-app-ink"
-              >
-                <MonoIcon src={profileIcon} colorVar="--app-text-primary" className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </header>
-
         <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6">
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.9fr)] gap-3">
             <article className="rounded-xl bg-app-panel/70 p-3">
@@ -2400,7 +2458,7 @@ export default function DesktopDashboardPage() {
             </article>
           </div>
 
-          <article className="flex h-[calc(100dvh-13rem)] min-h-[26rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-app-panel/70 p-4">
+          <article className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-app-panel/70 p-4">
             <div className="mb-3 flex items-center gap-2">
               <button
                 type="button"
@@ -2718,14 +2776,14 @@ export default function DesktopDashboardPage() {
             ) : null}
 
             {tab === TAB.INCOMES ? (
-              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                <div className="no-scrollbar min-h-0 overflow-auto">
-                  <table className="w-full max-w-[68rem] table-fixed text-left">
+              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)]">
+                <div className="min-h-0 flex flex-col overflow-hidden">
+                  <table className="w-full table-fixed text-left">
                     <colgroup>
-                      <col className="w-[28%]" />
-                      <col className="w-[28%]" />
-                      <col className="w-[24%]" />
                       <col className="w-[20%]" />
+                      <col className="w-[34%]" />
+                      <col className="w-[32%]" />
+                      <col className="w-[14%]" />
                     </colgroup>
                     <thead className="text-[11px] font-extrabold uppercase tracking-wide text-app-muted">
                       <tr>
@@ -2735,83 +2793,189 @@ export default function DesktopDashboardPage() {
                         <th className="px-2 py-2 text-left">Acciones</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {sortedIncomes.map((income) => (
-                        <tr key={income.id} className="border-t border-app-ink/10 text-base">
-                          <td className="px-2 py-2">
-                            <span
-                              className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
-                              style={getCssVarBadgeStyle(getPaymentMethodBgVarName(income.income_type))}
-                            >
-                              {getIncomeTypeLabel(income.income_type)}
-                            </span>
-                          </td>
-                          <td className="px-2 py-2 font-extrabold">{formatMoney(income.amount)}</td>
-                          <td className="px-2 py-2">{formatDateOnly(income.income_date)}</td>
-                          <td className="px-2 py-2">
-                            <div className="flex items-center justify-start gap-1">
-                              <button
-                                type="button"
-                                title="Editar ingreso"
-                                disabled={!isAdmin || !isOnline}
-                                onClick={() => startIncomeEdit(income)}
-                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
-                              >
-                                <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Eliminar ingreso"
-                                disabled={!isAdmin || !isOnline}
-                                onClick={() => requestDeleteIncome(income)}
-                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
-                              >
-                                <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {sortedIncomes.length === 0 ? (
-                        <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
-                          <td colSpan={4} className="px-2 py-4">
-                            No hay ingresos cargados.
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
                   </table>
+                  <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
+                    <table className="w-full table-fixed text-left">
+                      <colgroup>
+                        <col className="w-[20%]" />
+                        <col className="w-[34%]" />
+                        <col className="w-[32%]" />
+                        <col className="w-[14%]" />
+                      </colgroup>
+                      <tbody>
+                        {sortedIncomes.map((income) => (
+                          <tr key={income.id} className="border-t border-app-ink/10 text-base">
+                            <td className="px-2 py-2">
+                              <span
+                                className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                                style={getCssVarBadgeStyle(getPaymentMethodBgVarName(income.income_type))}
+                              >
+                                {getIncomeTypeLabel(income.income_type)}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 font-extrabold">{formatMoney(income.amount)}</td>
+                            <td className="px-2 py-2">{formatDateOnly(income.income_date)}</td>
+                            <td className="px-2 py-2">
+                              <div className="flex items-center justify-start gap-1">
+                                <button
+                                  type="button"
+                                  title="Editar ingreso"
+                                  disabled={!isAdmin || !isOnline}
+                                  onClick={() => startIncomeEdit(income)}
+                                  className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+                                >
+                                  <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Eliminar ingreso"
+                                  disabled={!isAdmin || !isOnline}
+                                  onClick={() => requestDeleteIncome(income)}
+                                  className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-35"
+                                >
+                                  <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {sortedIncomes.length === 0 ? (
+                          <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
+                            <td colSpan={4} className="px-2 py-4">
+                              No hay ingresos cargados.
+                            </td>
+                          </tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <aside className="rounded-xl border-0 border-app-ink/10 bg-app-bg/20 p-3">
+                <aside className="no-scrollbar min-h-0 overflow-auto rounded-xl border-0 border-app-ink/10 bg-app-bg/20 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Ingreso por medio de cobro</p>
-                  {incomeTypeSplitData.length > 0 ? (
-                    <>
-                      <div className="mt-2 h-60">
-                        <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-app-muted">Cargando grafico...</div>}>
+                  <div className="mt-2 grid gap-3 xl:grid-cols-[minmax(0,0.38fr)_minmax(0,0.62fr)]">
+                    <div className="min-w-0">
+                      {incomeTypeSplitData.length > 0 ? (
+                        <>
+                          <div className="h-44 max-w-[18rem]">
+                            <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-app-muted">Cargando grafico...</div>}>
+                              <LazyDesktopTopCategoryChart
+                                type="activePie"
+                                data={incomeTypeSplitData}
+                                xKey="name"
+                                series={[{ key: 'total', label: 'Ingresos', color: CHART_COLOR_INCOME }]}
+                              />
+                            </Suspense>
+                          </div>
+                          <div className="mt-2 max-w-[18rem] space-y-1">
+                            {incomeTypeSplitData.map((item) => (
+                              <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
+                                <span className="text-app-muted">{item.name}</span>
+                                <span>
+                                  {formatPercentFromDecimal(incomeSplitTotal > 0 ? item.total / incomeSplitTotal : 0, 1)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="rounded-lg bg-app-panel/60 px-3 py-3 text-xs font-semibold text-app-muted">
+                          Sin ingresos en el rango seleccionado.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                      <article className="rounded-lg bg-app-panel/60 p-3">
+                        <h4 className="text-[11px] font-extrabold uppercase tracking-wide text-app-ink">
+                          Top 5 mayores ingresos
+                        </h4>
+                        {incomeMonthlyExtremes.highest.length > 0 ? (
+                          <div className="mt-2 space-y-1.5">
+                            {incomeMonthlyExtremes.highest.map((item, index) => (
+                              <div key={`income-high-${item.monthKey}`} className="flex items-center justify-between rounded-md bg-app-bg/20 px-2 py-1 text-xs font-semibold">
+                                <span className="text-app-muted">{index + 1}. {item.period}</span>
+                                <span>{formatMoney(item.total)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-xs font-semibold text-app-muted">Sin meses para mostrar.</p>
+                        )}
+                      </article>
+
+                      <article className="rounded-lg bg-app-panel/60 p-3">
+                        <h4 className="text-[11px] font-extrabold uppercase tracking-wide text-app-ink">
+                          Top 5 menores ingresos
+                        </h4>
+                        {incomeMonthlyExtremes.lowest.length > 0 ? (
+                          <div className="mt-2 space-y-1.5">
+                            {incomeMonthlyExtremes.lowest.map((item, index) => (
+                              <div key={`income-low-${item.monthKey}`} className="flex items-center justify-between rounded-md bg-app-bg/20 px-2 py-1 text-xs font-semibold">
+                                <span className="text-app-muted">{index + 1}. {item.period}</span>
+                                <span>{formatMoney(item.total)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-xs font-semibold text-app-muted">Sin meses para mostrar.</p>
+                        )}
+                      </article>
+                    </div>
+                  </div>
+
+                  <article className="mt-4 rounded-xl bg-app-panel/65 p-3">
+                    <h3 className="font-heading text-sm font-extrabold uppercase tracking-wide text-app-ink">
+                      Evolucion mensual de ingresos
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-app-muted">
+                      Totales por mes, independiente del rango global.
+                    </p>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {INCOME_MONTH_RANGE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setIncomeMonthlyWindow(option.value)}
+                          className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide transition ${
+                            String(incomeMonthlyWindow) === String(option.value)
+                              ? 'bg-app-mint text-app-ink'
+                              : 'bg-app-panel text-app-muted hover:bg-app-bg'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <p className="mt-2 text-[11px] font-semibold text-app-muted">
+                      Mostrando ultimos {effectiveIncomeMonthlyWindow || 0} meses.
+                    </p>
+
+                    <div className="mt-3 h-56 min-w-0">
+                      {incomeMonthlyTrendData.length > 0 ? (
+                        <Suspense
+                          fallback={
+                            <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                              Cargando grafico...
+                            </div>
+                          }
+                        >
                           <LazyDesktopTopCategoryChart
-                            type="activePie"
-                            data={incomeTypeSplitData}
-                            xKey="name"
+                            key={`income-monthly-${selectedSetId}-${incomeMonthlyWindow}-${incomeMonthlyTrendData.length}`}
+                            type="line"
+                            data={incomeMonthlyTrendData}
+                            xKey="period"
                             series={[{ key: 'total', label: 'Ingresos', color: CHART_COLOR_INCOME }]}
                           />
                         </Suspense>
-                      </div>
-                      <div className="mt-2 space-y-1">
-                        {incomeTypeSplitData.map((item) => (
-                          <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-app-muted">{item.name}</span>
-                            <span>
-                              {formatPercentFromDecimal(incomeSplitTotal > 0 ? item.total / incomeSplitTotal : 0, 1)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="mt-3 rounded-lg bg-app-panel/60 px-3 py-3 text-xs font-semibold text-app-muted">
-                      Sin ingresos en el rango seleccionado.
+                      ) : (
+                        <div className="flex h-full items-center justify-center rounded-lg bg-app-bg/25 px-3 text-sm font-semibold text-app-muted">
+                          No hay meses suficientes para mostrar.
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </article>
                 </aside>
               </div>
             ) : null}
@@ -3246,8 +3410,8 @@ export default function DesktopDashboardPage() {
             ) : null}
 
             {tab === TAB.CATEGORIES ? (
-              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)]">
-                <div className="no-scrollbar min-h-0 overflow-auto rounded-xl bg-app-bg/20 p-2">
+              <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)]">
+                <div className="min-h-0 flex flex-col overflow-hidden rounded-xl">
                   <table className="w-full max-w-[42rem] table-fixed text-left">
                     <colgroup>
                       <col className="w-[34%]" />
@@ -3290,50 +3454,60 @@ export default function DesktopDashboardPage() {
                         <th className="px-1 py-2 pr-0 text-right">Acciones</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {sortedCategories.map((category) => (
-                        <tr key={category.id} className="border-t border-app-ink/10 text-base">
-                          <td className="px-2 py-2 font-semibold">{category.name}</td>
-                          <td className="px-2 py-2">
-                            <span
-                              className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
-                              style={getCssVarBadgeStyle(getExpenseTypeBgVarName(category.expense_type))}
-                            >
-                              {getExpenseTypeById(category.expense_type)?.label || '-'}
-                            </span>
-                          </td>
-                          <td className="px-2 py-2 font-extrabold">{formatMoney(category.total_amount)}</td>
-                          <td className="px-1 py-2 pr-0">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                title="Editar categoria"
-                                onClick={() => startCategoryEdit(category)}
-                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
-                              >
-                                <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Eliminar categoria"
-                                onClick={() => requestDeleteCategory(category)}
-                                className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
-                              >
-                                <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {sortedCategories.length === 0 ? (
-                        <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
-                          <td colSpan={4} className="px-2 py-4">
-                            No hay categorias cargadas.
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
                   </table>
+                  <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
+                    <table className="w-full max-w-[42rem] table-fixed text-left">
+                      <colgroup>
+                        <col className="w-[34%]" />
+                        <col className="w-[24%]" />
+                        <col className="w-[30%]" />
+                        <col className="w-[12%]" />
+                      </colgroup>
+                      <tbody>
+                        {sortedCategories.map((category) => (
+                          <tr key={category.id} className="border-t border-app-ink/10 text-base">
+                            <td className="px-2 py-2 font-semibold">{category.name}</td>
+                            <td className="px-2 py-2">
+                              <span
+                                className="inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold uppercase tracking-wide text-app-ink"
+                                style={getCssVarBadgeStyle(getExpenseTypeBgVarName(category.expense_type))}
+                              >
+                                {getExpenseTypeById(category.expense_type)?.label || '-'}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 font-extrabold">{formatMoney(category.total_amount)}</td>
+                            <td className="px-1 py-2 pr-0">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  title="Editar categoria"
+                                  onClick={() => startCategoryEdit(category)}
+                                  className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                                >
+                                  <MonoIcon src={pencilIcon} colorVar="--app-icon-action" className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Eliminar categoria"
+                                  onClick={() => requestDeleteCategory(category)}
+                                  className="flex h-7 w-7 items-center justify-center p-1.5 transition hover:opacity-80"
+                                >
+                                  <MonoIcon src={closeLineIcon} colorVar="--app-icon-offline" className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {sortedCategories.length === 0 ? (
+                          <tr className="border-t border-app-ink/10 text-sm font-semibold text-app-muted">
+                            <td colSpan={4} className="px-2 py-4">
+                              No hay categorias cargadas.
+                            </td>
+                          </tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <aside className="no-scrollbar min-h-0 overflow-auto rounded-xl bg-app-bg/20 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
@@ -3411,18 +3585,29 @@ export default function DesktopDashboardPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {(analyticsData?.category_ranking || []).map((item) => (
-                              <tr key={item.category_id} className="border-t border-app-ink/10">
-                                <td className="px-2 py-2 font-semibold">{item.name}</td>
-                                <td className="px-2 py-2">{formatMoney(item.total_current)}</td>
-                                <td className="px-2 py-2">{formatMoney(item.total_previous)}</td>
-                                <td className="px-2 py-2">
-                                  {item.is_new_active
-                                    ? 'Nueva'
-                                    : formatSignedPercentFromDecimal(item.growth_rate)}
-                                </td>
-                              </tr>
-                            ))}
+                            {(analyticsData?.category_ranking || []).map((item) => {
+                              const growthRate = Number(item.growth_rate || 0);
+                              const growthColorClass = item.is_new_active
+                                ? 'text-app-muted'
+                                : growthRate > 0
+                                  ? 'text-[rgb(var(--app-status-offline-text))]'
+                                  : growthRate < 0
+                                    ? 'text-[rgb(var(--app-status-online-text))]'
+                                    : 'text-app-muted';
+
+                              return (
+                                <tr key={item.category_id} className="border-t border-app-ink/10">
+                                  <td className="px-2 py-2 font-semibold">{item.name}</td>
+                                  <td className="px-2 py-2">{formatMoney(item.total_current)}</td>
+                                  <td className="px-2 py-2">{formatMoney(item.total_previous)}</td>
+                                  <td className={`px-2 py-2 font-semibold ${growthColorClass}`}>
+                                    {item.is_new_active
+                                      ? 'Nueva'
+                                      : formatSignedPercentFromDecimal(item.growth_rate)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

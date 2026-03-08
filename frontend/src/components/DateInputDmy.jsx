@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import triangleDownIcon from '../assets/icons/triangle-down-icon.svg';
+import MonoIcon from './MonoIcon.jsx';
 
 const YMD_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -63,6 +65,7 @@ export default function DateInputDmy({
   required = false,
 }) {
   const [displayValue, setDisplayValue] = useState(() => toDmyFromYmd(value));
+  const nativeDateInputRef = useRef(null);
 
   useEffect(() => {
     setDisplayValue(toDmyFromYmd(value));
@@ -92,20 +95,66 @@ export default function DateInputDmy({
     setDisplayValue(toDmyFromYmd(value));
   };
 
+  const handleNativeDateChange = (event) => {
+    const ymdValue = String(event.target.value || '').trim();
+    setDisplayValue(toDmyFromYmd(ymdValue));
+    onChange(ymdValue);
+  };
+
+  const openNativePicker = () => {
+    if (disabled) return;
+    const nativeInput = nativeDateInputRef.current;
+    if (!nativeInput) return;
+
+    if (typeof nativeInput.showPicker === 'function') {
+      nativeInput.showPicker();
+      return;
+    }
+
+    nativeInput.focus();
+    nativeInput.click();
+  };
+
+  const nativeDateValue = toYmdFromDmy(displayValue) || String(value || '').trim() || '';
+
   return (
-    <input
-      type="text"
-      inputMode="numeric"
-      autoComplete="off"
-      placeholder={placeholder}
-      value={displayValue}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      className={className}
-      name={name}
-      id={id}
-      disabled={disabled}
-      required={required}
-    />
+    <div className="relative w-full">
+      <input
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        placeholder={placeholder}
+        value={displayValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className={`${className || ''} pr-7`}
+        name={name}
+        id={id}
+        disabled={disabled}
+        required={required}
+      />
+
+      <input
+        ref={nativeDateInputRef}
+        type="date"
+        value={nativeDateValue}
+        onChange={handleNativeDateChange}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute h-0 w-0 opacity-0"
+      />
+
+      <button
+        type="button"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={openNativePicker}
+        disabled={disabled}
+        title="Abrir calendario"
+        aria-label="Abrir calendario"
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-app-ink transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        <MonoIcon src={triangleDownIcon} colorVar="--app-text-primary" className="h-3 w-3" />
+      </button>
+    </div>
   );
 }
