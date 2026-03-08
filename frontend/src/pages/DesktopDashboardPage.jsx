@@ -3978,7 +3978,11 @@ export default function DesktopDashboardPage() {
                   key={option.key}
                   type="button"
                   onClick={() => applyGlobalTimePreset(option.key)}
-                  className={`rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide ${globalTimeDraft.preset === option.key ? 'bg-app-mint text-app-ink' : 'bg-app-mint text-app-muted'}`}
+                  className={`form-filter-choice-btn rounded-lg border px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide ${
+                    globalTimeDraft.preset === option.key
+                      ? 'border-app-ink/70 bg-app-mint text-app-ink'
+                      : 'border-transparent bg-app-mint text-app-muted'
+                  }`}
                 >
                   {option.label}
                 </button>
