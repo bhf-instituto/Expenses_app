@@ -43,7 +43,9 @@ export const registerUser = async (req, res) => {
             ok: true,
             data: {
                 message: 'user created correctly',
-                user: result.user
+                user: result.user,
+                access_token: result.accessToken,
+                refresh_token: result.refreshToken
             }
         });
 
@@ -72,7 +74,9 @@ export const loginUser = async (req, res) => {
             ok: true,
             data: {
                 message: 'login ok',
-                user: result.user
+                user: result.user,
+                access_token: result.accessToken,
+                refresh_token: result.refreshToken
             }
         });
 
