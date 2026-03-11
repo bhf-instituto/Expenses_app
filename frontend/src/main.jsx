@@ -8,7 +8,9 @@ registerSW({ immediate: true });
 
 const setAppViewportHeight = () => {
   if (typeof window === 'undefined') return;
+  const viewportHeight = window.visualViewport?.height ?? 0;
   const height = Math.max(
+    viewportHeight,
     window.innerHeight || 0,
     document.documentElement?.clientHeight || 0
   );
@@ -19,6 +21,10 @@ const setAppViewportHeight = () => {
 setAppViewportHeight();
 window.addEventListener('resize', setAppViewportHeight);
 window.addEventListener('orientationchange', setAppViewportHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setAppViewportHeight);
+  window.visualViewport.addEventListener('scroll', setAppViewportHeight);
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
