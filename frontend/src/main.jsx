@@ -8,7 +8,10 @@ registerSW({ immediate: true });
 
 const setAppViewportHeight = () => {
   if (typeof window === 'undefined') return;
-  const height = window.visualViewport?.height || window.innerHeight;
+  const height = Math.max(
+    window.innerHeight || 0,
+    document.documentElement?.clientHeight || 0
+  );
   if (!height) return;
   document.documentElement.style.setProperty('--app-vh', `${height * 0.01}px`);
 };
@@ -16,9 +19,6 @@ const setAppViewportHeight = () => {
 setAppViewportHeight();
 window.addEventListener('resize', setAppViewportHeight);
 window.addEventListener('orientationchange', setAppViewportHeight);
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', setAppViewportHeight);
-}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

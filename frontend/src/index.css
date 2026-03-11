@@ -212,6 +212,7 @@
     height: calc(var(--app-vh, 1vh) * 100);
     min-height: calc(var(--app-vh, 1vh) * 100);
     min-height: 100vh;
+    height: 100dvh;
   }
 
   .scroll-pane {
