@@ -16,10 +16,10 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['pwa-logo.svg', 'pwa-192.svg', 'pwa-512.svg'],
+        includeAssets: ['pwa-logo.svg'],
         manifest: {
-          name: 'Expenses Mobile',
-          short_name: 'Expenses',
+          name: 'App Gastos',
+          short_name: 'Gastos',
           description: 'Registro rapido de gastos con soporte offline para mobile.',
           theme_color: '#1e2a39',
           background_color: '#f6f4eb',
