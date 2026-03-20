@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['pw-logo.svg'],
+        includeAssets: ['favico.svg', 'pw-logo.svg'],
         manifest: {
           name: 'App Gastos',
           short_name: 'Gastos',

@@ -7,7 +7,7 @@ import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
 import profileIcon from '../assets/icons/profile-icon.svg';
-import appLogoIcon from '../assets/logos/pw-logo.svg';
+import appLogoIcon from '../assets/logos/favico.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import { ApiError, setsApi } from '../lib/apiClient.js';
 import { getCachedGroupsMode, getCachedSets, setCachedGroupsMode, setCachedSets } from '../lib/localCache.js';
@@ -188,7 +188,7 @@ export default function HomePage() {
       <header className="safe-top border-b border-app-ink/0 bg-app-panel/80 px-4 pb-2 backdrop-blur">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <MonoIcon src={appLogoIcon} colorVar="--app-text-primary" className="h-6 w-6 shrink-0" />
+            <img src={appLogoIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
             {/* <h1 className="min-w-0 flex-1 truncate font-heading text-sm font-semibold uppercase tracking-wide text-app-ink">
               Grupos
             </h1> */}

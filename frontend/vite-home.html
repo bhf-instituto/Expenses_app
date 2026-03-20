@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favico.svg" />
     <link rel="shortcut icon" href="/favico.svg" />
@@ -13,7 +20,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Expenses" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="apple-touch-icon" href="/pw-logo.svg" />
+    <link rel="apple-touch-icon" href="/src/assets/logos/pw-logo.svg" />
     <title>Expenses Mobile</title>
   </head>
   <body>
@@ -21,3 +28,4 @@
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+

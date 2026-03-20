@@ -7,7 +7,7 @@ import pencilIcon from '../assets/icons/pencil-icon.svg';
 import closeLineIcon from '../assets/icons/close-line-icon.svg';
 import closeIcon from '../assets/icons/close-icon.svg';
 import profileIcon from '../assets/icons/profile-icon.svg';
-import appLogoIcon from '../assets/logos/pw-logo.svg';
+import appLogoIcon from '../assets/logos/favico.svg';
 import starEmptyIcon from '../assets/icons/star-empty-icon.svg';
 import starFullIcon from '../assets/icons/star-full-icon.svg';
 import arrowDoubleIcon from '../assets/icons/arrow-double-icon.svg';
@@ -2291,7 +2291,7 @@ export default function DesktopDashboardPage() {
         <div className="mb-4">
           <div className="flex items-center justify-between gap-2">
             <h1 className="flex items-center" aria-label="Grupos">
-              <MonoIcon src={appLogoIcon} colorVar="--app-text-primary" className="h-7 w-7" />
+              <img src={appLogoIcon} alt="" className="h-7 w-7 object-contain" />
             </h1>
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center">
