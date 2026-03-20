@@ -7,7 +7,7 @@ import pencilIcon from '../assets/icons/pencil-icon.svg';
 import closeLineIcon from '../assets/icons/close-line-icon.svg';
 import closeIcon from '../assets/icons/close-icon.svg';
 import profileIcon from '../assets/icons/profile-icon.svg';
-import appLogoIcon from '../assets/logos/logo.svg';
+import appLogoIcon from '../assets/logos/pw-logo.svg';
 import starEmptyIcon from '../assets/icons/star-empty-icon.svg';
 import starFullIcon from '../assets/icons/star-full-icon.svg';
 import arrowDoubleIcon from '../assets/icons/arrow-double-icon.svg';

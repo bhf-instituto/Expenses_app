@@ -7,7 +7,7 @@ import connectionIcon from '../assets/icons/connection-icon.svg';
 import offlineIcon from '../assets/icons/connection-offline-icon.svg';
 import pendingIcon from '../assets/icons/pending-icon.svg';
 import profileIcon from '../assets/icons/profile-icon.svg';
-import appLogoIcon from '../assets/logos/logo.svg';
+import appLogoIcon from '../assets/logos/pw-logo.svg';
 import MonoIcon from '../components/MonoIcon.jsx';
 import { ApiError, setsApi } from '../lib/apiClient.js';
 import { getCachedGroupsMode, getCachedSets, setCachedGroupsMode, setCachedSets } from '../lib/localCache.js';
