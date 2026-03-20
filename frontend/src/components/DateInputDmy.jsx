@@ -54,6 +54,16 @@ const maskDigitsAsDmy = (digits) => {
   return `${normalized.slice(0, 2)}/${normalized.slice(2, 4)}/${normalized.slice(4)}`;
 };
 
+const isIosDevice = () => {
+  if (typeof navigator === 'undefined') return false;
+
+  const userAgent = String(navigator.userAgent || '');
+  const platform = String(navigator.platform || '');
+
+  return /iPad|iPhone|iPod/.test(userAgent)
+    || (platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1);
+};
+
 export default function DateInputDmy({
   value,
   onChange,
@@ -66,6 +76,7 @@ export default function DateInputDmy({
 }) {
   const [displayValue, setDisplayValue] = useState(() => toDmyFromYmd(value));
   const nativeDateInputRef = useRef(null);
+  const useNativeOverlay = isIosDevice();
 
   useEffect(() => {
     setDisplayValue(toDmyFromYmd(value));
@@ -119,42 +130,70 @@ export default function DateInputDmy({
 
   return (
     <div className="relative w-full">
-      <input
-        type="text"
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder={placeholder}
-        value={displayValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        className={`${className || ''} pr-7`}
-        name={name}
-        id={id}
-        disabled={disabled}
-        required={required}
-      />
+      {useNativeOverlay ? (
+        <>
+          <div
+            className={`${className || ''} flex items-center pr-7 ${
+              displayValue ? 'text-app-ink' : 'text-app-muted'
+            } ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
+          >
+            {displayValue || placeholder}
+          </div>
+          <input
+            ref={nativeDateInputRef}
+            type="date"
+            value={nativeDateValue}
+            onChange={handleNativeDateChange}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+            name={name}
+            id={id}
+            disabled={disabled}
+            required={required}
+          />
+          <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-app-ink">
+            <MonoIcon src={triangleDownIcon} colorVar="--app-text-primary" className="h-3 w-3" />
+          </span>
+        </>
+      ) : (
+        <>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder={placeholder}
+            value={displayValue}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            className={`${className || ''} pr-7`}
+            name={name}
+            id={id}
+            disabled={disabled}
+            required={required}
+          />
 
-      <input
-        ref={nativeDateInputRef}
-        type="date"
-        value={nativeDateValue}
-        onChange={handleNativeDateChange}
-        tabIndex={-1}
-        aria-hidden="true"
-        className="pointer-events-none absolute h-0 w-0 opacity-0"
-      />
+          <input
+            ref={nativeDateInputRef}
+            type="date"
+            value={nativeDateValue}
+            onChange={handleNativeDateChange}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="pointer-events-none absolute h-0 w-0 opacity-0"
+          />
 
-      <button
-        type="button"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={openNativePicker}
-        disabled={disabled}
-        title="Abrir calendario"
-        aria-label="Abrir calendario"
-        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-app-ink transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        <MonoIcon src={triangleDownIcon} colorVar="--app-text-primary" className="h-3 w-3" />
-      </button>
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={openNativePicker}
+            disabled={disabled}
+            title="Abrir calendario"
+            aria-label="Abrir calendario"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-app-ink transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <MonoIcon src={triangleDownIcon} colorVar="--app-text-primary" className="h-3 w-3" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
