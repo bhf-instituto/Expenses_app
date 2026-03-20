@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'pwa-192.svg', 'pwa-512.svg'],
+        includeAssets: ['pwa-logo.svg', 'pwa-192.svg', 'pwa-512.svg'],
         manifest: {
           name: 'Expenses Mobile',
           short_name: 'Expenses',
@@ -29,12 +29,12 @@ export default defineConfig(({ mode }) => {
           scope: basePath,
           icons: [
             {
-              src: 'pwa-192.svg',
+              src: 'pwa-logo.svg',
               sizes: '192x192',
               type: 'image/svg+xml',
             },
             {
-              src: 'pwa-512.svg',
+              src: 'pwa-logo.svg',
               sizes: '512x512',
               type: 'image/svg+xml',
             },
