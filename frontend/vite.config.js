@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favico.svg', 'pw-logo.svg'],
+        includeAssets: ['favico.svg', 'pwa-192.png', 'pwa-512.png'],
         manifest: {
           name: 'App Gastos',
           short_name: 'Gastos',
@@ -29,14 +29,14 @@ export default defineConfig(({ mode }) => {
           scope: basePath,
           icons: [
             {
-              src: 'pw-logo.svg',
+              src: 'pwa-192.png',
               sizes: '192x192',
-              type: 'image/svg+xml',
+              type: 'image/png',
             },
             {
-              src: 'pw-logo.svg',
+              src: 'pwa-512.png',
               sizes: '512x512',
-              type: 'image/svg+xml',
+              type: 'image/png',
             },
           ],
         },
