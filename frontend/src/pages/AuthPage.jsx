@@ -1,18 +1,37 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError } from '../lib/apiClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import useDesktopViewport from '../hooks/useDesktopViewport.js';
 
+const DEMO_LOGIN_PRESETS = Object.freeze({
+  portfolio: {
+    email: 'test_01@gmail.com',
+    password: '12345678',
+    helperText: 'Demo portfolio activa. Las credenciales ya estan cargadas: solo hace click en Ingresar.',
+  },
+});
+
 export default function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, register, isOnline } = useAuth();
   const isDesktop = useDesktopViewport();
+  const demoPresetKey = String(searchParams.get('demo') || '').trim().toLowerCase();
+  const demoPreset = DEMO_LOGIN_PRESETS[demoPresetKey] || null;
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!demoPreset) return;
+    setMode('login');
+    setEmail(demoPreset.email);
+    setPassword(demoPreset.password);
+    setError('');
+  }, [demoPreset]);
 
   const onSubmit = async (event) => {
     event.preventDefault();
@@ -69,6 +88,12 @@ export default function AuthPage() {
             : 'Sin conexion. Solo podras entrar si ya tenias sesion local.'}
         </div> */}
 
+          {demoPreset ? (
+            <div className="rounded-2xl border border-app-sky/30 bg-app-sky/10 px-4 py-3 text-sm font-semibold text-app-ink">
+              {demoPreset.helperText}
+            </div>
+          ) : null}
+
           <form
             onSubmit={onSubmit}
             className={`animate-riseIn rounded-2xl border-0 bg-app-panel p-4 ${isDesktop ? '' : 'shadow-card'}`}
@@ -93,7 +118,7 @@ export default function AuthPage() {
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">Password</span>
                 <input
-                  type="password"
+                  type={demoPreset ? 'text' : 'password'}
                   required
                   minLength={8}
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
