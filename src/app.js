@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { json } from 'express';
 import cors from 'cors';
 import authRouter from './routes/auth.route.js';
 import inviteRouter from './routes/invite.route.js';
@@ -9,14 +9,9 @@ import healthRouter from './routes/health.route.js';
 import cookieParser from 'cookie-parser';
 import attachSession from './middlewares/attachSession.middleware.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
-import corsConfig, { applyCorsHeaders } from './config/cors.config.js';
+import corsConfig from './config/cors.config.js';
 
 const app = express();
-
-app.use((req, res, next) => {
-    applyCorsHeaders(req, res);
-    next();
-});
 
 app.use(cors(corsConfig))
 
